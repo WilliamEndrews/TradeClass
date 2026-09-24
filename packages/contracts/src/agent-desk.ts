@@ -23,8 +23,21 @@ export const AgentDeskBindingSchema = z.object({
   roomId: z.string().min(1),
   seatSlot: z.string().min(1),
   displayName: z.string().min(1),
+  /** Referencia opcional da sala no Lab (tema/palco). */
+  salaRef: z.string().min(1).optional(),
 });
 export type AgentDeskBinding = z.infer<typeof AgentDeskBindingSchema>;
+
+/**
+ * Contrato minimo assento ↔ agentId do backend (varios agentes por sala).
+ * `seatId` tipicamente = `${roomId}:${seatSlot}`.
+ */
+export const SeatAgentLinkSchema = z.object({
+  seatId: z.string().min(1),
+  agentId: z.string().min(1),
+  salaRef: z.string().min(1).optional(),
+});
+export type SeatAgentLink = z.infer<typeof SeatAgentLinkSchema>;
 
 export const ESPECIALIDADE_COR: Record<AgentSpecialty, string> = {
   macro: '#5eb8a0',
@@ -36,3 +49,15 @@ export const ESPECIALIDADE_COR: Record<AgentSpecialty, string> = {
   crypto: '#9b7dba',
   orchestrator: '#d47868',
 };
+
+export function seatIdDeBinding(b: Pick<AgentDeskBinding, 'roomId' | 'seatSlot'>): string {
+  return `${b.roomId}:${b.seatSlot}`;
+}
+
+export function linksDeBindings(bindings: readonly AgentDeskBinding[]): SeatAgentLink[] {
+  return bindings.map((b) => ({
+    seatId: seatIdDeBinding(b),
+    agentId: b.agentId,
+    salaRef: b.salaRef ?? b.roomId,
+  }));
+}

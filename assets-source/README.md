@@ -2,7 +2,7 @@
 
 > Materia-prima para o catalogo de assets do escritorio (mobilia, decoracao,
 > piso, vegetacao). O Vite da demo serve esta pasta como `publicDir`: o
-> atlas em `apps/demo/src/asset-atlas.ts` carrega PNGs daqui em runtime
+> atlas em `apps/room/src/asset-atlas.ts` carrega PNGs daqui em runtime
 > (`basePath` de cada pack em `packages/contracts/src/asset-catalog.ts`).
 >
 > Versionamento: binarios (`.png`, `.jpg`, `.fbx`, `.obj`, `.dae`, `.stl`,
@@ -44,11 +44,11 @@ mesma estrutura de proveniencia.
 ## Estado atual
 
 Pack ativo no renderer: **TinyHouse** (`tinyhouse-pixel-salvaje`). Constantes
-em `apps/demo/src/projecao.ts` (medidas 2026-08-16):
+em `apps/room/src/projecao.ts` (medidas 2026-08-16):
 
 - `LARGURA_TILE=128`, `ALTURA_TILE=64` (2:1, 1:1 com o canvas do pack)
 - Piso `ANCORA_PISO = {x:64, y:68}`; paredes/porta derivadas do pe de chao
-  em `apps/demo/src/calibracao-tinyhouse.json` (laboratorio
+  em `apps/room/src/calibracao-tinyhouse.json` (laboratorio
   `pnpm lab:iso`, `scripts/iso-validation/tinyhouse.html`)
 - Porta plano B: folha 1:1 sobre Wall_R, nao substitui o tile
 - `PX_POR_METRO=56`, `METROS_POR_CELULA~1.28` (aresta hypot(64,32)/56)

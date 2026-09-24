@@ -2,7 +2,7 @@
  * @tradeclass/iso-office
  *
  * Pipeline do escritorio isometrico do lab (painter, temas, 1 Boss + 1 copa),
- * sem o shell do Debugpreview. Cliente e servidor usam as mesmas funcoes.
+ * sem o shell do Viewtest. Cliente e servidor usam as mesmas funcoes.
  */
 
 export {
@@ -68,6 +68,8 @@ export {
 
 export {
   montarMundoIso,
+  montarMundoDaPlanta,
+  ancorarElencoNaPlanta,
   agenciaDeLayout,
   elencoIdsDoLayout,
   elencoParaPlanta,
@@ -75,6 +77,7 @@ export {
   resolverColisaoLab,
   COLAR_LAB,
   AGENTE_PLACEHOLDER,
+  PLANTA_PADRAO_TRADECLASS,
   type MundoIso,
 } from './montar-mundo';
 

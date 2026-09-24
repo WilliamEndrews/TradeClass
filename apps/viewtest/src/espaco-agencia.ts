@@ -157,14 +157,14 @@ export function construirEspacoAgencia(agencia: AgenciaMontada): CenarioEspacial
   }
 
   const layout: OfficeLayout = {
-    officeId: `debugpreview-${agencia.seed}`,
+    officeId: `viewtest-${agencia.seed}`,
     seed: agencia.seed >>> 0,
     grid: { ...agencia.grid },
     rooms,
     props,
     decor: [],
     corridors: agencia.corridors.map((c) => ({ ...c })),
-    theme: { name: 'debugpreview', palette: [], greenery: 0.3 },
+    theme: { name: 'viewtest', palette: [], greenery: 0.3 },
     walls: [],
     wallMounts,
     wallMedia,

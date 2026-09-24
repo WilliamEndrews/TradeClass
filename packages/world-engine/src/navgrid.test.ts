@@ -1,6 +1,6 @@
 /**
  * Testes dedicados ao NavGrid - antes desta suite so existiam testes
- * indiretos via `layout-solver.test.ts` (footprint) e via debugpreview.
+ * indiretos via `layout-solver.test.ts` (footprint) e via Viewtest.
  *
  * Foco: a porta e a UNICA passagem entre uma sala e o resto do mundo -
  * nao so a celula da porta e caminhavel, a TRAVESSIA para fora da sala em

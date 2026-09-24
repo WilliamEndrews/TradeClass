@@ -25,12 +25,12 @@ export const COPAS_OBRIGATORIAS = 1;
 
 /** Seed estavel so a partir do pedido (testes / repro sem geracao). */
 export function seedDoPedido(pedido: PedidoGeracao): number {
-  return hashString(`debugpreview:${pedido.salas}`);
+  return hashString(`viewtest:${pedido.salas}`);
 }
 
 /** Seed de uma geracao concreta (pedido + geracao + salt). */
 export function seedDaGeracao(pedido: PedidoGeracao, geracao: number, salt: number): number {
-  return hashString(`debugpreview:${pedido.salas}#${geracao}:${salt >>> 0}`);
+  return hashString(`viewtest:${pedido.salas}#${geracao}:${salt >>> 0}`);
 }
 
 export function saltAleatorio(): number {
@@ -73,7 +73,7 @@ export function escolherTemaPonderado(
 }
 
 /**
- * Leis do Debugpreview:
+ * Leis do Viewtest (legado RNG):
  * - N salas no pedido => 1 Boss Room + (N-1) privativos (N >= 1)
  * - sempre exatamente 1 copa (break)
  */
@@ -82,7 +82,7 @@ export function selecionarPedido(pedido: PedidoGeracao, seed?: number): ProtoEsc
   if (salas <= 0) return [];
 
   const semente = seed ?? seedDoPedido({ salas });
-  const rng = createRng(semente).fork('debugpreview');
+  const rng = createRng(semente).fork('viewtest');
   const unicos = new Set<string>();
   const out: ProtoEscolhido[] = [];
 

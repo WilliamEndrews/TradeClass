@@ -1,5 +1,5 @@
 /**
- * RENDERIZADOR ISO DO DEMO — painter do lab + Klimmos + oclusao.
+ * RENDERIZADOR ISO DO ROOM — painter do lab + Klimmos + oclusao.
  *
  * Nao desenha heat/fila/lixo/luz/fumaca (cortados neste ciclo).
  * A fronteira e a mesma do renderer antigo: recebe layout + quadros e pinta.
@@ -28,6 +28,11 @@ import {
   type CenaIsoPreparada,
 } from '@tradeclass/iso-office';
 import { CALIBRACAO_PADRAO } from '@tradeclass/world-engine';
+import {
+  CAMERA_ZOOM_INICIAL,
+  CAMERA_ZOOM_MAX,
+  CAMERA_ZOOM_MIN,
+} from './camera-zoom';
 import { blitCandles, gerarSerieOHLCV } from './ohlcv-mock';
 import type { SelecaoAlvo } from './selection';
 import type { ViewTransform } from './wall-media-overlay';
@@ -147,7 +152,7 @@ export async function criarRenderer(
     }
   };
 
-  const camera: Camera = { zoom: 1, panX: 0, panY: 0, seguirAgente: null };
+  const camera: Camera = { zoom: CAMERA_ZOOM_INICIAL, panX: 0, panY: 0, seguirAgente: null };
   let escalaBase = 1;
   let deslocX = 0;
   let deslocY = 0;
@@ -250,7 +255,7 @@ export async function criarRenderer(
   const onWheel = (e: WheelEvent): void => {
     e.preventDefault();
     const fator = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-    const novoZoom = Math.max(0.4, Math.min(4, camera.zoom * fator));
+    const novoZoom = Math.max(CAMERA_ZOOM_MIN, Math.min(CAMERA_ZOOM_MAX, camera.zoom * fator));
     const rect = canvas.getBoundingClientRect();
     const cx = e.clientX - rect.left;
     const cy = e.clientY - rect.top;
@@ -293,7 +298,7 @@ export async function criarRenderer(
   };
 
   const onDoubleClick = (): void => {
-    camera.zoom = 1;
+    camera.zoom = CAMERA_ZOOM_INICIAL;
     camera.panX = 0;
     camera.panY = 0;
     camera.seguirAgente = null;
@@ -388,7 +393,7 @@ export async function criarRenderer(
       camera.seguirAgente = id;
     },
     resetCamera: () => {
-      camera.zoom = 1;
+      camera.zoom = CAMERA_ZOOM_INICIAL;
       camera.panX = 0;
       camera.panY = 0;
       camera.seguirAgente = null;

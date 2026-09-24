@@ -22,11 +22,11 @@ Alem de servir arquivos da raiz do repo, expoe:
 - `POST /api/temas-arquiteto` — grava a biblia no disco ao salvar/apagar tema
 - `POST /api/combinacoes-laboratorio` — grava combos no disco ao salvar tema ou combinacao
 
-O **Debugpreview** le `catalogo-laboratorio.json` **e** `combinacoes-laboratorio.json`
+O **Viewtest** le `catalogo-laboratorio.json` **e** `combinacoes-laboratorio.json`
 (mesma regra do lab: `specPorId` = assets + combos).
 
 O servidor precisa ser a raiz do repo: o HTML busca os PNGs em
-`assets-source/`, a calibracao em `apps/demo/src/calibracao-tinytraderlab.json`
+`assets-source/`, a calibracao em `apps/room/src/calibracao-tinytraderlab.json`
 e o catalogo em `scripts/iso-validation/catalogo-laboratorio.json`.
 Temas do Construtor: `packages/world-engine/src/biblia/temas-arquiteto.json`.
 Combos: `scripts/iso-validation/combinacoes-laboratorio.json`.
@@ -218,7 +218,7 @@ a malha 0.5 e um passo a parte (invariantes de navgrid).
   diamante de chao do sprite - prega no vertice NW da celula (`iso(gx, gy)`),
   o mesmo esquadro amarelo das paredes. Plantar na celula 0,0 para conferir.
 
-Numeros em `apps/demo/src/calibracao-tinytraderlab.json` (`objetos.desk` /
+Numeros em `apps/room/src/calibracao-tinytraderlab.json` (`objetos.desk` /
 `objetos.water`). A demo (`sprite-factory.ts`) le esses valores. Olhometro
 aqui, F5, depois a demo.
 
@@ -226,7 +226,7 @@ aqui, F5, depois a demo.
 
 1. Ligue **diagnostico** (amarelo = perimetro 3x3, magenta = bbox da parede).
 2. Se o pe ou a folga da porta mudar, grave os numeros em
-   `apps/demo/src/calibracao-tinytraderlab.json`.
+   `apps/room/src/calibracao-tinytraderlab.json`.
 3. Recarregue o laboratorio (ele le o JSON) e a demo em `?agents=1` / `?agents=7`.
 4. Nao chute ancora em `projecao.ts`: ela deriva do JSON (`ancoraDePe`).
 

@@ -1,10 +1,12 @@
 /**
- * Debugpreview — bancada isolada para colar temas do lab no blueprint.
+ * Viewtest — bancada Lab → calibracao/painter (plantas fixas).
+ * RNG legado fica oculto (details); caminho principal = planta do Lab.
  */
 
-import { useRef, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   carregarPlanta,
+  elencoDaPlanta,
   listarPlantas,
   type AgenciaMontada as AgenciaPlanta,
 } from '@tradeclass/iso-office/planta';
@@ -21,6 +23,8 @@ import { sortearHistoria } from './tarefa-especial/sortear';
 const HISTORICO_MAX = 8;
 const TENTATIVAS_MAX = 12;
 const PLANTAS = listarPlantas();
+/** Flag: UI RNG so aparece se true (legado / nao usar no TradeClass). */
+const LEGADO_RNG = false;
 
 export default function App() {
   const [plantaId, setPlantaId] = useState(PLANTAS[0]?.id ?? 'macro-desk');
@@ -29,20 +33,37 @@ export default function App() {
   const [vazioSemTemas, setVazioSemTemas] = useState(false);
   const [geracao, setGeracao] = useState(0);
   const [tarefaEspecial, setTarefaEspecial] = useState<Historia | null>(null);
+  const [elencoIds, setElencoIds] = useState<string[]>([]);
   const historicoRef = useRef<string[]>([]);
+  const carregouRef = useRef(false);
 
-  function aplicarAgencia(escolhida: AgenciaMontada | AgenciaPlanta | null) {
+  function aplicarAgencia(
+    escolhida: AgenciaMontada | AgenciaPlanta | null,
+    ids?: string[],
+  ) {
     setAgencia(escolhida as AgenciaMontada | null);
     setVazioSemTemas(escolhida !== null && escolhida.slots.length === 0);
+    setElencoIds(ids ?? []);
   }
+
+  function carregarPlantaLab(id: string, proxima: number) {
+    setTarefaEspecial(null);
+    const escolhida = carregarPlanta(id, 20260915 + proxima);
+    aplicarAgencia(escolhida, elencoDaPlanta(id));
+  }
+
+  useEffect(() => {
+    if (carregouRef.current) return;
+    carregouRef.current = true;
+    carregarPlantaLab(plantaId, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function onCarregarPlanta(ev: FormEvent) {
     ev.preventDefault();
-    setTarefaEspecial(null);
     const proxima = geracao + 1;
     setGeracao(proxima);
-    const escolhida = carregarPlanta(plantaId, 20260915 + proxima);
-    aplicarAgencia(escolhida);
+    carregarPlantaLab(plantaId, proxima);
   }
 
   function gerarAgencia(pedido: PedidoGeracao, proxima: number): AgenciaMontada | null {
@@ -103,20 +124,22 @@ export default function App() {
     setVazioSemTemas(false);
     setGeracao(0);
     setTarefaEspecial(null);
+    setElencoIds([]);
     historicoRef.current = [];
+    carregarPlantaLab(PLANTAS[0]?.id ?? 'macro-desk', 0);
   }
 
   return (
     <div className="shell">
       <header className="chrome">
         <div className="chrome-brand">
-          <h1 className="brand">Debugpreview</h1>
-          <p className="tagline">bancada de tilesets</p>
+          <h1 className="brand">Viewtest</h1>
+          <p className="tagline">Lab → painter · planta fixa</p>
         </div>
 
-        <form className="dash" onSubmit={onCarregarPlanta} aria-label="Planta fixa">
+        <form className="dash" onSubmit={onCarregarPlanta} aria-label="Planta fixa do Lab">
           <label className="dash-field">
-            <span className="dash-q">Planta</span>
+            <span className="dash-q">Planta Lab</span>
             <select
               className="dash-input"
               name="planta"
@@ -131,7 +154,7 @@ export default function App() {
             </select>
           </label>
           <p className="dash-hint" title="Catalogo fixo sem RNG">
-            plantas fixas (sem spam)
+            modelo Lab (sem N salas)
           </p>
           <button className="dash-gerar" type="submit">
             Carregar planta
@@ -141,37 +164,40 @@ export default function App() {
           </button>
         </form>
 
-        <form className="dash" onSubmit={onGerarSpam} aria-label="Pedido de geracao RNG">
-          <label className="dash-field">
-            <span className="dash-q">Gerar N salas (legado)</span>
-            <input
-              className="dash-input"
-              type="number"
-              name="salas"
-              min={1}
-              step={1}
-              value={salas}
-              onChange={(e) => setSalas(Number(e.target.value))}
-            />
-          </label>
-          <button className="dash-tarefa" type="submit" title="Selecao RNG de temas">
-            Gerar RNG
-          </button>
-          <button
-            className="dash-tarefa"
-            type="button"
-            onClick={onTarefaEspecial}
-            title="Sorteia uma historia colaborativa com 3 agentes"
-          >
-            Tarefa especial
-          </button>
-        </form>
+        {LEGADO_RNG && (
+          <form className="dash" onSubmit={onGerarSpam} aria-label="Pedido de geracao RNG legado">
+            <label className="dash-field">
+              <span className="dash-q">Gerar N salas (legado)</span>
+              <input
+                className="dash-input"
+                type="number"
+                name="salas"
+                min={1}
+                step={1}
+                value={salas}
+                onChange={(e) => setSalas(Number(e.target.value))}
+              />
+            </label>
+            <button className="dash-tarefa" type="submit" title="Selecao RNG de temas">
+              Gerar RNG
+            </button>
+            <button
+              className="dash-tarefa"
+              type="button"
+              onClick={onTarefaEspecial}
+              title="Sorteia uma historia colaborativa com 3 agentes"
+            >
+              Tarefa especial
+            </button>
+          </form>
+        )}
       </header>
       <main className="stage-wrap">
         <PreviewStage
           agencia={agencia}
           vazioSemTemas={vazioSemTemas}
           tarefaEspecial={tarefaEspecial}
+          elencoIds={elencoIds}
         />
       </main>
     </div>

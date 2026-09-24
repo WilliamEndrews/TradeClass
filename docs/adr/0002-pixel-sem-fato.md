@@ -2,7 +2,7 @@
 
 - Status: Aceita
 - Data: 2026-08-05
-- Contexto do produto: `apps/demo/src/App.tsx`, `apps/demo/src/office-renderer-2d.ts`
+- Contexto do produto: `apps/room/src/App.tsx`, `apps/room/src/office-renderer-2d.ts`
 
 ## Contexto
 

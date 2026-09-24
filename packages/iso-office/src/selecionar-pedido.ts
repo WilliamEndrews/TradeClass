@@ -73,7 +73,7 @@ export function escolherTemaPonderado(
 }
 
 /**
- * Leis da planta (iguais ao Debugpreview):
+ * Leis da planta (iguais ao Viewtest):
  * - N salas no pedido => 1 Boss Room + (N-1) privativos (N >= 1)
  * - sempre exatamente 1 copa (break)
  */

@@ -21,7 +21,7 @@
 5. Antes de desenhar UI, checar "UX/UI e acessibilidade".
 6. Nunca adotar uma skill nova sem antes confrontar com as convencoes do repo
    (secao "Convencoes intocaveis").
-7. Sempre que editar codigo **portavel** em `apps/debugpreview/src/`, seguir a
+7. Sempre que editar codigo **portavel** em `apps/viewtest/src/`, seguir a
    rotina Sink (abaixo e no fluxo §9) — perguntar antes de sync ou enfileirar.
 
 ---
@@ -159,12 +159,12 @@ ADR.
 | --- | --- |
 | `packages/contracts` | 5 contratos: domain-events, layout, world, wire, tenant. Duplicar tipo e bug. |
 | `packages/world-engine` | Motor autoritativo: WorldEngine, Narrative Scheduler, layout solver, navgrid, agentes arquiteto/decorador. |
-| `packages/iso-office` | Painter/planta iso do Demo (copia adaptada do lab). Seed `demo:`; sem shell Debugpreview. |
+| `packages/iso-office` | Painter/planta iso do Demo (copia adaptada do lab). Seed `demo:`; sem shell Viewtest. |
 | `packages/iso-characters` | Klimmos (compose Idle/Walk/Sit) para atores. |
 | `packages/synthetic` | Gerador de telemetria de demo (7 agentes). |
 | `apps/server` | Node.js: HTTP REST + WebSocket multi-tenant, auth JWT + RBAC, audit, alertas, replay. |
-| `apps/demo` | React + Vite + Canvas 2D: renderer iso, painel, i18n, world-source. |
-| `apps/debugpreview` | Bancada visual do lab (Gerar salas, tarefa especial, RosaVentos). Nao e OTLP. |
+| `apps/room` | React + Vite + Canvas 2D: renderer iso, painel, i18n, world-source. |
+| `apps/viewtest` | Bancada visual do lab (Gerar salas, tarefa especial, RosaVentos). Nao e OTLP. |
 | `apps/landing` | Landing iso (`zonaKind: landing`) + onboarding de duas portas + ponte OTLP antes da demo. |
 
 ### Frontend
@@ -343,7 +343,7 @@ geometria deterministica por seed. O LLM nunca toca em coordenadas (ADR-0004).
 - Projecao dimetrica 2:1; piso por tipo de sala; paredes nas faces
   norte/oeste. Ajuste visual de tile TinyTraderLab passa pelo laboratorio
   (`pnpm lab:iso`, `scripts/iso-validation/TinyTraderLab.html`); numeros
-  gravados em `apps/demo/src/calibracao-tinytraderlab.json`. Nao chutar ancora
+  gravados em `apps/room/src/calibracao-tinytraderlab.json`. Nao chutar ancora
   em `projecao.ts` - a ancora deriva do JSON.
 - Pathfinding A* (`navgrid.ts`) + avoidance para atores nao se atropelarem.
 - Customizacao de personagens: layers (cabelo, roupa, acessorios, expressao);
@@ -453,9 +453,9 @@ Ao iniciar qualquer tarefa no TradeClass:
 10. **Mensagens ao dono do produto**: em portugues, traduzindo qualquer termo
     externo. Codigo e comentarios: portugues ASCII-only.
 
-### 9.1 Sink iso (Debugpreview → Demo)
+### 9.1 Sink iso (Viewtest → Demo)
 
-O Demo e o Debugpreview **nao** compartilham codigo de painter. Mudancas de
+O Demo e o Viewtest **nao** compartilham codigo de painter. Mudancas de
 logica no lab (oclusao, blit, labels, strip Wall_L, etc.) **nao** chegam ao
 Demo sozinhas. Temas/catalogo JSON compartilhados sincronizam sozinhos e
 **nao** entram no Sink.
@@ -469,7 +469,7 @@ Demo sozinhas. Temas/catalogo JSON compartilhados sincronizam sozinhos e
 `tarefa-especial/*`, `simulacao-agentes*`, CSS blueprint.
 
 Sempre que a tarefa **criar ou editar** arquivos portaveis em
-`apps/debugpreview/src/`, o agente **para e pergunta** ao dono do produto:
+`apps/viewtest/src/`, o agente **para e pergunta** ao dono do produto:
 
 1. **Sim, sincronizar agora** — portar para `packages/iso-office` preservando
    adaptacoes (`demo:` seed, labels off, fill `#f4f1ea`, sem overlay D/W /
@@ -509,7 +509,7 @@ Frases do usuario:
   (sintetico e com cliente real). Ler ANTES de propor nova arquitetura ou
   afirmar que algo "falta"/"ja existe".
 - `docs/roadmap.md` - documento vivo; planejamento e status por fase.
-- `docs/sink-iso.md` - fila de sync seletivo Debugpreview → `iso-office` / Demo.
+- `docs/sink-iso.md` - fila de sync seletivo Viewtest → `iso-office` / Demo.
 - `docs/adr/` - decisoes arquiteturais:
   - `0008-sprites-pre-renderizados.md` - arte pre-renderizada, renderer
     agnostico a origem do sprite.
@@ -524,7 +524,7 @@ Frases do usuario:
 - `packages/world-engine/src/` - WorldEngine, Narrative Scheduler, layout
   solver, navgrid, agentes arquiteto/decorador.
 - `packages/iso-office/src/` - painter/planta iso consumidos pelo Demo.
-- `apps/debugpreview/src/` - bancada do lab (oraculo visual; nao e OTLP).
+- `apps/viewtest/src/` - bancada do lab (oraculo visual; nao e OTLP).
 
 ---
 
@@ -543,8 +543,8 @@ Frases do usuario:
 - Nao criar arquivo de documentacao para descrever mudanca pontual - usar ADR
   ou atualizar o roadmap. (Excecao: este arquivo, o Sink iso e regras Cursor
   persistentes.)
-- Nao editar codigo portavel em `apps/debugpreview` sem perguntar sync Demo /
+- Nao editar codigo portavel em `apps/viewtest` sem perguntar sync Demo /
   registrar a decisao em `docs/sink-iso.md`.
-- Nao sincronizar shell do Debugpreview (Gerar salas, tarefa especial,
+- Nao sincronizar shell do Viewtest (Gerar salas, tarefa especial,
   RosaVentos, CSS blueprint) para o Demo.
-- Nao fazer sync silencioso Debugpreview → `iso-office` sem decisao do dono.
+- Nao fazer sync silencioso Viewtest → `iso-office` sem decisao do dono.

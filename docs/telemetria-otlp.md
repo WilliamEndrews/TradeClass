@@ -19,7 +19,7 @@ POST /v1/traces (JSON)
   → OtlpIngestor (@tradeclass/world-engine)
   → OfficeSession.tick → WorldEngine.ingest
   → NarrativeScheduler (heat / incident / approval)
-  → WebSocket /mundo → apps/demo (painter iso + Klimmos; HITL no painel)
+  → WebSocket /mundo → apps/room (painter iso + Klimmos; HITL no painel)
 ```
 
 | Peca | Status |
@@ -31,7 +31,7 @@ POST /v1/traces (JSON)
 | Heat / smoke / `waiting_approval` | Funciona via DomainEvents |
 | Auto-reseed de layout ao descobrir agentes | **Feito** — `OfficeSession` remesha via `montarMundoIso` quando a assinatura do elenco muda |
 | Canvas heat / smoke / fila / lixo / luz | **Cortado no Demo** neste ciclo (painter do lab). Continua no scheduler |
-| `apps/debugpreview` | **Fora** deste pipeline (bancada; ver secao abaixo) |
+| `apps/viewtest` | **Fora** deste pipeline (bancada; ver secao abaixo) |
 
 ## Contrato GenAI (o que o codigo le)
 
@@ -61,7 +61,7 @@ npx pnpm --filter @tradeclass/server dev
 .\scripts\setup-otlp-tenant.ps1
 
 # Terminal 3 — demo apontando para esse tenant
-npx pnpm --filter @tradeclass/demo dev
+npx pnpm --filter @tradeclass/room dev
 
 # Terminal 4 — dispara a fixture
 npm run telemetria:enviar
@@ -99,7 +99,7 @@ Arquivos:
 
 - Heat / pilha / luz / lixo / fumaca no canvas (cortados; voltam na camada de clima)
 - Labels pixel-perfect dos display names no canvas
-- `apps/debugpreview` reagindo a OTLP
+- `apps/viewtest` reagindo a OTLP
 
 ## Remesh automatico da planta
 
@@ -122,24 +122,24 @@ Demo a reconstruir o painter. Zelador/tecnico nao ocupam sala.
 
 O simulador em `scripts/test_agency_telemetry.py` ja usa o dialeto correto.
 
-## Plano de testes do debugpreview (pipeline separado)
+## Plano de testes do Viewtest (pipeline separado)
 
-O debugpreview **nao** consome OTLP / WorldEngine / NarrativeScheduler. Ele e
+O Viewtest **nao** consome OTLP / WorldEngine / NarrativeScheduler. Ele e
 um laboratorio isometrico com simulacao local (`SimulacaoAgentes` /
 `SimulacaoTarefaEspecial`) + painter + Klimmos. Validar telemetria la e o
 endereco errado.
 
-### O que testar no debugpreview
+### O que testar no Viewtest
 
 ```powershell
 # Unit / integracao local (sem server)
-npm run test:debugpreview
+npm run test:viewtest
 
 # Typecheck do app
-cd apps/debugpreview; ..\..\node_modules\.bin\tsc.cmd --noEmit -p tsconfig.json
+cd apps/viewtest; ..\..\node_modules\.bin\tsc.cmd --noEmit -p tsconfig.json
 
 # Manual — UI
-npx pnpm --filter @tradeclass/debugpreview dev
+npx pnpm --filter @tradeclass/viewtest dev
 ```
 
 Checklist manual (apos as refinacoes Klimmos / oclusao / passeio):
@@ -157,12 +157,12 @@ Checklist manual (apos as refinacoes Klimmos / oclusao / passeio):
 |---------|--------------|
 | OTLP → DomainEvent → HITL / remesh de mesas | `server` + `demo` + scripts deste doc |
 | Painter / Klimmos / oclusao / 1 Boss+copa no produto | `demo` (`@tradeclass/iso-office`) |
-| Gerar salas / tarefa especial / blueprint | `debugpreview` (oraculo, nao pipeline) |
+| Gerar salas / tarefa especial / blueprint | `Viewtest` (oraculo, nao pipeline) |
 
 ## Scripts npm (raiz)
 
 ```powershell
 npm run telemetria:dry      # valida fixture offline
 npm run telemetria:enviar   # cria/usa tenant + POST /v1/traces
-npm run test:debugpreview   # vitest do laboratorio isometrico
+npm run test:viewtest   # vitest do laboratorio isometrico
 ```

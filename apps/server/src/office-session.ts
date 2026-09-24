@@ -43,7 +43,8 @@ import { SyntheticStream } from '@tradeclass/synthetic';
 import {
   AGENTE_PLACEHOLDER,
   assinaturaElencoDe,
-  montarMundoIso,
+  montarMundoDaPlanta,
+  PLANTA_PADRAO_TRADECLASS,
   resolverColisaoLab,
 } from '@tradeclass/iso-office/planta';
 
@@ -272,13 +273,14 @@ export class OfficeSession {
     const agentes = this.elencoAtual();
     this.elencoAssinatura = assinaturaElencoDe(agentes);
 
-    const mundo = montarMundoIso(seed, agentes);
+    // Planta fixa Lab: mudanca de elenco so reancora assentos (sem N salas).
+    const mundo = montarMundoDaPlanta(PLANTA_PADRAO_TRADECLASS, seed, agentes);
     this.layout_ = mundo.layout;
     this.violacoes_ = validarLayout(this.layout_);
 
     this.engine = new WorldEngine({
       layout: this.layout_,
-      agents: agentes,
+      agents: mundo.elenco,
       seed,
       resolverColisao: resolverColisaoLab(),
     });

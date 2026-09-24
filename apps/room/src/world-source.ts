@@ -33,7 +33,11 @@ import {
   type Violacao,
 } from '@tradeclass/world-engine';
 import { SyntheticStream, type SyntheticOptions } from '@tradeclass/synthetic';
-import { montarMundoIso, resolverColisaoLab } from '@tradeclass/iso-office';
+import {
+  montarMundoDaPlanta,
+  PLANTA_PADRAO_TRADECLASS,
+  resolverColisaoLab,
+} from '@tradeclass/iso-office';
 import { anexarWallMediaDemo } from './wall-media-demo';
 
 /** Passo de simulacao: 10 Hz. Mesmo valor no navegador e no servidor. */
@@ -121,7 +125,11 @@ const ELENCO_1_AGENTE: SyntheticOptions['elencoCustomizado'] = [
   { id: 'agent-triagem', nome: 'Triagem', role: 'guardian', framework: 'langgraph', taxa: 0.4, duracao: 2600, erro: 0.04, custo: 0.004, modelo: 'gpt-4o-mini' },
 ];
 
-export function criarFonteLocal(seed: number, agentes?: number): WorldSource {
+export function criarFonteLocal(
+  seed: number,
+  agentes?: number,
+  plantaId: string = PLANTA_PADRAO_TRADECLASS,
+): WorldSource {
   const opts: SyntheticOptions = { seed, comRoteiro: true };
   if (agentes === 1) {
     opts.elencoCustomizado = ELENCO_1_AGENTE;
@@ -133,12 +141,13 @@ export function criarFonteLocal(seed: number, agentes?: number): WorldSource {
     opts.quantidadeAgentes = agentes;
   }
   const stream = new SyntheticStream(opts);
-  const mundo = montarMundoIso(seed, stream.agents);
+  // Layout fixo do Lab: N agentes so preenche assentos, nao remonta a grade.
+  const mundo = montarMundoDaPlanta(plantaId, seed, stream.agents);
   const layout = anexarWallMediaDemo(mundo.layout);
   const violacoes = validarLayout(layout);
   const engine = new WorldEngine({
     layout,
-    agents: stream.agents,
+    agents: mundo.elenco,
     seed,
     resolverColisao: resolverColisaoLab(),
   });

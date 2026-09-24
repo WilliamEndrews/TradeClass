@@ -3,11 +3,11 @@
 exports[`cena isometrica global > mantem snapshot estrutural para uma seed fixa 1`] = `
 {
   "comandosPorTipo": {
-    "catalog": 170,
+    "catalog": 166,
     "label": 4,
     "threshold": 2,
     "tile": 77,
-    "vertex": 51,
+    "vertex": 54,
   },
   "corredorY": 4,
   "grid": {
@@ -16,7 +16,7 @@ exports[`cena isometrica global > mantem snapshot estrutural para uma seed fixa 
   },
   "slots": [
     {
-      "key": "private-0-sala-simples2-new",
+      "key": "private-0-sala-completa-piso-azul-new",
       "rect": {
         "x0": 1,
         "x1": 5,

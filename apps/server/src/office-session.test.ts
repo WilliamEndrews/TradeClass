@@ -140,7 +140,7 @@ describe('OfficeSession', () => {
     );
   });
 
-  it('remesha a planta quando o elenco OTLP cresce e atribui mesas', () => {
+  it('reancora assentos quando o elenco OTLP cresce (planta fixa Lab)', () => {
     const agentes: Array<{
       agentId: string;
       displayName: string;
@@ -156,9 +156,9 @@ describe('OfficeSession', () => {
       poll: () => [],
     };
     const s = new OfficeSession({ seed: 11, fonteEventos: fonte });
-    const officeAntes = s.layout.officeId;
+    const roomsAntes = s.layout.rooms.length;
     expect(s.layout.rooms.filter((r) => r.kind === 'boss_room')).toHaveLength(1);
-    expect(s.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(0);
+    expect(s.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(1);
     expect(s.layout.rooms.filter((r) => r.kind === 'break')).toHaveLength(1);
 
     agentes.push(
@@ -189,15 +189,13 @@ describe('OfficeSession', () => {
     );
     const quadro = s.tick();
     expect(quadro!.kind).toBe('snapshot');
-    expect(s.layout.officeId).not.toBe(officeAntes);
-    expect(s.layout.rooms.filter((r) => r.kind === 'boss_room')).toHaveLength(1);
-    expect(s.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(2);
-    expect(s.layout.rooms.filter((r) => r.kind === 'break')).toHaveLength(1);
+    // Geometria da planta nao escala com N agentes.
+    expect(s.layout.rooms.length).toBe(roomsAntes);
+    expect(s.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(1);
     const donos = s.layout.props
       .filter((p) => p.kind === 'desk' && p.ownerAgentId)
-      .map((p) => p.ownerAgentId);
-    expect(donos.sort()).toEqual(
-      ['agent_analista_02', 'agent_gerente_03', 'agent_triador_01'].sort(),
-    );
+      .map((p) => p.ownerAgentId!);
+    expect(donos).toContain('agent_gerente_03');
+    expect(donos.length).toBeGreaterThan(0);
   });
 });

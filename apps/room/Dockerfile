@@ -1,4 +1,4 @@
-# Imagem de desenvolvimento para o demo MicroFirma
+# Imagem de desenvolvimento para o Room (TradeClass)
 FROM node:22-slim
 
 # Instala pnpm
@@ -9,7 +9,7 @@ WORKDIR /app
 # Copia arquivos de gerenciamento do workspace
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json turbo.json tsconfig.base.json tsconfig.json ./
 COPY apps/server/package.json ./apps/server/
-COPY apps/demo/package.json ./apps/demo/
+COPY apps/room/package.json ./apps/room/
 COPY packages/contracts/package.json ./packages/contracts/
 COPY packages/world-engine/package.json ./packages/world-engine/
 COPY packages/synthetic/package.json ./packages/synthetic/
@@ -19,10 +19,10 @@ RUN pnpm install --frozen-lockfile
 
 # Copia codigo fonte
 COPY apps/server ./apps/server
-COPY apps/demo ./apps/demo
+COPY apps/room ./apps/room
 COPY packages ./packages
 COPY scripts/docker-demo-entrypoint.mjs ./scripts/
 
-WORKDIR /app/apps/demo
+WORKDIR /app/apps/room
 
 ENTRYPOINT ["node", "/app/scripts/docker-demo-entrypoint.mjs"]

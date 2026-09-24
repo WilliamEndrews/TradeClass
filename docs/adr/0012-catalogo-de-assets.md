@@ -2,7 +2,7 @@
 
 - Status: Aceita (direcao aprovada pelo dono do produto em 2026-08-10; implementacao EM ANDAMENTO - ver `docs/plano-mestre-mvp.md` secao 6 para o que ja foi feito de cada passo da ordem de execucao)
 - Data: 2026-08-10
-- Contexto do produto: `apps/demo/src/sprite-factory.ts`, `apps/demo/src/office-renderer-2d.ts`, `packages/contracts/src/layout.ts`, `packages/world-engine/src/layout-solver.ts`, `packages/world-engine/src/themes.ts`
+- Contexto do produto: `apps/room/src/sprite-factory.ts`, `apps/room/src/office-renderer-2d.ts`, `packages/contracts/src/layout.ts`, `packages/world-engine/src/layout-solver.ts`, `packages/world-engine/src/themes.ts`
 - Relacionada a: ADR-0002 (nenhum pixel sem fato), ADR-0004 (LLM nao gera coordenadas), ADR-0005 (LLM nunca critico), ADR-0008 (sprites pre-renderizados), ADR-0009 (canvas nunca e fonte unica), ADR-0010 (renderer Canvas 2D)
 
 ## Contexto

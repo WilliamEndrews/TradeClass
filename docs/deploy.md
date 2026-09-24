@@ -15,17 +15,17 @@ $env:TRADECLASS_REPLAY_DIR=".\replays"
 pnpm --filter @tradeclass/server start
 
 # Em outro terminal, sobe a demo
-pnpm --filter @tradeclass/demo dev
+pnpm --filter @tradeclass/room dev
 ```
 
 ## Ambiente Windows (PowerShell 5.1+)
 
 ```powershell
 .\scripts\setup-demo.ps1
-pnpm --filter @tradeclass/demo dev
+pnpm --filter @tradeclass/room dev
 ```
 
-O `setup-demo.ps1` cria um tenant, gera o JWT e escreve `apps/demo/.env.local` com as URLs apontando para `127.0.0.1`.
+O `setup-demo.ps1` cria um tenant, gera o JWT e escreve `apps/room/.env.local` com as URLs apontando para `127.0.0.1`.
 
 ## Docker Compose
 

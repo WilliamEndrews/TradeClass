@@ -2,7 +2,7 @@
  * Medicao e2e da telemetria OTLP com amostragem a cada 1ms do estado do mundo.
  *
  * Fluxo (reset completo) — pos heranca iso do Demo:
- * 1. Cria tenant fresco + atualiza apps/demo/.env.local
+ * 1. Cria tenant fresco + atualiza apps/room/.env.local
  * 2. Conecta WS /mundo
  * 3. POST lote Python (discover + efeitos)
  * 4. Aguarda remesh automatico (OfficeSession) e sinais no mundo
@@ -111,7 +111,7 @@ async function criarTenant() {
     `VITE_TRADECLASS_WS=ws://127.0.0.1:8787/mundo?token=${meta.token}`,
     `VITE_TRADECLASS_TOKEN=${meta.token}`,
   ].join('\n');
-  writeFileSync(join(ROOT, 'apps/demo/.env.local'), env, 'utf8');
+  writeFileSync(join(ROOT, 'apps/room/.env.local'), env, 'utf8');
   return meta;
 }
 

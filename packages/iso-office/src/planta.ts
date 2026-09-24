@@ -39,6 +39,8 @@ export {
 
 export {
   montarMundoIso,
+  montarMundoDaPlanta,
+  ancorarElencoNaPlanta,
   agenciaDeLayout,
   elencoIdsDoLayout,
   elencoParaPlanta,
@@ -46,6 +48,7 @@ export {
   resolverColisaoLab,
   COLAR_LAB,
   AGENTE_PLACEHOLDER,
+  PLANTA_PADRAO_TRADECLASS,
   type MundoIso,
 } from './montar-mundo';
 

@@ -245,7 +245,7 @@ body {
 .stage-scroll {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
   position: relative;
   z-index: 1;
 }
@@ -292,29 +292,46 @@ body {
 .stage-canvas-wrap {
   position: relative;
   z-index: 1;
+  width: 100%;
+  height: 100%;
   min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.stage-canvas-wrap:active {
+  cursor: grabbing;
 }
 
 .stage-canvas {
   display: block;
+  width: 100%;
+  height: 100%;
   image-rendering: pixelated;
 }
 
 .stage-status {
-  margin: 8px 12px 12px;
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  margin: 0;
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--bp-mute);
+  pointer-events: none;
+  max-width: calc(100% - 100px);
 }
 
 .stage-erro {
-  margin: 8px 12px 0;
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  margin: 0;
   font-size: 12px;
   color: #f88;
+  pointer-events: none;
 }
 
 .stage-frame {

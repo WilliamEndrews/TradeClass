@@ -77,6 +77,7 @@ export function bindingsDaPlanta(id: string): AgentDeskBinding[] {
         roomId,
         seatSlot: d.seatSlot,
         displayName: d.displayName,
+        salaRef: sala.temaId,
       });
     });
   });

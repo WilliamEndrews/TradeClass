@@ -2,7 +2,7 @@
 
 Renderiza modelos FBX (hoje: `omies-assets-office-set`) em sprites PNG na
 mesma projecao dimetrica 2:1 do renderer (`LARGURA_TILE=44`,
-`ALTURA_TILE=22`, ver `apps/demo/src/office-renderer-2d.ts`), seguindo a
+`ALTURA_TILE=22`, ver `apps/room/src/office-renderer-2d.ts`), seguindo a
 convencao de 4 rotacoes SW/SE/NW/NE ja usada pelos sprites Kenney existentes.
 
 ## Requisitos

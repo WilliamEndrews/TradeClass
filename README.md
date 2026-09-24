@@ -2,7 +2,7 @@
 
 **Escritorio espacial para desks de trading com agentes de IA.**
 
-Fork do Microfirma: herda TinyTraderLab (ex-TinyHouse), Debugpreview, PainterGlobal e world-engine. Escritorios pre-definidos (plantas fixas), multi-assento, wall media com graficos web mock, vista mobile top-down. Backend agentico e MT5 real ficam para evolucoes.
+Fork do Microfirma: herda TinyTraderLab (ex-TinyHouse), Viewtest, PainterGlobal e world-engine. Escritorios pre-definidos (plantas fixas), multi-assento, wall media com graficos web mock, vista mobile top-down. Backend agentico e MT5 real ficam para evolucoes.
 
 ```
 mock/telemetria -> DomainEvents -> Narrative Scheduler -> World Engine -> iso desktop | top-down mobile
@@ -16,10 +16,12 @@ corepack pnpm install
 corepack pnpm dev:server   # terminal 1
 corepack pnpm dev          # terminal 2 -> http://localhost:5173
 corepack pnpm lab:iso      # TinyTraderLab -> http://127.0.0.1:3333/scripts/iso-validation/tinytraderlab.html
-corepack pnpm dev:debugpreview  # plantas fixas
+corepack pnpm dev:viewtest  # Viewtest (painter / planta fixa) -> :5175
 ```
 
-Qualidade: `pnpm lint` | `pnpm typecheck` | `pnpm test` | `pnpm build` (teto 350 linhas em warn ate burndown).
+**Pipeline:** TinyTraderLab (palco/temas/postos) → Viewtest (calibra) → Room (zoom-in, agentes ancorados por `agentId`). Layout nao escala por N salas nem `nClientes`. Zoom base ~1.8 (min ~1.1).
+
+Qualidade: `pnpm lint` | `pnpm typecheck` | `pnpm test` | `pnpm test:viewtest` | `pnpm test:room` | `pnpm build` (teto 350 linhas em warn ate burndown).
 
 ---
 
@@ -123,7 +125,7 @@ O canvas **nunca** e a unica fonte de uma informacao. Tudo que ele mostra tem eq
            │  WebSocket (WorldSnapshot / WorldDelta a 10 Hz)
            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  @tradeclass/demo (React + Vite)                                    │
+│  @tradeclass/room (React + Vite)                                    │
 │                                                                      │
 │  world-source.ts (WS client) ──> office-renderer-2d.ts (Canvas 2D)  │
 │  sprite-factory.ts (sprites pre-renderizados)                       │
@@ -212,7 +214,7 @@ TradeClass/
 │   │   │   └── main.tsx               # Entry point
 │   │   └── package.json
 │   │
-│   └── debugpreview/         # Bancada visual: protos da biblia -> agencia
+│   └── Viewtest/         # Bancada visual: protos da biblia -> agencia
 │       ├── src/
 │       │   ├── App.tsx                 # Dashboard salas/copas + Resetar
 │       │   ├── montar-agencia.ts       # Empacota grades reais + corredor Concrete
@@ -284,7 +286,7 @@ Abra
 
 | O que | Onde |
 | --- | --- |
-| Calibracao (pe/ancora) | `apps/demo/src/calibracao-tinytraderlab.json` |
+| Calibracao (pe/ancora) | `apps/room/src/calibracao-tinytraderlab.json` |
 | Catalogo + combos | `scripts/iso-validation/catalogo-laboratorio.json`, `combinacoes-laboratorio.json` |
 | Assets Create (gerados) | `scripts/iso-validation/created-assets.json` + `assets-source/tradeclass-created/` |
 | Biblia de temas | `packages/world-engine/src/biblia/temas-arquiteto.json` |
@@ -317,12 +319,12 @@ selecionando/arrastando (edicao intacta). Contrato estavel:
 Outros destaques do Lab: grade ate 24x24, altura de parede por empilhamento
 1:1 (sem `scaleY`), espelho de anexos (`Ctrl+E` / `espelhado`), multi-assento,
 wall media (nest UV + iframe).
-### Debugpreview (agencia a partir da biblia)
+### Viewtest (agencia a partir da biblia)
 
 Bancada isolada para validar o empacote visual sem subir a demo completa:
 
 ```bash
-corepack pnpm dev:debugpreview
+corepack pnpm dev:viewtest
 ```
 
 Abra `http://127.0.0.1:5175/`. Informe quantas salas, clique **Gerar**:
@@ -423,7 +425,7 @@ Eventos **nao** carregam conteudo de prompt/resposta por padrao. Apenas forma e 
 
 ## Renderer
 
-`apps/demo/src/office-renderer-2d.ts` renderiza o escritorio em **Canvas 2D** (nao WebGL - ver ADR-0010).
+`apps/room/src/office-renderer-2d.ts` renderiza o escritorio em **Canvas 2D** (nao WebGL - ver ADR-0010).
 
 ### Fase 2: Sprites pre-renderizados (ADR-0008)
 
@@ -698,11 +700,11 @@ O roadmap completo vive em `docs/roadmap.md` e e o documento vivo do projeto.
 | **Fase 1** - Fundacao de produto | Concluida | Servidor autoritativo (WS), OTLP/HTTP, i18n, schema cross-linguagem, persistencia/replay |
 | **Fase 2** - Fidelidade visual e escala | Concluida | Sprites pre-renderizados, temas, camera (zoom/pan/follow/reset), arquiteto/decorador (LLM scaffold) |
 | **Fase 3** - Produto | Concluida | Multi-tenant, JWT+RBAC, auditoria, alertas (Slack/PagerDuty), aprovacao acionavel, onboarding self-service |
-| **Fase 3.5** - Refinamento TinyTraderLab | Em andamento | Lab gamificado + Create + wall media; Construtor cola ProtoComodos; Debugpreview painter/oclusao; canvas vivo (Alt+clique) |
+| **Fase 3.5** - Refinamento TinyTraderLab | Em andamento | Lab gamificado + Create + wall media; Construtor cola ProtoComodos; Viewtest painter/oclusao; canvas vivo (Alt+clique) |
 
 ### Proxima fase
 
-Fase 3.5 continua ate aceite visual estavel (`?agents=7` + Debugpreview com
+Fase 3.5 continua ate aceite visual estavel (`?agents=7` + Viewtest com
 `stripParedeL`). O sequenciamento seguinte permanece em `docs/roadmap.md`.
 
 ---
@@ -750,7 +752,7 @@ As frentes abaixo foram implementadas e refletidas nos commits da main. Todos os
   (`espelhado` / Ctrl+E).
 - Construtor: `construtor-biblia.ts`, `emitir-paredes.ts`, `face-corredor.ts`,
   `politicaTiles` (corredor `Concrete` / `cool-lab`).
-- Debugpreview (`pnpm dev:debugpreview`):
+- Viewtest (`pnpm dev:viewtest`):
   - `montarAgencia` empacota faixas N/S + corredor.
   - `cena-isometrica.ts` — painter global (compilar → preparar → renderizar).
   - `stripParedeL` (atalho **W**) pre-compoe Wall_L + anexos sem clip.

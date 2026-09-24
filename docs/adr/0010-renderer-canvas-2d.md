@@ -2,7 +2,7 @@
 
 - Status: Aceita
 - Data: 2026-08-03
-- Contexto do produto: `apps/demo` (Fase 0 - Demonstracao sintetica)
+- Contexto do produto: `apps/room` (Fase 0 - Demonstracao sintetica)
 
 ## Contexto
 
@@ -41,7 +41,7 @@ teria disparado.
 ## Decisao
 
 Substituir o renderer WebGL por um renderer em Canvas 2D
-(`apps/demo/src/office-renderer-2d.ts`), mantendo o mesmo contrato:
+(`apps/room/src/office-renderer-2d.ts`), mantendo o mesmo contrato:
 
 ```ts
 export interface RendererHandle {
@@ -59,14 +59,14 @@ blend aditivo NATIVO (sem pipeline de shader) e `createRadialGradient`
 substitui aproximacoes por aneis concentricos por um halo continuo.
 
 A troca exigiu alterar **uma linha** fora do renderer - o import em
-`apps/demo/src/App.tsx` - porque a fronteira definida pelo contrato
+`apps/room/src/App.tsx` - porque a fronteira definida pelo contrato
 `RendererHandle` estava no lugar certo (ver ADR-0006). Isso valida
 empiricamente essa fronteira: a simulacao (World Engine, Narrative Scheduler)
 nao sentiu a troca de tecnologia de render.
 
 ## Consequencias
 
-- `apps/demo/src/office-renderer.ts` (versao PixiJS) permanece no repositorio,
+- `apps/room/src/office-renderer.ts` (versao PixiJS) permanece no repositorio,
   nao referenciado, como base para a Fase 2 (ADR-0008). Como nada o importa, o
   bundler nao inclui `pixi.js` no build atual - custo zero de manter o
   arquivo.

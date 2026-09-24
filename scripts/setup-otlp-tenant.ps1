@@ -4,7 +4,7 @@
     Cria um tenant com OtlpIngestor ligado e imprime o endpoint pronto para POST /v1/traces.
 .DESCRIPTION
     O tenant demo padrao do server NAO tem OTLP. Este script faz onboarding com
-    otlpEndpoint (flag que cria o OtlpIngestor) e grava apps/demo/.env.local
+    otlpEndpoint (flag que cria o OtlpIngestor) e grava apps/room/.env.local
     apontando para esse tenant, para validar heat/smoke/approval no canvas.
 .NOTES
     Servidor em http://127.0.0.1:8787. Depois:

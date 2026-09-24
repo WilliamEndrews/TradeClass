@@ -96,7 +96,7 @@ import {
 const BASE = '../../assets-source/tinyhouse-pixel-salvaje/TinyHouse/';
 const BASE_CREATED = '../../assets-source/tradeclass-created/';
 const ANCORA_PISO = { x: 64, y: 68 };
-const URL_CALIBRACAO = '../../apps/demo/src/calibracao-tinytraderlab.json';
+const URL_CALIBRACAO = '../../apps/room/src/calibracao-tinytraderlab.json';
 const URL_CATALOGO = './catalogo-laboratorio.json';
 const URL_TEMAS = '../../packages/world-engine/src/biblia/temas-arquiteto.json';
 const URL_COMBOS = './combinacoes-laboratorio.json';

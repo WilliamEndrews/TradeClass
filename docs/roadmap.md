@@ -70,7 +70,7 @@ telemetria -> eventos de dominio -> Narrative Scheduler -> World Engine -> rende
   (calor, fila, lixo, luz queimada, apagao por orcamento).
 - **Gerador sintetico** (`packages/synthetic`): elenco de 7 agentes com perfis
   distintos, emitindo os MESMOS tipos de evento que o OTLP real emitira.
-- **Renderer 2.5D** (`apps/demo/src/office-renderer-2d.ts`): projecao dimetrica
+- **Renderer 2.5D** (`apps/room/src/office-renderer-2d.ts`): projecao dimetrica
   2:1, piso por tipo de sala, paredes extrudidas nas faces norte/oeste com vao
   na porta, perimetro do predio, mobiliario ordenado por profundidade,
   penumbra + luzes com blend aditivo real, atores animados.
@@ -88,7 +88,7 @@ para fallback. Canvas 2D elimina a dependencia de GPU (toda a geometria da
 Fase 0 e vetorial) trocando UMA linha fora do renderer, validando empiricamente
 a fronteira do ADR-0006.
 
-`apps/demo/src/office-renderer.ts` (versao PixiJS) permanece no repositorio, nao
+`apps/room/src/office-renderer.ts` (versao PixiJS) permanece no repositorio, nao
 referenciado, como base para a Fase 2. Como nada o importa, `pixi.js` nao entra
 no bundle.
 
@@ -139,7 +139,7 @@ geraria churn enorme sem valor para o cliente.
 
 ### Superficie de strings ja mapeada
 
-`apps/demo/src/App.tsx`
+`apps/room/src/App.tsx`
 
 - `ROTULO_ATIVIDADE` (linhas ~40-50): 9 rotulos de atividade de ator.
 - Cabecalho da marca: titulo e subtitulo "Plano de controle espacial...".
@@ -165,7 +165,7 @@ vem da telemetria real e nao devem ser traduzidos. Mas a demo precisa de
 elenco localizado, senao a apresentacao para um CTO americano mostra bonecos
 chamados "Triagem".
 
-`apps/demo/src/office-renderer-2d.ts`
+`apps/room/src/office-renderer-2d.ts`
 
 - Nenhuma string visivel. O renderer e mudo por design - toda a semantica vive
   no painel. Isso torna a i18n barata e e consequencia direta do ADR-0009.
@@ -239,7 +239,7 @@ identica a que seria exposta por WebSocket. O trabalho foi:
 - **1.2c Processo servidor** (`apps/server/src/server.ts`): WebSocket na
   porta 8787, handshake + snapshot na conexao, deltas a 10Hz, `/health`,
   receptor OTLP/HTTP em `/v1/traces`.
-- **1.2d WorldSource no cliente** (`apps/demo/src/world-source.ts`):
+- **1.2d WorldSource no cliente** (`apps/room/src/world-source.ts`):
   `criarFonteLocal` (simula no navegador) e `criarFonteRemota` (WebSocket com
   reconexao exponencial). `App.tsx` trocou de fonte sem mudar render/painel.
 - **1.2e Testes**: 78 testes, 5 arquivos. OfficeSession (10), wire protocol
@@ -276,10 +276,10 @@ sintetico. A troca e uma linha no construtor (`fonteEventos: ingestor`).
 
 A UI estava estavel apos 1.1-1.3, momento certo para i18n sem retrabalho.
 
-- **Dicionario** (`apps/demo/src/i18n.ts`): ~50 chaves planas com placeholders
+- **Dicionario** (`apps/room/src/i18n.ts`): ~50 chaves planas com placeholders
   `{nome}`, `{n}`, etc. pt-BR (default) e en-US. Sem ICU, sem pluralizacao
   complexa - a UI nao precisa. Adicionar idioma = adicionar um objeto.
-- **Hook** (`apps/demo/src/use-i18n.ts`): `useI18n()` devolve `{ t, idioma,
+- **Hook** (`apps/room/src/use-i18n.ts`): `useI18n()` devolve `{ t, idioma,
   setIdioma }`. Persiste em `localStorage`. Troca em runtime, sem reload.
 - **App.tsx refatorado**: todas as strings hardcoded (rotulos de KPI, estados
   de conexao, atividades, descricoes de evento, legenda, controles, notas)
@@ -341,14 +341,14 @@ Total: 123 testes, 9 arquivos, suite verde.
   paleta de 4 cores cada. `resolverPaleta()` deriva todas as cores do
   renderer (piso, paredes, mobilia, atores) a partir do tema. Trocar tema =
   regenerar sprites, nao reescrever renderer.
-- **Fabrica de sprites** (`apps/demo/src/sprite-factory.ts`): pre-renderiza
+- **Fabrica de sprites** (`apps/room/src/sprite-factory.ts`): pre-renderiza
   cada tipo de mobiliario e cada cor de ator em canvas offscreen a 2x
   (supersampling). Gradientes lineares nas faces das caixas, gradiente
   radial no topo (luz incidindo do topo-esquerda), sombra com blur,
   ambient occlusion na base, highlights de borda. Detalhes por prop:
   monitor com brilho azul na mesa, display com numeros no medidor, vapor
   na maquina de cafe, folhagem com gradiente radial na planta.
-- **Renderer overhauled** (`apps/demo/src/office-renderer-2d.ts`): todos os
+- **Renderer overhauled** (`apps/room/src/office-renderer-2d.ts`): todos os
   slots de `caixaIso()`/`fill()` vetoriais substituidos por `drawImage()`
   dos sprites pre-renderizados. Paredes agora tem gradiente vertical.
   Cores vem da `PaletaResolvida` do tema do layout, nao de constantes
@@ -508,7 +508,7 @@ escritorio reconhecivel, proximo de Stardew Valley / SoWork / Gather.town.
 - **Pack**: `TinyTraderLab_0.17(@Pixel_Salvaje)` extraido para
   `assets-source/TinyTraderLab`. Pack CC0 com tiles de piso/parede 128px,
   mobiliario de escritorio, computadores, portas, plantas, livros, etc.
-- **Projecao nativa** (`apps/demo/src/projecao.ts`): `LARGURA_TILE=128`,
+- **Projecao nativa** (`apps/room/src/projecao.ts`): `LARGURA_TILE=128`,
   `ALTURA_TILE=64`, `ALTURA_PERSONAGEM=96`. Substituiu a projecao 44x22.
 - **Tiles pelo atlas**: `Wall_L_128` (oeste), `Wall_R_128` (norte), floor
   tiles. Oclusao por construcao: sul e leste sem parede.
@@ -558,7 +558,7 @@ escritorio reconhecivel, proximo de Stardew Valley / SoWork / Gather.town.
 
 - Laboratorio oficial: `pnpm lab:iso` abre
   `scripts/iso-validation/TinyTraderLab.html`. Calibracao gravada em
-  `apps/demo/src/calibracao-tinytraderlab.json`; `projecao.ts` deriva as
+  `apps/room/src/calibracao-tinytraderlab.json`; `projecao.ts` deriva as
   ancoras (`ancoraDePe`). Toda rodada de olhometro volta ao lab, nao ao
   chute direto no renderer.
 - Piso ancora (64, 68). Paredes pregam o pe do chao no vertice da aresta
@@ -566,7 +566,7 @@ escritorio reconhecivel, proximo de Stardew Valley / SoWork / Gather.town.
   folga (11, 4), sem substituir o tile.
 - Micro-escritorio `?agents=1`: grid 5x9, salas 3x3 (~14.7 m2), sem hall
   residual, porta no centro da aresta do corredor.
-- **Testes:** `apps/demo/src/projecao.test.ts` trava o round-trip
+- **Testes:** `apps/room/src/projecao.test.ts` trava o round-trip
   pe -> ancora. Banco visual: `?agents=7`.
 
 ### 3.5.7 Catalogo TinyTraderLab expandido (2026-08-17)
@@ -588,7 +588,7 @@ escritorio reconhecivel, proximo de Stardew Valley / SoWork / Gather.town.
 
 - Lab: caderninho, DnD, empilhar piso/parede/decor, Ctrl+Z/Y, Delete,
   diagnostico off por padrao, espelhar anexos L↔R.
-- Debugpreview: `cena-isometrica.ts` (painter global); `stripParedeL`
+- viewtest: `cena-isometrica.ts` (painter global); `stripParedeL`
   (atalho W) pre-compoe Wall_L + anexos sem clip; `espaco-agencia` +
   `simulacao-agentes`; RosaVentos.
 - Clip de Wall_L permanece como caminho padrao ate aceite visual do strip.
@@ -597,7 +597,7 @@ escritorio reconhecivel, proximo de Stardew Valley / SoWork / Gather.town.
 
 O Demo deixa de usar `planSpaceProgram`/`solveLayout` + `office-renderer-2d`
 (piso vetorial + overlays de clima). A planta e o painter passam a ser os
-do Debugpreview, extraidos para `@tradeclass/iso-office` **sem editar** o
+do viewtest, extraidos para `@tradeclass/iso-office` **sem editar** o
 app-lab.
 
 - **Planta:** `selecionarPedido` + `montarAgencia` + `construirEspacoAgencia`.
@@ -609,7 +609,7 @@ app-lab.
   `OfficeSession` (remoto). Mesma funcao deterministica nos dois lados
   (ADR-0006). Quando o elenco OTLP cresce, a sessao **remesha** a planta
   (`officeId` inclui a assinatura do elenco) para os agentes ganharem mesa.
-- **Debugpreview intacto:** Gerar salas, tarefa especial, RosaVentos e o
+- **viewtest intacto:** Gerar salas, tarefa especial, RosaVentos e o
   chrome azul de blueprint ficam so no lab.
 - **Canvas do Demo neste ciclo nao desenha:** heat, pilha=fila, luz
   apagada, lixo, fumaca. O scheduler ainda calcula (KPI/painel depois).
@@ -624,15 +624,15 @@ app-lab.
   como overlay semantico sobre o painter do lab — nao como o renderer 2d
   antigo.
 
-Aceite visual: o escritorio do Demo deve parecer o Debugpreview **sem**
+Aceite visual: o escritorio do Demo deve parecer o viewtest **sem**
 o dashboard-lab e **sem** o fundo blueprint.
 
 ### Resultado parcial
 
-- **Typecheck:** limpo (debugpreview)
-- **Testes debugpreview:** 51 passando; snapshot estrutural da seed fixa
+- **Typecheck:** limpo (viewtest)
+- **Testes viewtest:** 51 passando; snapshot estrutural da seed fixa
   precisa `-u` quando a biblia do Lab estabilizar (salas sorteadas mudaram).
-- **Visual:** Lab gamificado operacional; A/B clip vs strip no Debugpreview.
+- **Visual:** Lab gamificado operacional; A/B clip vs strip no viewtest.
 
 ### Pendencias da fase 3.5
 
@@ -660,7 +660,7 @@ onboarding/cliente **antes** da telemetria iniciar.
 3. Painel-ponte permanece na landing: codigo + snippet OTLP
    (`POST /v1/traces` + `x-tenant-id`). Telemetria so depois que o cliente
    enviar spans.
-4. **Entrar no escritorio** abre `apps/demo?token=<JWT>`.
+4. **Entrar no escritorio** abre `apps/room?token=<JWT>`.
 
 `Room.kind: landing` existe no contrato. `planSpaceProgram` / `montarMundoIso`
 nao emitem essa zona.

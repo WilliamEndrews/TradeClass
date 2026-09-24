@@ -49,7 +49,7 @@ Suba (local):
 |---------|------------|---------|
 | Server | `http://127.0.0.1:8787` | `npx pnpm --filter @tradeclass/server dev` |
 | Landing | `http://localhost:5174` | `npx pnpm --filter @tradeclass/landing dev` |
-| Demo | `http://localhost:5173` | `npx pnpm --filter @tradeclass/demo dev` |
+| Demo | `http://localhost:5173` | `npx pnpm --filter @tradeclass/room dev` |
 
 ### Variaveis de ambiente
 
@@ -275,7 +275,7 @@ Sem landing UI:
 npx pnpm --filter @tradeclass/server dev
 .\scripts\setup-otlp-tenant.ps1
 npm run telemetria:enviar
-npx pnpm --filter @tradeclass/demo dev
+npx pnpm --filter @tradeclass/room dev
 ```
 
 Util para engenharia; na mesa do cliente prefira landing + Simular ou

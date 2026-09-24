@@ -11,10 +11,10 @@ services:
       - TRADECLASS_HOST=0.0.0.0
       - TRADECLASS_ONBOARDING_KEY=TradeClass-dev-onboarding
 
-  demo:
+  room:
     build:
       context: .
-      dockerfile: apps/demo/Dockerfile
+      dockerfile: apps/room/Dockerfile
     ports:
       - '5173:5173'
     depends_on:

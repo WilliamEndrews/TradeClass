@@ -3,7 +3,7 @@ import { writeFileSync } from 'node:fs';
 
 const server = process.env.SERVER_URL || 'http://server:8787';
 const onboardingKey = process.env.TRADECLASS_ONBOARDING_KEY || 'TradeClass-dev-onboarding';
-const envFile = '/app/apps/demo/.env.local';
+const envFile = '/app/apps/room/.env.local';
 
 async function aguardarServidor() {
   while (true) {
@@ -41,7 +41,7 @@ async function main() {
   console.log('[demo-entrypoint] .env.local criado, iniciando Vite');
 
   const vite = spawn('pnpm', ['dev', '--host'], {
-    cwd: '/app/apps/demo',
+    cwd: '/app/apps/room',
     stdio: 'inherit',
     shell: true,
   });

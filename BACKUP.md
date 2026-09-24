@@ -101,8 +101,8 @@ CLIENTE WEB
 | `@tradeclass/world-engine` | NarrativeScheduler, WorldEngine, layout, pathfinding | TS puro |
 | `@tradeclass/synthetic` | Gerador sintetico de eventos para testes | TS puro |
 | `@tradeclass/server` | HTTP, WebSocket, multi-tenant, auth, alertas | ws, jose, aws-sdk |
-| `@tradeclass/demo` | Canvas 2.5D + painel lateral React | Vite, React, Canvas 2D |
-| `@tradeclass/debugpreview` | Bancada: biblia do lab -> agencia visual | Vite, React, Canvas 2D |
+| `@tradeclass/room` | Canvas 2.5D + painel lateral React | Vite, React, Canvas 2D |
+| `@tradeclass/viewtest` | Bancada: biblia do lab -> agencia visual | Vite, React, Canvas 2D |
 | `@tradeclass/landing` | Landing page 3D com transicao cinematografica | Vite, React, Three.js |
 
 ## 4. ADRs (Architecture Decision Records)
@@ -119,7 +119,7 @@ Arquivos em `docs/adr/`:
 | 0006 | Simulacao autoritativa no servidor | Vigente | citado em `world-engine.ts` |
 | 0007 | Privacidade por padrao | Aceita | `0007-privacidade-por-padrao.md` |
 | 0008 | Sprites pre-renderizados em 3D (Fase 2) | Vigente | citado em `office-renderer-2d.ts` |
-| 0009 | Canvas nunca e fonte unica de informacao | Vigente | `apps/demo/src/App.tsx` |
+| 0009 | Canvas nunca e fonte unica de informacao | Vigente | `apps/room/src/App.tsx` |
 | 0010 | Renderer Canvas 2D na Fase 0 | Aceita | `0010-renderer-canvas-2d.md` |
 | 0011 | Internacionalizacao pt-BR/en-US/es-ES | Vigente | `0011-internacionalizacao.md` |
 
@@ -140,7 +140,7 @@ ainda nao tem arquivos fisicos, so citacoes no codigo.
   luz queimada, apagao).
 - Gerador sintetico (`packages/synthetic`): 7 agentes de demo emitindo os
   mesmos tipos de evento do OTLP real.
-- Renderer 2.5D (`apps/demo/src/office-renderer-2d.ts`): projecao dimetrica
+- Renderer 2.5D (`apps/room/src/office-renderer-2d.ts`): projecao dimetrica
   2:1, sprites, penumbra, luzes aditivas.
 - Painel acessivel (`App.tsx`): KPIs, orcamento, lista de atores, historico.
 
@@ -151,13 +151,13 @@ ainda nao tem arquivos fisicos, so citacoes no codigo.
   receptor OTLP/HTTP `/v1/traces`.
 - Adaptador OTLP->`DomainEvent` (`packages/contracts/src/otlp.ts`) e
   `OtlpIngestor` (`packages/world-engine/src/otlp-ingestor.ts`).
-- i18n (`apps/demo/src/i18n.ts`) em pt-BR, en-US, es-ES.
+- i18n (`apps/room/src/i18n.ts`) em pt-BR, en-US, es-ES.
 - JSON Schema cross-linguagem (`packages/contracts/scripts/gen-jsonschema.ts`).
 - Replay em NDJSON (`packages/contracts/src/replay.ts`) com `SessionPlayer`.
 
 ### Fase 2 - Fidelidade visual e escala
 
-- Sprites pre-renderizados (`apps/demo/src/sprite-factory.ts`) e temas
+- Sprites pre-renderizados (`apps/room/src/sprite-factory.ts`) e temas
   (`packages/world-engine/src/themes.ts`).
 - Camera: zoom, pan, follow, reset.
 - `AgenteArquiteto` e `AgenteDecorador` com fallback deterministico.
@@ -180,7 +180,7 @@ ainda nao tem arquivos fisicos, so citacoes no codigo.
 4. **Deploy em nuvem** (`fly.toml`, `docs/deploy.md`)
 5. **Metricas Prometheus** (`apps/server/src/metrics.ts`)
 6. **Alertas reais** (`apps/server/src/alert-engine.ts`)
-7. **Dashboard com historico** (`apps/demo/src/App.tsx`, `Sparkline`)
+7. **Dashboard com historico** (`apps/room/src/App.tsx`, `Sparkline`)
 8. **Landing page 3D** (`apps/landing/`) — quarto branco, vultos, transicao
    cinematografica para a demo
 
@@ -194,7 +194,7 @@ ainda nao tem arquivos fisicos, so citacoes no codigo.
    `Office`, `Desks`, `Chairs`, `Computer`, `Floor_Wall_Tiles_128/64/32`,
    `Doors`, `Plants`, `Books`, `Carpets`, `Lamp`, `Sofa`, `Windows`,
    `Bathroom`, `Kitchen`, etc.
-2. **Projecao nativa TinyTraderLab** (`apps/demo/src/projecao.ts`): `PX_POR_CELULA=128`,
+2. **Projecao nativa TinyTraderLab** (`apps/room/src/projecao.ts`): `PX_POR_CELULA=128`,
    `LARGURA_TILE=128`, `ALTURA_TILE=64`, `ALTURA_PERSONAGEM=96`. Substituiu a
    projecao anterior de 44x22. Tiles de piso/parede blitados nativamente.
 3. **Tiles de piso e parede pelo atlas**: `Wall_L_128` (oeste), `Wall_R_128`
@@ -224,10 +224,10 @@ ainda nao tem arquivos fisicos, so citacoes no codigo.
 10. **Espacamento de mesas adaptativo**: 3 celulas em salas largas, 2 em salas
     pequenas (<=5) para garantir que todos os agentes tenham mesa.
 
-### Fase 3.5 - Laboratorio, Construtor e Debugpreview (2026-08-23 → 2026-09-04)
+### Fase 3.5 - Laboratorio, Construtor e Viewtest (2026-08-23 → 2026-09-04)
 
 Evolucao central da frente visual: o laboratorio deixou de ser so calibracao
-e passou a alimentar o Construtor; o Debugpreview valida o empacote com um
+e passou a alimentar o Construtor; o Viewtest valida o empacote com um
 **painter global** (uma lista de comandos, um canvas) sem desmontar o proto
 do Lab.
 
@@ -239,7 +239,7 @@ do Lab.
    do catalogo para o palco, hit-test piso vs face L/R, empilhamento de
    piso/parede/decor, **Ctrl+Z/Y**, Delete, diagnostico off por padrao,
    espelhar anexos elegiveis, camadas locais entre vizinhos.
-3. **Calibracao oficial** (`apps/demo/src/calibracao-tinytraderlab.json` +
+3. **Calibracao oficial** (`apps/room/src/calibracao-tinytraderlab.json` +
    `projecao.ts`): ancora de piso (64, 68), pe de parede, folga da porta.
 4. **Construtor da biblia** (`construtor-biblia.ts`): `escolherTema`,
    `gradeDoProto`, `visualDoProto`, `resolverTilesetZona`, `colarProto`.
@@ -248,7 +248,7 @@ do Lab.
    pode emitir `WallFace[]`. A demo ainda pode blit NW quando `walls` vazio.
 6. **`solveLayout` cola ProtoComodos**: salas dimensionadas pela grade real
    do tema; props/wallMounts vindos do palco.
-7. **Debugpreview** (`apps/debugpreview`, `pnpm dev:debugpreview`):
+7. **Viewtest** (`apps/viewtest`, `pnpm dev:viewtest`):
    - `selecionarPedido` / `montarAgencia` — faixas N/S + corredor Concrete
      **sem** `solveLayout` no empacote visual.
    - `cena-isometrica.ts` — painter global: `compilarCenaIso` (puro) →
@@ -271,7 +271,7 @@ do Lab.
 - **Variedade por seed no atlas**: hoje o ultimo asset de cada `kind` vence.
 - **Promover combos** do laboratorio e a intencao obrigatorio/aleatorio/off
   para o solver, sem quebrar invariantes.
-- **Alinhar preview e produto** quando fizer sentido: o Debugpreview
+- **Alinhar preview e produto** quando fizer sentido: o Viewtest
   preserva o proto intacto; o caminho demo/solver ainda espelha faixa norte
   e pode emitir vidro no corredor — evolucao consciente, nao regressao.
 - **Meter** ainda sem PNG de repouso no TinyTraderLab.
@@ -310,7 +310,7 @@ pnpm dev:landing       # landing page 3D na porta 5174
 pnpm dev:server        # servidor na porta 8787
 pnpm dev               # demo React no navegador
 pnpm lab:iso           # laboratorio TinyTraderLab (3333) + persistencia da biblia
-pnpm dev:debugpreview  # bancada de agencia (5175)
+pnpm dev:viewtest  # bancada de agencia (5175)
 ```
 
 ### Testes e typecheck
@@ -351,13 +351,13 @@ Para entender ou retomar o projeto, leia nesta ordem:
 10. `packages/world-engine/src/construtor-biblia.ts` — biblia / ProtoComodo.
 11. `packages/world-engine/src/layout-solver.ts`
 12. `scripts/iso-validation/README.md` — laboratorio TinyTraderLab.
-13. `apps/debugpreview/src/cena-isometrica.ts` — painter global.
-14. `apps/debugpreview/src/montar-agencia.ts`
-15. `apps/debugpreview/src/espaco-agencia.ts` / `simulacao-agentes.ts`
+13. `apps/viewtest/src/cena-isometrica.ts` — painter global.
+14. `apps/viewtest/src/montar-agencia.ts`
+15. `apps/viewtest/src/espaco-agencia.ts` / `simulacao-agentes.ts`
 16. `apps/server/src/server.ts`
 17. `apps/server/src/office-session.ts`
-18. `apps/demo/src/App.tsx`
-19. `apps/demo/src/office-renderer-2d.ts`
+18. `apps/room/src/App.tsx`
+19. `apps/room/src/office-renderer-2d.ts`
 20. `apps/landing/src/App.tsx`
 21. `apps/landing/src/Scene.tsx`
 
@@ -372,8 +372,8 @@ Para entender ou retomar o projeto, leia nesta ordem:
 - **Todo pixel precisa de fato.** Se um novo elemento visual nao deriva de um
   `WorldSnapshot`/`WorldDelta`, ele esta errado.
 - **Mantenha determinismo.** Mesma seed + mesma sequencia = mesma historia.
-- **Preview visual da biblia**: use `pnpm lab:iso` + `pnpm dev:debugpreview`.
-  No Debugpreview o painter e global (`cena-isometrica.ts`); nao volte ao
+- **Preview visual da biblia**: use `pnpm lab:iso` + `pnpm dev:viewtest`.
+  No Viewtest o painter e global (`cena-isometrica.ts`); nao volte ao
   blit atomico por sala. Atalho **W** = A/B clip vs faixa Wall_L.
 - **Nao reintroduza clip serrilhado** para "consertar" oclusao de anexos L:
   o diagnostico correto e telhamento intra-coluna (tile `vy+1` cobre o anexo

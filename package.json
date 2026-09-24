@@ -5,10 +5,10 @@
   "description": "TradeClass - plano de controle espacial para sistemas agenticos",
   "packageManager": "pnpm@9.12.3",
   "scripts": {
-    "dev": "pnpm --filter @tradeclass/demo dev",
+    "dev": "pnpm --filter @tradeclass/room dev",
     "dev:server": "pnpm --filter @tradeclass/server dev",
     "dev:landing": "pnpm --filter @tradeclass/landing dev",
-    "dev:debugpreview": "pnpm --filter @tradeclass/debugpreview dev",
+    "dev:viewtest": "pnpm --filter @tradeclass/viewtest dev",
     "build": "turbo run build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint .",
@@ -21,7 +21,8 @@
     "load-test": "npm exec --yes --package=tsx@4.19.2 -- tsx scripts/load-test.ts",
     "telemetria:dry": "npm exec --yes --package=tsx@4.19.2 -- tsx scripts/enviar-telemetria-agencia.ts --dry-run",
     "telemetria:enviar": "npm exec --yes --package=tsx@4.19.2 -- tsx scripts/enviar-telemetria-agencia.ts",
-    "test:debugpreview": "vitest run --root apps/debugpreview",
+    "test:viewtest": "vitest run --root apps/viewtest",
+    "test:room": "vitest run --root apps/room",
     "contracts:jsonschema": "pnpm --filter @tradeclass/contracts gen:jsonschema"
   },
   "devDependencies": {

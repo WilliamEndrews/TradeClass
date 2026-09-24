@@ -1,6 +1,6 @@
 import catalogoJson from '../../../../scripts/iso-validation/catalogo-laboratorio.json';
 import combosJson from '../../../../scripts/iso-validation/combinacoes-laboratorio.json';
-import calibracaoJson from '../../../demo/src/calibracao-tinytraderlab.json';
+import calibracaoJson from '../../../room/src/calibracao-tinytraderlab.json';
 import { CALIBRACAO_PADRAO, type TemaArquiteto } from '@tradeclass/world-engine';
 import type { CalibracaoSala } from '@tradeclass/contracts';
 

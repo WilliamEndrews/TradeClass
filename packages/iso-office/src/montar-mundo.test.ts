@@ -4,8 +4,11 @@ import { ordenarElencoCliente } from './espaco-agencia';
 import {
   agenciaDeLayout,
   elencoParaPlanta,
+  montarMundoDaPlanta,
   montarMundoIso,
+  PLANTA_PADRAO_TRADECLASS,
 } from './montar-mundo';
+import { elencoDaPlanta } from './plants';
 
 function agente(id: string, role: AgentDescriptor['role']): AgentDescriptor {
   return {
@@ -81,5 +84,32 @@ describe('montarMundoIso', () => {
     expect(elencoParaPlanta([])[0]!.agentId).toBe('TradeClass-placeholder');
     expect(mundo.layout.rooms.some((r) => r.kind === 'boss_room')).toBe(true);
     expect(mundo.layout.rooms.some((r) => r.kind === 'break')).toBe(true);
+  });
+});
+
+describe('montarMundoDaPlanta', () => {
+  it('geometria fixa independente do N de agentes', () => {
+    const um = montarMundoDaPlanta(PLANTA_PADRAO_TRADECLASS, 1, [
+      agente('sozinho', 'analyst'),
+    ]);
+    const muitos = montarMundoDaPlanta(PLANTA_PADRAO_TRADECLASS, 1, [
+      agente('a', 'analyst'),
+      agente('b', 'finance'),
+      agente('c', 'researcher'),
+      agente('d', 'guardian'),
+      agente('e', 'orchestrator'),
+    ]);
+    expect(um.layout.rooms.length).toBe(muitos.layout.rooms.length);
+    expect(um.plantaId).toBe(PLANTA_PADRAO_TRADECLASS);
+    expect(um.elenco.length).toBe(elencoDaPlanta(PLANTA_PADRAO_TRADECLASS).length);
+  });
+
+  it('ancora agentId do backend no primeiro assento', () => {
+    const mundo = montarMundoDaPlanta(PLANTA_PADRAO_TRADECLASS, 9, [
+      agente('backend-alpha', 'orchestrator'),
+    ]);
+    expect(
+      mundo.layout.props.some((p) => p.kind === 'desk' && p.ownerAgentId === 'backend-alpha'),
+    ).toBe(true);
   });
 });

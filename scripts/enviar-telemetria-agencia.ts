@@ -146,7 +146,7 @@ function imprimirChecklist(v: ReturnType<typeof validarOffline>, tenantId: strin
   console.log('NAO exigir neste passo:');
   console.log('  - auto-criacao de 3 salas/mesas so pelo ingest (layout fixo; precisa reseed)');
   console.log('  - labels pixel-perfect dos displayNames no canvas');
-  console.log('  - debugpreview reagindo a OTLP (pipeline separado; ver docs/telemetria-otlp.md)');
+  console.log('  - Viewtest reagindo a OTLP (pipeline separado; ver docs/telemetria-otlp.md)');
   console.log('');
 }
 

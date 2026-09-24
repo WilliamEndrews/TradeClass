@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Cria um tenant demo e gera apps/demo/.env.local com token JWT.
+    Cria um tenant demo e gera apps/room/.env.local com token JWT.
 .DESCRIPTION
     Faz onboarding automatico no servidor local, pega o token de acesso
     e configura o demo para conectar com WebSocket autenticado.
@@ -61,7 +61,7 @@ if (-not (Test-Path $envDir)) {
 Set-Content -Path $EnvFile -Value $envContent -Encoding utf8 -NoNewline
 
 Write-Host ""
-Write-Host "OK - apps/demo/.env.local criado."
+Write-Host "OK - apps/room/.env.local criado."
 Write-Host "Tenant: $tenantId"
 Write-Host "Token:  $($token.Substring(0, [Math]::Min(40, $token.Length)))..."
 Write-Host ""

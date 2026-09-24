@@ -2,7 +2,7 @@
 
 - Status: Aceita (registrada retroativamente em 2026-08-10)
 - Data original da decisao: Fase 2
-- Contexto do produto: `apps/demo/src/sprite-factory.ts`, `apps/demo/src/office-renderer-2d.ts`
+- Contexto do produto: `apps/room/src/sprite-factory.ts`, `apps/room/src/office-renderer-2d.ts`
 
 ## Nota sobre esta ADR
 

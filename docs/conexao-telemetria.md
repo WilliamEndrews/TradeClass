@@ -75,7 +75,7 @@ Pipeline interno apos o POST:
   → OtlpIngestor do tenant
   → OfficeSession.tick → WorldEngine
   → NarrativeScheduler
-  → snapshot no WebSocket /mundo → apps/demo
+  → snapshot no WebSocket /mundo → apps/room
 ```
 
 Quando o elenco OTLP cresce, a sessao pode **remeshar** a planta

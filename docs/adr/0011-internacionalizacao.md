@@ -2,7 +2,7 @@
 
 - Status: Aceita
 - Data: 2026-08-04
-- Contexto do produto: `apps/demo` (painel, legendas, rotulos e eventos)
+- Contexto do produto: `apps/room` (painel, legendas, rotulos e eventos)
 
 ## Contexto
 
@@ -14,7 +14,7 @@ comentarios (que permanecem em portugues ASCII-only por convencao do repositorio
 
 ## Investigacao
 
-A superficie de strings da UI estava espalhada em `apps/demo/src/App.tsx`:
+A superficie de strings da UI estava espalhada em `apps/room/src/App.tsx`:
 
 - Rotulos de atividade (`ROTULO_ATIVIDADE`), estados de conexao, KPIs,
   orcamento, legenda, controles, notas.
@@ -26,7 +26,7 @@ A superficie de strings da UI estava espalhada em `apps/demo/src/App.tsx`:
 - Formatacao numerica manual: `formatarNumero()` concatenava `k` e usava `.` como
   separador decimal fixo.
 
-`apps/demo/src/office-renderer-2d.ts` nao contem strings visiveis (ADR-0009),
+`apps/room/src/office-renderer-2d.ts` nao contem strings visiveis (ADR-0009),
 entao o renderer nao precisa de i18n.
 
 ## Decisao
@@ -35,10 +35,10 @@ entao o renderer nao precisa de i18n.
 2. **Codigo e dados internos**: identificadores, comentarios, nomes de arquivos e
    ADRs permanecem em portugues ASCII-only. Strings visiveis ao usuario vivem em
    arquivos de dicionario.
-3. **Dicionario plano**: `apps/demo/src/i18n.ts` contem objetos por idioma, com
+3. **Dicionario plano**: `apps/room/src/i18n.ts` contem objetos por idioma, com
    chaves planas e placeholders simples (`{nome}`, `{n}`). Sem ICU complexo
    porque a UI nao exige pluralizacao ou genero na Fase 0.
-4. **Hook `useI18n()`**: `apps/demo/src/use-i18n.ts` devolve `t`, `idioma` e
+4. **Hook `useI18n()`**: `apps/room/src/use-i18n.ts` devolve `t`, `idioma` e
    `setIdioma`. A troca de idioma e em runtime, sem recarregar a pagina, e
    persiste em `localStorage`.
 5. **Moeda em USD para todos os locales**: `costUsdToday`/`budgetUsdToday` sao

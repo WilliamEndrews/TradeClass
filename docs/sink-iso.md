@@ -1,9 +1,9 @@
-# Sink iso — fila Debugpreview → Demo
+# Sink iso — fila Viewtest → Demo
 
 Fila humana+agente para **sync seletivo** do painter do lab
-(`apps/debugpreview`) para o pacote do Demo (`packages/iso-office`).
+(`apps/viewtest`) para o pacote do Demo (`packages/iso-office`).
 
-Debugpreview permanece a bancada. Demo **nao** importa o shell do lab.
+Viewtest permanece a bancada. Demo **nao** importa o shell do lab.
 Temas/catalogo JSON compartilhados (`temas-arquiteto.json`,
 `catalogo-laboratorio.json`) **nao** entram aqui — ja sincronizam sozinhos.
 
@@ -36,7 +36,7 @@ Regra Cursor: `.cursor/rules/sink-iso.mdc`.
 
 ## Adaptacoes ao portar (obrigatorias)
 
-- seed `demo:` (nao `debugpreview:`)
+- seed `demo:` (nao `Viewtest:`)
 - labels de lab off; fill claro `#f4f1ea`
 - sem overlay D/W nem bolhas de tarefa especial
 - elenco real via `construirEspacoAgencia(..., elenco)` quando couber
@@ -49,7 +49,7 @@ Copiar para Pendentes / Aplicados / Descartados:
 ### sink-YYYYMMDD-HHMM — titulo curto
 - status: pendente | aplicado | descartado
 - decisao: agora | depois | nunca
-- origem: apps/debugpreview/src/...
+- origem: apps/viewtest/src/...
 - destino: packages/iso-office/src/...
 - resumo: 1-3 frases do que mudou
 - adaptacoes: seed demo / labels / fill / elenco (se couber)
