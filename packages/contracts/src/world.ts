@@ -35,7 +35,7 @@ export type Activity =
 /** Postura corporal independente da atividade operacional. */
 export type ActorPose = 'standing' | 'seated';
 
-/** Estado visual de um ator (agente do cliente ou agente interno da MicroFirma). */
+/** Estado visual de um ator (agente do cliente ou agente interno da TradeClass). */
 export interface ActorState {
   agentId: string;
   /** Posicao em coordenadas de grid, fracionaria para interpolacao suave. */
@@ -87,6 +87,12 @@ export interface WorldKpis {
   errorsLast5Min: number;
   tokensPerMinute: number;
   pendingApprovals: number;
+  /** PnL da sessao em USD (mock trade ate feed MT5). */
+  pnlSessionUsd: number;
+  /** Sinais ativos no floor. */
+  activeSignals: number;
+  /** Score de risco 0..100. */
+  riskScore: number;
 }
 
 /** Quadro completo do mundo. Enviado no handshake e a cada N ticks (keyframe). */

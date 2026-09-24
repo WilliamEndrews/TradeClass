@@ -62,7 +62,7 @@ x-tenant-id: <tenantId>
 Regras atuais:
 
 - So **JSON** (nao protobuf / gRPC neste ciclo).
-- Porta do MicroFirma (`:8787`), nao o Collector padrao `:4318`.
+- Porta do TradeClass (`:8787`), nao o Collector padrao `:4318`.
 - Sem `x-tenant-id` valido (tenant sem ingestor) → spans nao entram na sala.
 - Atributos GenAI: ver contrato em [`telemetria-otlp.md`](telemetria-otlp.md)
   e `packages/contracts/src/otlp.ts`.
@@ -83,11 +83,11 @@ Quando o elenco OTLP cresce, a sessao pode **remeshar** a planta
 
 ## Fluxo D — Demo com token
 
-1. URL: `http://localhost:5173/?token=<JWT>` (ou `VITE_MICROFIRMA_DEMO_URL`).
+1. URL: `http://localhost:5173/?token=<JWT>` (ou `VITE_TRADECLASS_DEMO_URL`).
 2. Demo resolve `ws://…/mundo?token=…` a partir do JWT.
 3. Servidor valida o JWT, roteia pelo `tenantId` do payload e envia o snapshot.
 
-Sem token (dev legado): `VITE_MICROFIRMA_WS` aponta direto para um mundo fixo.
+Sem token (dev legado): `VITE_TRADECLASS_WS` aponta direto para um mundo fixo.
 
 ## O que ainda e “em memoria”
 

@@ -2,7 +2,7 @@
  * AUTENTICACAO E AUTORIZACAO (RBAC)
  *
  * JWT real com `jose` (HMAC-SHA256), expiracao e refresh tokens.
- * O segredo simetrico vem de `MICROFIRMA_JWT_SECRET`.
+ * O segredo simetrico vem de `TRADECLASS_JWT_SECRET`.
  * Refresh tokens sao mantidos em memoria e podem ser revogados via
  * `revogarRefreshToken`.
  *
@@ -13,13 +13,13 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { SignJWT, jwtVerify } from 'jose';
-import type { JwtPayload, Papel } from '@microfirma/contracts';
-import { JwtPayload as JwtPayloadSchema, PERMISSOES } from '@microfirma/contracts';
+import type { JwtPayload, Papel } from '@tradeclass/contracts';
+import { JwtPayload as JwtPayloadSchema, PERMISSOES } from '@tradeclass/contracts';
 
-const SEGREDO = process.env.MICROFIRMA_JWT_SECRET ?? 'microfirma-dev-secret-change-in-prod';
+const SEGREDO = process.env.TRADECLASS_JWT_SECRET ?? 'TradeClass-dev-secret-change-in-prod';
 const SECRET_BUFFER = Buffer.from(SEGREDO, 'utf8');
-const ACCESS_TTL_S = Number(process.env.MICROFIRMA_JWT_ACCESS_TTL_S ?? 900); // 15 min
-const REFRESH_TTL_S = Number(process.env.MICROFIRMA_JWT_REFRESH_TTL_S ?? 7 * 24 * 60 * 60); // 7 dias
+const ACCESS_TTL_S = Number(process.env.TRADECLASS_JWT_ACCESS_TTL_S ?? 900); // 15 min
+const REFRESH_TTL_S = Number(process.env.TRADECLASS_JWT_REFRESH_TTL_S ?? 7 * 24 * 60 * 60); // 7 dias
 
 /** Refresh tokens emitidos. O Set armazena os JTI ativos. */
 const refreshTokensAtivos = new Set<string>();

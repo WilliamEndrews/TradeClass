@@ -1,8 +1,8 @@
 /**
  * PROJECAO ISOMETRICA E ESCALA DO MUNDO - fonte unica de verdade.
  *
- * Calibracao visual: laboratorio `scripts/iso-validation/tinyhouse.html`.
- * Numeros gravados em `calibracao-tinyhouse.json` (pes de parede/porta e
+ * Calibracao visual: laboratorio `scripts/iso-validation/TinyTraderLab.html`.
+ * Numeros gravados em `calibracao-tinytraderlab.json` (pes de parede/porta e
  * ancora de mesa/bebedouro). Piso ancora no centro da face (64, 68).
  * Paredes e bebedouro de canto pregam o pe no vertice. Mesa principal
  * alinha o canvas 128 ao piso (nao o pe da bbox).
@@ -12,10 +12,10 @@
  * office-renderer-2d.ts, sprite-factory.ts e asset-atlas.ts.
  *
  * ---------------------------------------------------------------------------
- * MEDIDAS DE 2026-08-16 (scripts/iso-validation/medir-tinyhouse.js)
+ * MEDIDAS DE 2026-08-16 (scripts/iso-validation/medir-TinyTraderLab.js)
  * ---------------------------------------------------------------------------
  *
- * Todos os tiles de ESTRUTURA do TinyHouse (piso, Wall_L, Wall_R, porta de
+ * Todos os tiles de ESTRUTURA do TinyTraderLab (piso, Wall_L, Wall_R, porta de
  * vidro) sao canvas 128x128. O diamante do piso ocupa y=36..107 (bbox 128x72);
  * a FACE do diamante (2:1, 64px de altura) vai de y=36 ate y=100; a laje tem
  * 8px em y=100..107. Centro da face: (64, 68).
@@ -44,10 +44,10 @@
  * Sala 3x3 = 3.83 m x 3.83 m ~ 14.7 m2 (escritorio privativo de 1 pessoa).
  */
 
-import calibracaoJson from './calibracao-tinyhouse.json';
-import type { CalibracaoSala } from '@microfirma/contracts';
+import calibracaoJson from './calibracao-tinytraderlab.json';
+import type { CalibracaoSala } from '@tradeclass/contracts';
 
-/** Resolucao nativa do tile do pack TinyHouse, em pixels de canvas. */
+/** Resolucao nativa do tile do pack TinyTraderLab, em pixels de canvas. */
 export const PX_POR_CELULA = 128;
 
 /**
@@ -80,8 +80,8 @@ export const ALTURA_PERSONAGEM = Math.round(LARGURA_TILE * ALTURA_PERSONAGEM_REL
 
 /**
  * Calibracao olhometro gravada. Fonte compartilhada com o laboratorio
- * (`scripts/iso-validation/tinyhouse.html`). Ajuste SEMPRE no lab primeiro,
- * copie os numeros para `calibracao-tinyhouse.json`, depois volte aqui.
+ * (`scripts/iso-validation/TinyTraderLab.html`). Ajuste SEMPRE no lab primeiro,
+ * copie os numeros para `calibracao-tinytraderlab.json`, depois volte aqui.
  */
 export const CALIBRACAO = calibracaoJson;
 

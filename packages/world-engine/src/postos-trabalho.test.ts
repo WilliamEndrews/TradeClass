@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Room } from '@microfirma/contracts';
+import type { Room } from '@tradeclass/contracts';
 import { buildNavGrid } from './navgrid.js';
 import {
   facingOlhandoPara,
@@ -8,6 +8,7 @@ import {
   postoParaGridWorld,
   resolverAssento,
   resolverPostoAgente,
+  resolverPostoParaMesa,
 } from './postos-trabalho.js';
 import type { PostoTrabalho, TemaArquiteto } from './construtor-biblia.js';
 
@@ -77,6 +78,58 @@ describe('resolverPostoAgente', () => {
     expect(resolverPostoAgente(semPosto, 'agent-priv-0', sala)).toBeUndefined();
     expect(resolverPostoAgente(undefined, 'agent-priv-0', sala)).toBeUndefined();
   });
+
+  it('com multiplos postos, nao colapsa agente sem match no default', () => {
+    const multi = {
+      ...tema,
+      postosTrabalho: [
+        { agentSlot: 'default', gx: 0, gy: 0, passo: 1, facing: 2 },
+        { agentSlot: 'seat-1', gx: 2, gy: 2, passo: 1, facing: 0 },
+      ],
+    } as unknown as TemaArquiteto;
+    const sala = salaDeTeste();
+    expect(resolverPostoAgente(multi, 'agent-desconhecido', sala)).toBeUndefined();
+    expect(resolverPostoAgente(multi, 'seat-1', sala)?.cellAlvo).toEqual({ x: 3, y: 3 });
+  });
+
+  it('mapeia por indice 1:1 quando nao ha slot exato', () => {
+    const multi = {
+      ...tema,
+      postosTrabalho: [
+        { agentSlot: 'seat-0', gx: 0, gy: 1, passo: 1, facing: 2 },
+        { agentSlot: 'seat-1', gx: 2, gy: 1, passo: 1, facing: 0 },
+      ],
+    } as unknown as TemaArquiteto;
+    const sala = salaDeTeste();
+    const a = resolverPostoAgente(multi, 'agent-a', sala, false, 0);
+    const b = resolverPostoAgente(multi, 'agent-b', sala, false, 1);
+    expect(a?.cellAlvo).toEqual({ x: 1, y: 2 });
+    expect(b?.cellAlvo).toEqual({ x: 3, y: 2 });
+    expect(a?.cellAlvo).not.toEqual(b?.cellAlvo);
+  });
+});
+
+describe('resolverPostoParaMesa', () => {
+  it('liga mesa N ao posto seat-N ou ao indice', () => {
+    const tema = {
+      id: 't',
+      nome: 't',
+      tilesetAtivo: 'x',
+      prioridade: 1,
+      unicoNaAgencia: false,
+      zonaKind: 'private',
+      palco: [],
+      postosTrabalho: [
+        { agentSlot: 'seat-0', gx: 0, gy: 0, passo: 1, facing: 2 },
+        { agentSlot: 'seat-1', gx: 2, gy: 2, passo: 1, facing: 0 },
+      ],
+    } as unknown as TemaArquiteto;
+    const sala = salaDeTeste();
+    const m0 = resolverPostoParaMesa(tema, 'agent-a', 0, sala);
+    const m1 = resolverPostoParaMesa(tema, 'agent-b', 1, sala);
+    expect(m0?.cellAlvo).toEqual({ x: 1, y: 1 });
+    expect(m1?.cellAlvo).toEqual({ x: 3, y: 3 });
+  });
 });
 
 describe('resolverAssento', () => {
@@ -103,6 +156,7 @@ describe('resolverAssento', () => {
       theme: { name: 't', palette: [], greenery: 0 },
       walls: [],
       wallMounts: [],
+      wallMedia: [],
     };
     const nav = buildNavGrid(layout);
     const desk = layout.props[0]!;
@@ -140,6 +194,7 @@ describe('resolverAssento', () => {
       theme: { name: 't', palette: [], greenery: 0 },
       walls: [],
       wallMounts: [],
+      wallMedia: [],
     };
     const nav = buildNavGrid(layout);
     const [desk, chair] = layout.props;
@@ -168,6 +223,7 @@ describe('resolverAssento', () => {
       theme: { name: 't', palette: [], greenery: 0 },
       walls: [],
       wallMounts: [],
+      wallMedia: [],
     };
     const nav = buildNavGrid(layout);
     const desk = layout.props[0]!;

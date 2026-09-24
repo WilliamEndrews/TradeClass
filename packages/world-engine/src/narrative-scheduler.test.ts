@@ -5,7 +5,7 @@
  * dos efeitos colaterais que alimentam o render (heat, lightBroken, kpis).
  */
 import { describe, expect, it } from 'vitest';
-import type { DomainEvent } from '@microfirma/contracts';
+import type { DomainEvent } from '@tradeclass/contracts';
 import { NarrativeScheduler } from './narrative-scheduler.js';
 
 let proximoEventId = 1;

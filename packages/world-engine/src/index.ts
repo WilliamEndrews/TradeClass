@@ -1,5 +1,5 @@
 /**
- * @microfirma/world-engine
+ * @tradeclass/world-engine
  *
  * Simulacao autoritativa do escritorio. Nenhuma dependencia de navegador,
  * nenhuma dependencia de rede, nenhuma chamada de LLM: e uma funcao pura de
@@ -43,6 +43,7 @@ export {
   postoParaGridWorld,
   resolverAssento,
   resolverPostoAgente,
+  resolverPostoParaMesa,
   facingOlhandoPara,
   mesaMaisProxima,
   inferirFacingAssento,
@@ -65,6 +66,7 @@ export {
   kindDoAsset,
   resolverColisaoDoCatalogo,
   type TemaArquiteto,
+  type WallMediaPalco,
   type PostoTrabalho,
   type TileVisual,
   type ZonaKindTiles,

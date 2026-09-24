@@ -11,7 +11,7 @@
       },
       "scopeSpans": [
         {
-          "scope": { "name": "microfirma-test-agency", "version": "1.0.0" },
+          "scope": { "name": "TradeClass-test-agency", "version": "1.0.0" },
           "spans": [
             {
               "traceId": "a1000000000000000000000000000001",

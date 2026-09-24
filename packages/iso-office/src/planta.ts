@@ -16,6 +16,7 @@ export {
 export {
   montarAgencia,
   montarAgenciaGeracao,
+  montarAgenciaDeProtos,
   assinaturaAgencia,
   type AgenciaMontada,
 } from './montar-agencia';
@@ -23,10 +24,18 @@ export {
 export {
   construirEspacoAgencia,
   ordenarElencoCliente,
-  assinaturaElenco,
   type CenarioEspacial,
   type AgenteEspacial,
 } from './espaco-agencia';
+
+export {
+  listarPlantas,
+  carregarPlanta,
+  obterPlanta,
+  bindingsDaPlanta,
+  elencoDaPlanta,
+  type PlantaFixa,
+} from './plants';
 
 export {
   montarMundoIso,

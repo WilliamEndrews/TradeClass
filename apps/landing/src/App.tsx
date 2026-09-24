@@ -32,7 +32,7 @@ export default function App() {
     <>
       <div className={`landing-shell${overlayAberto ? ' landing-shell--recolhido' : ''}`}>
         <header className="landing-brand">
-          <h1 className="brand">MicroFirma</h1>
+          <h1 className="brand">TradeClass</h1>
         </header>
 
         <div className="landing-palco">

@@ -2,7 +2,7 @@
  * Kit de personagens: bake de presets + blit por activity/facing/tempo.
  */
 
-import type { Activity, ActorPose } from '@microfirma/contracts';
+import type { Activity, ActorPose } from '@tradeclass/contracts';
 import { atividadeParaAnim } from './atividade.js';
 import { KLIMMOS_BASE } from './carregar.js';
 import { comporTodasAnims, type FolhaComposta } from './compor.js';

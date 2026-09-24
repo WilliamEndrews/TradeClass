@@ -1,5 +1,5 @@
 {
-  "name": "@microfirma/iso-office",
+  "name": "@tradeclass/iso-office",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,16 +7,17 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./planta": "./src/planta.ts"
+    "./planta": "./src/planta.ts",
+    "./plants": "./src/plants/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@microfirma/contracts": "workspace:*",
-    "@microfirma/iso-characters": "workspace:*",
-    "@microfirma/world-engine": "workspace:*"
+    "@tradeclass/contracts": "workspace:*",
+    "@tradeclass/iso-characters": "workspace:*",
+    "@tradeclass/world-engine": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

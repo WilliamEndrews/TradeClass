@@ -1,11 +1,11 @@
 /**
- * Mede IHDR + bbox alfa dos tiles TinyHouse que o renderer realmente usa.
+ * Mede IHDR + bbox alfa dos tiles TinyTraderLab que o renderer realmente usa.
  *
  * Nao depende de Playwright: no Windows usa System.Drawing via PowerShell
  * embarcado. Saida e tabela ASCII para alimentar projecao.ts com numeros
  * medidos, nao chutados.
  *
- * Uso: node scripts/iso-validation/medir-tinyhouse.js
+ * Uso: node scripts/iso-validation/medir-tinytraderlab.js
  */
 const { execFileSync } = require('child_process');
 const fs = require('fs');
@@ -17,7 +17,7 @@ const BASE = path.resolve(
   '..',
   'assets-source',
   'tinyhouse-pixel-salvaje',
-  'TinyHouse',
+  'TinyTraderLab',
 );
 
 const ARQUIVOS = [

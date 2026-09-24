@@ -4,7 +4,7 @@
  *
  * `Prop.seat` (o destino REAL de pathfinding para "trabalhar") so e
  * preenchido em `colarProto` quando o tema tem um `postoTrabalho` marcado
- * no Lab (botao "marcar assento" - ver `tinyhouse-lab.js`). Sem isso, o
+ * no Lab (botao "marcar assento" - ver `TinyTraderLab-lab.js`). Sem isso, o
  * agente cai no fallback geometrico de sempre (`seatCellFor`) - nada
  * quebra, mas o ponto exato onde ele "senta" nao e garantido bater com a
  * cadeira desenhada no palco.

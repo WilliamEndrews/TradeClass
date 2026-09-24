@@ -1,5 +1,5 @@
 {
-  "name": "@microfirma/synthetic",
+  "name": "@tradeclass/synthetic",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,8 +9,8 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@microfirma/contracts": "workspace:*",
-    "@microfirma/world-engine": "workspace:*"
+    "@tradeclass/contracts": "workspace:*",
+    "@tradeclass/world-engine": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

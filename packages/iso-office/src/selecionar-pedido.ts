@@ -5,14 +5,14 @@ import {
   listarProtos,
   type TemaArquiteto,
   type ZonaKindTiles,
-} from '@microfirma/world-engine';
+} from '@tradeclass/world-engine';
 
 /** Pedido do dashboard: so quantidade de escritorios. Copa e Boss Room sao leis fixas. */
 export type PedidoGeracao = {
   salas: number;
 };
 
-export type ZonaPedido = 'private' | 'break' | 'boss_room';
+export type ZonaPedido = 'private' | 'break' | 'boss_room' | 'open';
 
 export type ProtoEscolhido = {
   key: string;

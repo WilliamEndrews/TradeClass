@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { OtlpIngestor } from '@microfirma/world-engine';
-import type { OtlpExportRequest, OtlpSpan } from '@microfirma/contracts';
+import { OtlpIngestor } from '@tradeclass/world-engine';
+import type { OtlpExportRequest, OtlpSpan } from '@tradeclass/contracts';
 import { OfficeSession } from './office-session.js';
 
 function spanOtlp(name: string, attrs: Record<string, unknown> = {}): OtlpSpan {
@@ -67,7 +67,7 @@ describe('OTLP end-to-end', () => {
     sessao.tick();
     const snap = sessao.snapshot();
 
-    expect(snap.actors.some((a) => a.agentId !== 'microfirma-placeholder')).toBe(true);
+    expect(snap.actors.some((a) => a.agentId !== 'TradeClass-placeholder')).toBe(true);
     expect(snap.kpis.costUsdToday).toBeGreaterThan(0);
   });
 });

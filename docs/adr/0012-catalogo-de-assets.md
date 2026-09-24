@@ -75,7 +75,7 @@ os temas morrem, ou a arte precisa ser refeita depois.
      faltava: notebook, xicara, impressora, luminaria, mouse), Omie's Assets
      "Office Set" (mobilia com textura PBR completa), Khaleer "Lowpoly
      Interior Kit" (37 itens, cores facilmente editaveis).
-   Motivo da escolha por CC0: a MicroFirma pretende suportar deploy
+   Motivo da escolha por CC0: a TradeClass pretende suportar deploy
    on-premises e air-gapped, e num app web o atlas e necessariamente
    redistribuido ao navegador. Licencas tipicas de pack de jogo (Unity Asset
    Store, parte do itch.io, CGTrader) restringem redistribuicao ou restringem

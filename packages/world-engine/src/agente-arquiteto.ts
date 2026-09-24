@@ -13,8 +13,8 @@
  *     LLM como enfeite, nunca como dependencia critica (ADR-0005).
  */
 
-import type { AgentDescriptor, SpaceProgram } from '@microfirma/contracts';
-import { SpaceProgram as SpaceProgramSchema } from '@microfirma/contracts';
+import type { AgentDescriptor, SpaceProgram } from '@tradeclass/contracts';
+import { SpaceProgram as SpaceProgramSchema } from '@tradeclass/contracts';
 import { planSpaceProgram, type CollaborationEdge, type PlanOptions } from './space-program.js';
 
 /**

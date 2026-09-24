@@ -21,7 +21,7 @@ import {
   desserializarLinha,
   type SessionLogHeader,
   type TickRecord,
-} from '@microfirma/contracts';
+} from '@tradeclass/contracts';
 
 export class SessionPlayer {
   private readonly header_: SessionLogHeader;

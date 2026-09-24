@@ -1,24 +1,17 @@
 /**
- * FASE 0 - DEMONSTRACAO SINTETICA
+ * FASE 0 - DEMONSTRACAO SINTETICA (TradeClass trading floor)
  *
- * Esta tela existe para matar o maior risco do projeto (percepcao de brinquedo)
- * em semanas, e nao em meses. Ela usa a arquitetura DEFINITIVA:
+ *   telemetria -> eventos -> Narrative Scheduler -> World Engine -> render
  *
- *   telemetria -> eventos de dominio -> Narrative Scheduler -> World Engine -> render
- *
- * A unica peca provisoria e a origem da telemetria (gerador sintetico em vez de
- * OTLP). Quando o ingest real entrar, este arquivo praticamente nao muda - e
- * essa e a prova de que as fronteiras estao nos lugares certos.
- *
- * O painel lateral nao e decoracao: ele e o caminho ACESSIVEL para toda
- * informacao que o canvas comunica visualmente (ADR-0009). Nada no mundo 2.5D
- * e exclusivo do canvas.
+ * Painel lateral = caminho acessivel de tudo que o canvas mostra (ADR-0009).
+ * Clique em desk/board/wallMedia abre abas Configuracoes | Contas | Agente | Grafico.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import type { ActorState, DomainEvent, WorldKpis } from '@microfirma/contracts';
-import { validarLayout, type Violacao } from '@microfirma/world-engine';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import type { ActorState, DomainEvent, OfficeLayout, Prop, WallMedia, WorldKpis } from '@tradeclass/contracts';
+import { validarLayout, type Violacao } from '@tradeclass/world-engine';
 import { criarRenderer, type RendererHandle } from './office-renderer-iso';
+import { criarRendererTopDown } from './office-renderer-topdown';
 import {
   criarFonteLocal,
   criarFonteRemota,
@@ -28,38 +21,38 @@ import {
 import { useI18n } from './use-i18n';
 import { IDIOMAS, ROTULO_IDIOMA, type Idioma } from './i18n';
 import { simular, type SimularResult } from './api';
+import { ChartPanel } from './chart-panel';
+import type { AbaPainel, SelecaoAlvo } from './selection';
+import { chaveSelecao } from './selection';
+import { anexarWallMediaDemo } from './wall-media-demo';
+import { WallMediaOverlay } from './wall-media-overlay';
 
-/**
- * Endereco do servidor autoritativo. Ausente = simula no navegador.
- * Essa e a UNICA linha desta tela que sabe da existencia de um servidor
- * (ADR-0006): o resto do arquivo consome `WorldSource` e nao faz ideia se o
- * mundo veio de um socket ou de um `setInterval` ao lado.
- */
 const TOKEN_QUERY = new URL(window.location.href).searchParams.get('token');
 
 function resolverUrlServidor(): string | undefined {
   if (TOKEN_QUERY) {
-    const api = import.meta.env.VITE_MICROFIRMA_API ?? 'http://127.0.0.1:8787';
+    const api = import.meta.env.VITE_TRADECLASS_API ?? 'http://127.0.0.1:8787';
     const u = new URL(api);
     const ws = u.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${ws}//${u.host}/mundo?token=${encodeURIComponent(TOKEN_QUERY)}`;
   }
-  return import.meta.env.VITE_MICROFIRMA_WS as string | undefined;
+  return import.meta.env.VITE_TRADECLASS_WS as string | undefined;
 }
 
 const URL_SERVIDOR = resolverUrlServidor();
 
-/**
- * Cenarios de teste via query string:
- *   sem param / ?agents=7  elenco padrao (7 agentes: 1 boss + 6 priv + copa)
- *   ?agents=1              1 Boss Room + 1 copa
- *   ?agents=2              1 Boss + 1 privativo + copa
- */
 const PARAM_AGENTES = (() => {
   const url = new URL(window.location.href);
   const v = url.searchParams.get('agents');
   return v ? parseInt(v, 10) : undefined;
 })();
+
+function usarVistaMobile(): boolean {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get('view') === 'mobile') return true;
+  if (url.searchParams.get('view') === 'iso') return false;
+  return window.matchMedia('(max-width: 768px)').matches;
+}
 
 const CHAVE_CONEXAO: Record<EstadoConexao, string> = {
   local: 'conexao.local',
@@ -74,6 +67,7 @@ interface EstadoPainel {
   atores: ActorState[];
   historico: string[];
   tickAtual: number;
+  layout: OfficeLayout | null;
 }
 
 const CHAVE_ATIVIDADE: Record<ActorState['activity'], string> = {
@@ -88,19 +82,39 @@ const CHAVE_ATIVIDADE: Record<ActorState['activity'], string> = {
   talking: 'atividade.talking',
 };
 
+async function montarRenderer(
+  canvas: HTMLCanvasElement,
+  layout: OfficeLayout,
+  mobile: boolean,
+): Promise<RendererHandle> {
+  const comMidia = anexarWallMediaDemo(layout);
+  return mobile
+    ? criarRendererTopDown(canvas, comMidia)
+    : criarRenderer(canvas, comMidia);
+}
+
 export default function App() {
   const { t, idioma, setIdioma } = useI18n();
+  const [vistaMobile, setVistaMobile] = useState(usarVistaMobile);
 
   useEffect(() => {
     document.documentElement.lang = idioma === 'pseudo' ? 'qps-ploc' : idioma;
   }, [idioma]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const onChange = () => setVistaMobile(usarVistaMobile());
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<RendererHandle | null>(null);
   const fonteRef = useRef<WorldSource | null>(null);
 
   const [seed, setSeed] = useState(20260802);
-  const [selecionado, setSelecionado] = useState<string | null>(null);
+  const [selecionado, setSelecionado] = useState<SelecaoAlvo | null>(null);
+  const [aba, setAba] = useState<AbaPainel>('agente');
   const [painel, setPainel] = useState<EstadoPainel | null>(null);
   const [historicoKpis, setHistoricoKpis] = useState<WorldKpis[]>([]);
   const [violacoes, setViolacoes] = useState<Violacao[]>([]);
@@ -110,10 +124,15 @@ export default function App() {
 
   const [simDuracao, setSimDuracao] = useState(5000);
   const [simCarga, setSimCarga] = useState(1);
-  const [simToken, setSimToken] = useState(import.meta.env.VITE_MICROFIRMA_TOKEN as string | undefined ?? '');
+  const [simToken, setSimToken] = useState(import.meta.env.VITE_TRADECLASS_TOKEN as string | undefined ?? '');
   const [simResultado, setSimResultado] = useState<SimularResult | null>(null);
   const [simCarregando, setSimCarregando] = useState(false);
   const [simErro, setSimErro] = useState<string | null>(null);
+  const [hybridUrl, setHybridUrl] = useState<string | null>(null);
+
+  const selecionadoRef = useRef<SelecaoAlvo | null>(null);
+  selecionadoRef.current = selecionado;
+  const painelLayoutRef = useRef<OfficeLayout | null>(null);
 
   useEffect(() => {
     let vivo = true;
@@ -123,10 +142,6 @@ export default function App() {
     let cancelarEstado: () => void = () => {};
 
     void (async () => {
-      // ---- escolha da fonte de mundo ----
-      // Remota quando configurada; local caso contrario. Se o servidor estiver
-      // fora do ar, cai para local COM AVISO VISIVEL - degradar em silencio
-      // seria mentir para quem esta olhando a tela.
       let criada: WorldSource;
       if (URL_SERVIDOR) {
         try {
@@ -134,9 +149,7 @@ export default function App() {
           setAvisoFonte(null);
         } catch (erro) {
           console.warn('[app] servidor indisponivel, caindo para simulacao local:', erro);
-          setAvisoFonte(
-            t('app.servidorIndisponivel', { url: URL_SERVIDOR }),
-          );
+          setAvisoFonte(t('app.servidorIndisponivel', { url: URL_SERVIDOR }));
           criada = criarFonteLocal(seed, PARAM_AGENTES);
         }
       } else {
@@ -153,31 +166,28 @@ export default function App() {
       setConexao(criada.estado());
       cancelarEstado = criada.onEstado(setConexao);
 
-      // A sessao remota pode estar servindo outra semente (ela e compartilhada
-      // e vive independentemente deste navegador). Pedir `reseed` e a forma
-      // honesta de alinhar: o servidor e a autoridade, nao a tela.
       if (URL_SERVIDOR && !TOKEN_QUERY && criada.seedSessao !== seed) {
         criada.enviar({ type: 'reseed', seed });
       }
 
-      // ---- renderer, construido com o layout que a fonte entregou ----
       if (!canvasRef.current) return;
-      handle = await criarRenderer(canvasRef.current, criada.layout);
+      handle = await montarRenderer(canvasRef.current, criada.layout, vistaMobile);
       if (!vivo) {
         handle.destroy();
         return;
       }
       rendererRef.current = handle;
+      handle.onPick((alvo) => {
+        setSelecionado(alvo);
+        if (alvo?.kind === 'wallMedia') setAba('grafico');
+        else if (alvo?.kind === 'agent') setAba('agente');
+        else if (alvo) setAba('config');
+      });
       let officeIdAtual = criada.layout.officeId;
 
-      // ---- consumo de quadros ----
       const historico: string[] = [];
       let contador = 0;
       cancelarQuadros = criada.onQuadro(({ quadro, eventos }) => {
-        // Planta trocada no servidor (reseed): o renderer tem a camada estatica
-        // do escritorio ANTIGO em cache. Reconstruir e obrigatorio - desenhar
-        // atores de uma planta sobre o piso de outra e o tipo de inconsistencia
-        // que faz o usuario duvidar de tudo que a tela mostra.
         if (quadro.kind === 'snapshot' && quadro.layout.officeId !== officeIdAtual) {
           officeIdAtual = quadro.layout.officeId;
           const anterior = rendererRef.current;
@@ -186,13 +196,19 @@ export default function App() {
           setViolacoes(validarLayout(quadro.layout));
           void (async () => {
             if (!vivo || !canvasRef.current) return;
-            const novo = await criarRenderer(canvasRef.current, quadro.layout);
+            const novo = await montarRenderer(canvasRef.current, quadro.layout, vistaMobile);
             if (!vivo) {
               novo.destroy();
               return;
             }
             handle = novo;
             rendererRef.current = novo;
+            novo.onPick((alvo) => {
+              setSelecionado(alvo);
+              if (alvo?.kind === 'wallMedia') setAba('grafico');
+              else if (alvo?.kind === 'agent') setAba('agente');
+              else if (alvo) setAba('config');
+            });
             novo.select(selecionadoRef.current);
             novo.push(quadro);
           })();
@@ -201,13 +217,8 @@ export default function App() {
 
         rendererRef.current?.push(quadro);
 
-        // Fonte local conhece os eventos crus. A remota nao os recebe (o
-        // servidor nao trafega evento de dominio por padrao - privacidade,
-        // ADR-0007, e banda), entao o historico vem do `chatter` do quadro,
-        // que ja e derivado de fato. Ver roadmap 1.2: um canal dedicado de
-        // feed de eventos e trabalho separado.
         for (const e of eventos) {
-          if (e.type === 'llm.completed' || e.type === 'tool.called') continue; // ruido de alta frequencia
+          if (e.type === 'llm.completed' || e.type === 'tool.called') continue;
           historico.unshift(descreverEvento(e, t));
         }
         if (eventos.length === 0 && quadro.kind === 'delta') {
@@ -215,14 +226,16 @@ export default function App() {
         }
         if (historico.length > 60) historico.length = 60;
 
-        // O painel React atualiza a ~3 Hz. O canvas roda a 60 fps.
-        // Separar as duas frequencias e o que evita re-render em cascata.
         if (++contador % 3 === 0) {
+          const layoutAtual =
+            quadro.kind === 'snapshot' ? anexarWallMediaDemo(quadro.layout) : painelLayoutRef.current;
+          if (quadro.kind === 'snapshot') painelLayoutRef.current = layoutAtual;
           setPainel({
             kpis: quadro.kpis,
             atores: quadro.actors,
             historico: [...historico.slice(0, 14)],
             tickAtual: quadro.tick,
+            layout: layoutAtual ?? fonteRef.current?.layout ?? null,
           });
           setHistoricoKpis((prev) => [...prev, quadro.kpis].slice(-60));
         }
@@ -238,16 +251,13 @@ export default function App() {
       rendererRef.current = null;
       fonteRef.current = null;
     };
-  }, [seed]);
-
-  // O renderer pode ser reconstruido a qualquer momento (reseed no servidor).
-  // A selecao precisa sobreviver a isso, entao ela vive tambem num ref.
-  const selecionadoRef = useRef<string | null>(null);
-  selecionadoRef.current = selecionado;
+  }, [seed, vistaMobile]);
 
   useEffect(() => {
     rendererRef.current?.select(selecionado);
-    rendererRef.current?.focusAgent(selecionado);
+    if (selecionado?.kind === 'agent') {
+      rendererRef.current?.focusAgent(selecionado.id);
+    }
   }, [selecionado]);
 
   const aprovacoes = useMemo(
@@ -260,9 +270,15 @@ export default function App() {
   const custo = painel?.kpis.costUsdToday ?? 0;
   const orcamento = painel?.kpis.budgetUsdToday ?? 1;
   const percentualOrcamento = Math.min(100, (custo / orcamento) * 100);
+  const layout = painel?.layout ?? fonteRef.current?.layout ?? null;
+  const espelho = resolverEspelho(selecionado, layout, painel?.atores ?? [], t);
+  const getViewTransform = useCallback(
+    () => rendererRef.current?.getViewTransform?.() ?? null,
+    [],
+  );
 
   return (
-    <div className="app">
+    <div className={`app${vistaMobile ? ' app-mobile' : ''}`}>
       <aside className="painel">
         <header className="marca">
           <h1>{t('app.titulo')}</h1>
@@ -287,9 +303,11 @@ export default function App() {
 
         <section aria-label="Indicadores">
           <div className="kpis">
+            <Kpi rotulo={t('kpi.pnlSessao')} valor={formatarPnl(painel?.kpis.pnlSessionUsd ?? 0)} alerta={(painel?.kpis.pnlSessionUsd ?? 0) < 0} />
+            <Kpi rotulo={t('kpi.sinais')} valor={String(painel?.kpis.activeSignals ?? 0)} />
+            <Kpi rotulo={t('kpi.risco')} valor={String(painel?.kpis.riskScore ?? 0)} alerta={(painel?.kpis.riskScore ?? 0) > 60} />
             <Kpi rotulo={t('kpi.execucoesAtivas')} valor={String(painel?.kpis.activeRuns ?? 0)} />
             <Kpi rotulo={t('kpi.erros5min')} valor={String(painel?.kpis.errorsLast5Min ?? 0)} alerta={(painel?.kpis.errorsLast5Min ?? 0) > 4} />
-            <Kpi rotulo={t('kpi.tokensMin')} valor={formatarNumero(painel?.kpis.tokensPerMinute ?? 0)} />
             <Kpi rotulo={t('kpi.aprovacoes')} valor={String(painel?.kpis.pendingApprovals ?? 0)} alerta={(painel?.kpis.pendingApprovals ?? 0) > 0} />
           </div>
 
@@ -301,43 +319,144 @@ export default function App() {
               </strong>
             </div>
             <div className="barra" role="progressbar" aria-valuenow={Math.round(percentualOrcamento)} aria-valuemin={0} aria-valuemax={100}>
-              <span style={{ width: `${percentualOrcamento}%`, background: percentualOrcamento > 85 ? '#d94f4f' : '#3f8f52' }} />
+              <span style={{ width: `${percentualOrcamento}%`, background: percentualOrcamento > 85 ? '#d47868' : '#7dba7a' }} />
             </div>
-            <p className="nota">
-              {t('orcamento.nota')}
-            </p>
+            <p className="nota">{t('orcamento.nota')}</p>
           </div>
 
           <section className="dashboard" aria-label={t('dashboard.titulo')}>
             <h2>{t('dashboard.titulo')}</h2>
             <div className="cartoes">
               <div className="cartao">
-                <span className="cartao-rotulo">{t('kpi.execucoesAtivas')}</span>
-                <strong className="cartao-valor">{String(painel?.kpis.activeRuns ?? 0)}</strong>
+                <span className="cartao-rotulo">{t('kpi.pnlSessao')}</span>
+                <strong className="cartao-valor">{formatarPnl(painel?.kpis.pnlSessionUsd ?? 0)}</strong>
               </div>
               <div className="cartao">
-                <span className="cartao-rotulo">{t('kpi.erros5min')}</span>
-                <strong className="cartao-valor">{String(painel?.kpis.errorsLast5Min ?? 0)}</strong>
+                <span className="cartao-rotulo">{t('kpi.sinais')}</span>
+                <strong className="cartao-valor">{String(painel?.kpis.activeSignals ?? 0)}</strong>
+              </div>
+              <div className="cartao">
+                <span className="cartao-rotulo">{t('kpi.risco')}</span>
+                <strong className="cartao-valor">{String(painel?.kpis.riskScore ?? 0)}</strong>
               </div>
               <div className="cartao">
                 <span className="cartao-rotulo">{t('kpi.tokensMin')}</span>
                 <strong className="cartao-valor">{formatarNumero(painel?.kpis.tokensPerMinute ?? 0)}</strong>
               </div>
-              <div className="cartao">
-                <span className="cartao-rotulo">{t('kpi.aprovacoes')}</span>
-                <strong className="cartao-valor">{String(painel?.kpis.pendingApprovals ?? 0)}</strong>
-              </div>
             </div>
             <p className="nota">{t('dashboard.nota')}</p>
-
             <section className="historico" aria-label={t('dashboard.historico')}>
               <h3>{t('dashboard.historico')}</h3>
               <div className="historico-series">
-                <Sparkline titulo={t('kpi.execucoesAtivas')} dados={historicoKpis.map((k) => k.activeRuns)} cor="#4f9ed9" />
-                <Sparkline titulo={t('kpi.erros5min')} dados={historicoKpis.map((k) => k.errorsLast5Min)} cor="#d94f4f" />
+                <Sparkline titulo={t('kpi.pnlSessao')} dados={historicoKpis.map((k) => k.pnlSessionUsd ?? 0)} cor="#7dba7a" />
+                <Sparkline titulo={t('kpi.risco')} dados={historicoKpis.map((k) => k.riskScore ?? 0)} cor="#d47868" />
               </div>
             </section>
           </section>
+        </section>
+
+        <section className="selecao-painel" aria-label={t('painel.selecao')}>
+          <h2>{t('painel.selecao')}</h2>
+          <p className="espelho-selecao">{espelho.texto}</p>
+          <div className="abas" role="tablist">
+            {([
+              ['config', 'painel.aba.config'],
+              ['contas', 'painel.aba.contas'],
+              ['agente', 'painel.aba.agente'],
+              ['grafico', 'painel.aba.grafico'],
+            ] as const).map(([id, chave]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                aria-selected={aba === id}
+                className={aba === id ? 'ativo' : ''}
+                onClick={() => setAba(id)}
+              >
+                {t(chave)}
+              </button>
+            ))}
+          </div>
+          <div className="aba-conteudo" role="tabpanel">
+            {aba === 'config' && (
+              <div>
+                <p className="nota">{espelho.config}</p>
+                {espelho.prop && (
+                  <ul className="lista-detalhe">
+                    <li>{t('painel.propId')}: {espelho.prop.propId}</li>
+                    <li>{t('painel.kind')}: {espelho.prop.kind}</li>
+                    <li>{t('painel.sala')}: {espelho.prop.roomId}</li>
+                    {espelho.prop.ownerAgentId && (
+                      <li>{t('painel.dono')}: {nomeCurto(espelho.prop.ownerAgentId)}</li>
+                    )}
+                  </ul>
+                )}
+                {espelho.media && (
+                  <ul className="lista-detalhe">
+                    <li>{t('painel.mediaId')}: {espelho.media.mediaId}</li>
+                    <li>{t('painel.kind')}: {espelho.media.kind}</li>
+                    <li>{t('painel.serie')}: {espelho.media.seriesId ?? '—'}</li>
+                  </ul>
+                )}
+              </div>
+            )}
+            {aba === 'contas' && (
+              <div>
+                <p className="nota">{t('painel.contas.nota')}</p>
+                <ul className="lista-detalhe">
+                  <li>{t('kpi.pnlSessao')}: {formatarPnl(painel?.kpis.pnlSessionUsd ?? 0)}</li>
+                  <li>{t('kpi.sinais')}: {painel?.kpis.activeSignals ?? 0}</li>
+                  <li>{t('orcamento.custoDia')}: US$ {custo.toFixed(2)}</li>
+                </ul>
+              </div>
+            )}
+            {aba === 'agente' && (
+              <div>
+                {espelho.ator ? (
+                  <ul className="lista-detalhe">
+                    <li>{nomeCurto(espelho.ator.agentId)}</li>
+                    <li>{t(CHAVE_ATIVIDADE[espelho.ator.activity])}</li>
+                    <li>{t('painel.saude')}: {espelho.ator.health}</li>
+                  </ul>
+                ) : (
+                  <p className="nota">{t('painel.agente.vazio')}</p>
+                )}
+              </div>
+            )}
+            {aba === 'grafico' && (
+              <div>
+                {espelho.media?.kind === 'iframe' && espelho.media.url ? (
+                  <>
+                    <p className="nota">
+                      {espelho.media.display ?? 'auto'} · {espelho.media.frame ?? 'none'} · {espelho.media.url}
+                    </p>
+                    {/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(espelho.media.url) ||
+                    espelho.media.url.startsWith('data:image/') ? (
+                      <img
+                        src={hybridUrl ?? espelho.media.url}
+                        alt={espelho.media.mediaId}
+                        style={{ width: '100%', maxHeight: 220, objectFit: 'contain', background: '#0c1210' }}
+                      />
+                    ) : (
+                      <iframe
+                        title={espelho.media.mediaId}
+                        src={hybridUrl ?? espelho.media.url}
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                        style={{ width: '100%', height: 220, border: '1px solid #2a3a34', background: '#0c1210' }}
+                      />
+                    )}
+                  </>
+                ) : espelho.media?.seriesId ? (
+                  <>
+                    <p className="nota">{t('painel.grafico.serie', { id: espelho.media.seriesId })}</p>
+                    <ChartPanel seriesId={espelho.media.seriesId} />
+                  </>
+                ) : (
+                  <p className="nota">{t('painel.grafico.vazio')}</p>
+                )}
+              </div>
+            )}
+          </div>
         </section>
 
         {aprovacoes.length > 0 && (
@@ -366,9 +485,15 @@ export default function App() {
               <li key={a.agentId}>
                 <button
                   type="button"
-                  className={selecionado === a.agentId ? 'ativo' : ''}
-                  aria-pressed={selecionado === a.agentId}
-                  onClick={() => setSelecionado(selecionado === a.agentId ? null : a.agentId)}
+                  className={chaveSelecao(selecionado) === a.agentId ? 'ativo' : ''}
+                  aria-pressed={chaveSelecao(selecionado) === a.agentId}
+                  onClick={() => {
+                    const next = selecionado?.kind === 'agent' && selecionado.id === a.agentId
+                      ? null
+                      : { kind: 'agent' as const, id: a.agentId };
+                    setSelecionado(next);
+                    setAba('agente');
+                  }}
                 >
                   <span className={`ponto saude-${a.health}`} aria-hidden="true" />
                   <span className="nome">{nomeCurto(a.agentId)}</span>
@@ -379,7 +504,7 @@ export default function App() {
           </ul>
         </section>
 
-        <section aria-label="Equipe MicroFirma">
+        <section aria-label="Equipe TradeClass">
           <h2>{t('agentes.internaTitulo')}</h2>
           <ul className="lista compacta">
             {internos.map((a) => (
@@ -389,9 +514,7 @@ export default function App() {
               </li>
             ))}
           </ul>
-          <p className="nota">
-            {t('agentes.notaInterna')}
-          </p>
+          <p className="nota">{t('agentes.notaInterna')}</p>
         </section>
 
         <section aria-label="Fatos recentes">
@@ -401,9 +524,7 @@ export default function App() {
               <li key={`${linha}-${i}`}>{linha}</li>
             ))}
           </ol>
-          <p className="nota">
-            {t('fatos.nota')}
-          </p>
+          <p className="nota">{t('fatos.nota')}</p>
         </section>
 
         <section aria-label="Controles">
@@ -431,9 +552,7 @@ export default function App() {
               onChange={(e) => setSeed(Number(e.target.value) || 0)}
             />
           </label>
-          <p className="nota">
-            {t('controles.notaSemente')}
-          </p>
+          <p className="nota">{t('controles.notaSemente')}</p>
           {violacoes.length > 0 ? (
             <p className="erro">
               {t('controles.violacoes', { n: violacoes.length })}{' '}
@@ -452,32 +571,15 @@ export default function App() {
             <>
               <label className="campo">
                 {t('simfirma.duracao')}
-                <input
-                  type="number"
-                  min={1000}
-                  max={60000}
-                  value={simDuracao}
-                  onChange={(e) => setSimDuracao(Number(e.target.value) || 0)}
-                />
+                <input type="number" min={1000} max={60000} value={simDuracao} onChange={(e) => setSimDuracao(Number(e.target.value) || 0)} />
               </label>
               <label className="campo">
                 {t('simfirma.carga')}
-                <input
-                  type="number"
-                  min={1}
-                  max={100}
-                  value={simCarga}
-                  onChange={(e) => setSimCarga(Number(e.target.value) || 1)}
-                />
+                <input type="number" min={1} max={100} value={simCarga} onChange={(e) => setSimCarga(Number(e.target.value) || 1)} />
               </label>
               <label className="campo">
                 {t('simfirma.token')}
-                <input
-                  type="password"
-                  value={simToken}
-                  onChange={(e) => setSimToken(e.target.value)}
-                  placeholder="eyJ..."
-                />
+                <input type="password" value={simToken} onChange={(e) => setSimToken(e.target.value)} placeholder="eyJ..." />
               </label>
               <button
                 type="button"
@@ -510,12 +612,7 @@ export default function App() {
                   <div className="kpis simfirma-kpis">
                     <Kpi rotulo={t('kpi.execucoesAtivas')} valor={String(simResultado.kpis.activeRuns)} />
                     <Kpi rotulo={t('kpi.erros5min')} valor={String(simResultado.kpis.errorsLast5Min)} />
-                    <Kpi rotulo={t('kpi.tokensMin')} valor={formatarNumero(simResultado.kpis.tokensPerMinute)} />
-                    <Kpi rotulo={t('kpi.aprovacoes')} valor={String(simResultado.kpis.pendingApprovals)} />
                   </div>
-                  <p className="nota">
-                    US$ {simResultado.kpis.costUsdToday.toFixed(2)} / {simResultado.kpis.budgetUsdToday.toFixed(2)}
-                  </p>
                 </div>
               )}
             </>
@@ -525,15 +622,70 @@ export default function App() {
 
       <main className="palco">
         <canvas ref={canvasRef} aria-label={t('canvas.ariaLabel')} role="img" />
+        {!vistaMobile && layout && (
+          <WallMediaOverlay
+            midias={layout.wallMedia ?? []}
+            getTransform={getViewTransform}
+            selecionadoId={selecionado?.kind === 'wallMedia' ? selecionado.id : null}
+            onHybridOpen={(wm) => {
+              setSelecionado({ kind: 'wallMedia', id: wm.mediaId });
+              setAba('grafico');
+              setHybridUrl(wm.url ?? null);
+            }}
+          />
+        )}
         <div className="controles-camera">
-          <button onClick={() => rendererRef.current?.resetCamera()} title={t('camera.reset')}>
+          <button type="button" onClick={() => rendererRef.current?.resetCamera()} title={t('camera.reset')}>
             {t('camera.reset')}
           </button>
-          <span className="dica-camera">{t('camera.dica')}</span>
+          <span className="dica-camera">
+            {vistaMobile ? t('camera.dicaMobile') : t('camera.dica')}
+          </span>
         </div>
       </main>
     </div>
   );
+}
+
+function resolverEspelho(
+  sel: SelecaoAlvo | null,
+  layout: OfficeLayout | null,
+  atores: ActorState[],
+  t: (chave: string, vars?: Record<string, string | number>) => string,
+): {
+  texto: string;
+  config: string;
+  prop?: Prop;
+  media?: WallMedia;
+  ator?: ActorState;
+} {
+  if (!sel) {
+    return { texto: t('painel.selecao.nenhuma'), config: t('painel.config.vazio') };
+  }
+  if (sel.kind === 'agent') {
+    const ator = atores.find((a) => a.agentId === sel.id);
+    return {
+      texto: t('painel.selecao.agente', { nome: nomeCurto(sel.id) }),
+      config: t('painel.config.agente', { nome: nomeCurto(sel.id) }),
+      ator,
+    };
+  }
+  if (sel.kind === 'desk' || sel.kind === 'board') {
+    const prop = layout?.props.find((p) => p.propId === sel.id);
+    return {
+      texto: t(sel.kind === 'desk' ? 'painel.selecao.mesa' : 'painel.selecao.quadro', {
+        id: sel.id,
+      }),
+      config: t('painel.config.prop', { kind: sel.kind, id: sel.id }),
+      prop,
+    };
+  }
+  const media = layout?.wallMedia?.find((m) => m.mediaId === sel.id);
+  return {
+    texto: t('painel.selecao.midia', { id: sel.id, kind: media?.kind ?? '—' }),
+    config: t('painel.config.midia', { id: sel.id }),
+    media,
+  };
 }
 
 function Sparkline({ titulo, dados, cor }: { titulo: string; dados: number[]; cor: string }) {
@@ -572,7 +724,6 @@ function Kpi({ rotulo, valor, alerta }: { rotulo: string; valor: string; alerta?
   );
 }
 
-/** Descricao humana e factual de um evento. Sem adjetivos, sem invencao. */
 function descreverEvento(
   e: DomainEvent,
   t: (chave: string, vars?: Record<string, string | number>) => string,
@@ -596,10 +747,15 @@ function descreverEvento(
 }
 
 function nomeCurto(agentId: string): string {
-  const bruto = agentId.replace(/^agent-/, '').replace(/^microfirma-/, '');
+  const bruto = agentId.replace(/^agent-/, '').replace(/^TradeClass-/, '');
   return bruto.charAt(0).toUpperCase() + bruto.slice(1);
 }
 
 function formatarNumero(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(Math.round(n));
+}
+
+function formatarPnl(n: number): string {
+  const sinal = n >= 0 ? '+' : '';
+  return `${sinal}${n.toFixed(2)}`;
 }

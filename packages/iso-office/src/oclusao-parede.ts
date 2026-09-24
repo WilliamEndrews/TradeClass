@@ -16,7 +16,7 @@
  * dupla composicao de alpha nas bordas dos PNGs.
  */
 
-import type { Cell } from '@microfirma/contracts';
+import type { Cell } from '@tradeclass/contracts';
 import {
   prepararOclusoresParede,
   type Bounds,

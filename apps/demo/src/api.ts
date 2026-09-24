@@ -1,5 +1,5 @@
 /**
- * API cliente do MicroFirma - chamadas REST ponto a ponto.
+ * API cliente do TradeClass - chamadas REST ponto a ponto.
  *
  * O WebSocket e a fonte de mundo (quadros a 10 Hz). Estas funcoes fazem
  * operacoes pontuais que nao cabem no stream: SimFirma, onboarding, login.

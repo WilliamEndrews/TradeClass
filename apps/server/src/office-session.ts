@@ -29,23 +29,23 @@ import {
   type TickRecord,
   type WorldDelta,
   type WorldSnapshot,
-} from '@microfirma/contracts';
+} from '@tradeclass/contracts';
 import {
   serializarHeader,
   serializarTick,
-} from '@microfirma/contracts';
+} from '@tradeclass/contracts';
 import {
   WorldEngine,
   validarLayout,
   type Violacao,
-} from '@microfirma/world-engine';
-import { SyntheticStream } from '@microfirma/synthetic';
+} from '@tradeclass/world-engine';
+import { SyntheticStream } from '@tradeclass/synthetic';
 import {
   AGENTE_PLACEHOLDER,
   assinaturaElencoDe,
   montarMundoIso,
   resolverColisaoLab,
-} from '@microfirma/iso-office/planta';
+} from '@tradeclass/iso-office/planta';
 
 /**
  * Fonte de eventos de dominio. Tudo que alimenta a engine vem daqui.
@@ -288,7 +288,7 @@ export class OfficeSession {
     if (!this.gravador) return;
     const agentes = this.elencoAtual();
     const header: SessionLogHeader = {
-      format: 'microfirma-session-log',
+      format: 'TradeClass-session-log',
       version: 1,
       seed: this.seed_,
       tenantId: this.tenantId,

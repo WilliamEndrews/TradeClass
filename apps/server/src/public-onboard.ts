@@ -3,7 +3,7 @@
  * O codigo do cliente e o tenantId (mesmo valor de x-tenant-id no OTLP).
  */
 
-import type { Tenant } from '@microfirma/contracts';
+import type { Tenant } from '@tradeclass/contracts';
 import { emitirJwt, gerarId } from './auth.js';
 import type { TenantRegistry } from './tenant-registry.js';
 

@@ -16,7 +16,7 @@ import type {
   SpaceProgram,
   WallMount,
   ZoneRequest,
-} from '@microfirma/contracts';
+} from '@tradeclass/contracts';
 import { createRng } from './prng.js';
 import {
   calibracaoDoProto,
@@ -81,6 +81,7 @@ export function solveLayout(program: SpaceProgram): OfficeLayout {
 
   const props: Prop[] = [];
   const wallMounts: WallMount[] = [];
+  const wallMediaAcc: import('@tradeclass/contracts').WallMedia[] = [];
   for (const sala of roomsVisuais) {
     const zona = program.zones.find((z) => z.zoneId === sala.zoneId);
     const agentes = zona?.agentIds ?? [];
@@ -89,6 +90,7 @@ export function solveLayout(program: SpaceProgram): OfficeLayout {
     const resultado = colarProto(sala, proto, agentes, faixaNorte);
     props.push(...resultado.props);
     wallMounts.push(...resultado.mounts);
+    wallMediaAcc.push(...resultado.wallMedia);
   }
 
   return {
@@ -102,6 +104,7 @@ export function solveLayout(program: SpaceProgram): OfficeLayout {
     theme: program.theme,
     walls: [],
     wallMounts,
+    wallMedia: wallMediaAcc,
     corridorTileSetId: visualCorredor.tileSetId,
   };
 }

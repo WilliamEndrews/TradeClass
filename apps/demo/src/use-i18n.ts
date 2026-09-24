@@ -9,7 +9,7 @@
 import { useCallback, useState } from 'react';
 import { IDIOMAS, traduzir, type Idioma } from './i18n';
 
-const CHAVE_STORAGE = 'microfirma.idioma';
+const CHAVE_STORAGE = 'tradeclass.idioma';
 
 function idiomaInicial(): Idioma {
   try {

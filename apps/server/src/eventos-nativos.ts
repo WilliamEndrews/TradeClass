@@ -7,8 +7,8 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { AgentRole, DomainEvent, OtlpExportRequest } from '@microfirma/contracts';
-import { AgentRole as AgentRoleSchema } from '@microfirma/contracts';
+import type { AgentRole, DomainEvent, OtlpExportRequest } from '@tradeclass/contracts';
+import { AgentRole as AgentRoleSchema } from '@tradeclass/contracts';
 import { gerarId } from './auth.js';
 import type { TenantRegistry } from './tenant-registry.js';
 

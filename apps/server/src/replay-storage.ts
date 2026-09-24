@@ -5,9 +5,9 @@
  *
  *   1. Disco local (`DiskReplayStorage`) - mantem o comportamento anterior;
  *   2. S3 (`S3ReplayStorage`) - espelha o arquivo local em um bucket S3
- *      a cada `MICROFIRMA_REPLAY_SYNC_MS` milissegundos.
+ *      a cada `TRADECLASS_REPLAY_SYNC_MS` milissegundos.
  *
- * A estrategia e escolhida pela presenca de `MICROFIRMA_REPLAY_S3_BUCKET`.
+ * A estrategia e escolhida pela presenca de `TRADECLASS_REPLAY_S3_BUCKET`.
  * Quando S3 esta ativo, o disco ainda e usado como spool de gravacao;
  * o S3 funciona como copia autoritativa e cold-storage. Na carga, se o
  * arquivo local nao existe, ele e baixado do S3.
@@ -22,8 +22,8 @@ import { createWriteStream, createReadStream, existsSync, mkdirSync, readdirSync
 import nodePath from 'node:path';
 import { Writable } from 'node:stream';
 import { S3Client, ListObjectsV2Command, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
-import type { SessionLogHeader } from '@microfirma/contracts';
-import { desserializarLinha } from '@microfirma/contracts';
+import type { SessionLogHeader } from '@tradeclass/contracts';
+import { desserializarLinha } from '@tradeclass/contracts';
 
 export interface ReplayStorage {
   /** Lista todos os replays disponiveis (headers) para carregamento. */
@@ -215,12 +215,12 @@ export class S3ReplayStorage extends DiskReplayStorage {
 
 /** Fabrica: escolhe a implementacao de acordo com as variaveis de ambiente. */
 export function criarReplayStorage(): ReplayStorage | undefined {
-  const replayDir = process.env.MICROFIRMA_REPLAY_DIR;
+  const replayDir = process.env.TRADECLASS_REPLAY_DIR;
   if (!replayDir) return undefined;
-  const s3Bucket = process.env.MICROFIRMA_REPLAY_S3_BUCKET;
+  const s3Bucket = process.env.TRADECLASS_REPLAY_S3_BUCKET;
   if (!s3Bucket) return new DiskReplayStorage(replayDir);
-  const prefix = process.env.MICROFIRMA_REPLAY_S3_PREFIX ?? 'replays';
-  const syncMs = Number(process.env.MICROFIRMA_REPLAY_SYNC_MS ?? 30000);
-  const endpoint = process.env.AWS_ENDPOINT_URL_S3 ?? process.env.MICROFIRMA_S3_ENDPOINT;
+  const prefix = process.env.TRADECLASS_REPLAY_S3_PREFIX ?? 'replays';
+  const syncMs = Number(process.env.TRADECLASS_REPLAY_SYNC_MS ?? 30000);
+  const endpoint = process.env.AWS_ENDPOINT_URL_S3 ?? process.env.TRADECLASS_S3_ENDPOINT;
   return new S3ReplayStorage(replayDir, s3Bucket, prefix, syncMs, endpoint);
 }

@@ -3,11 +3,11 @@
  * Sem overlay de lab (D/W) e sem dependencia da simulacao local.
  */
 
-import type { ActorState } from '@microfirma/contracts';
+import type { ActorState } from '@tradeclass/contracts';
 import {
   dimensoesPersonagem,
   type PersonagemKit,
-} from '@microfirma/iso-characters';
+} from '@tradeclass/iso-characters';
 import type { OclusaoCorredor, RetanguloTela } from './oclusao-parede';
 import { iso, type Pt } from './proto-blit/iso';
 

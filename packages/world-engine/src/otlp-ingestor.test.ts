@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { OtlpIngestor } from './otlp-ingestor.js';
-import type { OtlpExportRequest } from '@microfirma/contracts';
+import type { OtlpExportRequest } from '@tradeclass/contracts';
 
 function loteComSpan(attrs: Record<string, unknown>, traceId = 'abc123'): OtlpExportRequest {
   return {

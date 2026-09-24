@@ -26,7 +26,7 @@ import type { AgentDescriptor, DomainEvent, OfficeLayout, WorldSnapshot, WorldDe
 
 /** Cabecalho do arquivo de gravacao. Sempre a primeira linha. */
 export interface SessionLogHeader {
-  format: 'microfirma-session-log';
+  format: 'TradeClass-session-log';
   version: 1;
   /** Semente usada para construir o escritorio. */
   seed: number;

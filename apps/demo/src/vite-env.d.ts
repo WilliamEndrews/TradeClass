@@ -9,8 +9,8 @@ interface ImportMetaEnv {
    * Endereco do servidor autoritativo (ex.: ws://localhost:8787/mundo).
    * Ausente = a demo simula no proprio navegador (Fase 0).
    */
-  readonly VITE_MICROFIRMA_WS?: string;
-  readonly VITE_MICROFIRMA_API?: string;
+  readonly VITE_TRADECLASS_WS?: string;
+  readonly VITE_TRADECLASS_API?: string;
 }
 
 interface ImportMeta {

@@ -1,16 +1,19 @@
 {
-  "name": "microfirma",
+  "name": "tradeclass",
   "private": true,
   "version": "0.0.0",
-  "description": "MicroFirma - plano de controle espacial para sistemas agenticos",
+  "description": "TradeClass - plano de controle espacial para sistemas agenticos",
   "packageManager": "pnpm@9.12.3",
   "scripts": {
-    "dev": "pnpm --filter @microfirma/demo dev",
-    "dev:server": "pnpm --filter @microfirma/server dev",
-    "dev:landing": "pnpm --filter @microfirma/landing dev",
-    "dev:debugpreview": "pnpm --filter @microfirma/debugpreview dev",
+    "dev": "pnpm --filter @tradeclass/demo dev",
+    "dev:server": "pnpm --filter @tradeclass/server dev",
+    "dev:landing": "pnpm --filter @tradeclass/landing dev",
+    "dev:debugpreview": "pnpm --filter @tradeclass/debugpreview dev",
     "build": "turbo run build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:types": "eslint --config eslint.typed.config.mjs .",
     "test": "vitest run",
     "test:watch": "vitest",
     "lab:iso": "node scripts/iso-validation/lab-server.mjs",
@@ -19,12 +22,17 @@
     "telemetria:dry": "npm exec --yes --package=tsx@4.19.2 -- tsx scripts/enviar-telemetria-agencia.ts --dry-run",
     "telemetria:enviar": "npm exec --yes --package=tsx@4.19.2 -- tsx scripts/enviar-telemetria-agencia.ts",
     "test:debugpreview": "vitest run --root apps/debugpreview",
-    "contracts:jsonschema": "pnpm --filter @microfirma/contracts gen:jsonschema"
+    "contracts:jsonschema": "pnpm --filter @tradeclass/contracts gen:jsonschema"
   },
   "devDependencies": {
+    "@eslint/js": "9",
     "@types/node": "^22.10.2",
+    "eslint": "9",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-import-x": "^4.17.1",
     "turbo": "^2.3.3",
     "typescript": "^5.6.3",
+    "typescript-eslint": "^8.70.0",
     "vitest": "^2.1.8"
   },
   "engines": {

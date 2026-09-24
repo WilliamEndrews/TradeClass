@@ -1,6 +1,6 @@
 # Telemetria OTLP — runbook e criterios de aceite
 
-Este documento descreve **o que ja funciona** no pipeline OTLP do MicroFirma e
+Este documento descreve **o que ja funciona** no pipeline OTLP do TradeClass e
 como testa-lo localmente com a fixture GenAI + harness, sem depender de um
 cliente agentico real.
 
@@ -15,8 +15,8 @@ Runbook de teste local (fixture, curl, aceite) abaixo.
 
 ```
 POST /v1/traces (JSON)
-  → traduzirLoteOtlp (@microfirma/contracts)
-  → OtlpIngestor (@microfirma/world-engine)
+  → traduzirLoteOtlp (@tradeclass/contracts)
+  → OtlpIngestor (@tradeclass/world-engine)
   → OfficeSession.tick → WorldEngine.ingest
   → NarrativeScheduler (heat / incident / approval)
   → WebSocket /mundo → apps/demo (painter iso + Klimmos; HITL no painel)
@@ -55,13 +55,13 @@ POST /v1/traces (JSON)
 
 ```powershell
 # Terminal 1 — server
-npx pnpm --filter @microfirma/server dev
+npx pnpm --filter @tradeclass/server dev
 
 # Terminal 2 — tenant com OtlpIngestor + .env.local do demo
 .\scripts\setup-otlp-tenant.ps1
 
 # Terminal 3 — demo apontando para esse tenant
-npx pnpm --filter @microfirma/demo dev
+npx pnpm --filter @tradeclass/demo dev
 
 # Terminal 4 — dispara a fixture
 npm run telemetria:enviar
@@ -110,7 +110,7 @@ Demo a reconstruir o painter. Zelador/tecnico nao ocupam sala.
 
 ## O que o script Python antigo do colaborador errava
 
-| Proposta antiga | Realidade MicroFirma |
+| Proposta antiga | Realidade TradeClass |
 |-----------------|----------------------|
 | `agent.id` / `agent.role` | `gen_ai.agent.id` / `gen_ai.agent.role` |
 | `tool.name` | `gen_ai.operation.name=tool` + `gen_ai.tool.name` |
@@ -139,7 +139,7 @@ npm run test:debugpreview
 cd apps/debugpreview; ..\..\node_modules\.bin\tsc.cmd --noEmit -p tsconfig.json
 
 # Manual — UI
-npx pnpm --filter @microfirma/debugpreview dev
+npx pnpm --filter @tradeclass/debugpreview dev
 ```
 
 Checklist manual (apos as refinacoes Klimmos / oclusao / passeio):
@@ -156,7 +156,7 @@ Checklist manual (apos as refinacoes Klimmos / oclusao / passeio):
 | Sistema | Onde validar |
 |---------|--------------|
 | OTLP → DomainEvent → HITL / remesh de mesas | `server` + `demo` + scripts deste doc |
-| Painter / Klimmos / oclusao / 1 Boss+copa no produto | `demo` (`@microfirma/iso-office`) |
+| Painter / Klimmos / oclusao / 1 Boss+copa no produto | `demo` (`@tradeclass/iso-office`) |
 | Gerar salas / tarefa especial / blueprint | `debugpreview` (oraculo, nao pipeline) |
 
 ## Scripts npm (raiz)

@@ -1,0 +1,180 @@
+{
+  "versao": "1.3",
+  "data": "2026-09-22",
+  "notas": "Assets gerados proceduralmente (aba Create). fileName com prefixo created/ aponta para assets-source/tradeclass-created/. Mesas centro = recolor Table_10. Mesas alternativa/principal = embranquecimento Desk_1 / Office_Main_Table (±gaveta). Cameras vs projetor. Painéis de parede XL (TV/cortiça) com span×heightPx.",
+  "assets": [
+    {
+      "assetId": "created-desk-white-plastic",
+      "kind": "coffee",
+      "nome": "Mesa centro branca plastico",
+      "fileName": "created/Desk_White_Plastic.png",
+      "papel": "prop",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "living-table-10"
+    },
+    {
+      "assetId": "created-desk-metal",
+      "kind": "coffee",
+      "nome": "Mesa centro metal",
+      "fileName": "created/Desk_Metal.png",
+      "papel": "prop",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "living-table-10",
+      "interativo": {
+        "acao": "popup",
+        "titulo": "Teste de design",
+        "corpo": "Teste de design"
+      }
+    },
+    {
+      "assetId": "created-desk1-white-no-drawer",
+      "kind": "desk",
+      "nome": "Mesa alternativa branca (sem gaveta)",
+      "fileName": "created/Desk1_White_Plastic_NoDrawer.png",
+      "papel": "prop",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "desk-1",
+      "notas": "Desk_1 embranquecida (plastico); gaveta removida."
+    },
+    {
+      "assetId": "created-desk1-white-smooth-drawer",
+      "kind": "desk",
+      "nome": "Mesa alternativa branca (gaveta lateral)",
+      "fileName": "created/Desk1_White_Plastic_SmoothDrawer.png",
+      "papel": "prop",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "desk-1",
+      "notas": "Desk_1 embranquecida; caixa da gaveta lisa (abre para o lado oculto)."
+    },
+    {
+      "assetId": "created-maindesk-white-no-drawer",
+      "kind": "desk",
+      "nome": "Mesa principal branca (sem gaveta)",
+      "fileName": "created/MainDesk_White_Plastic_NoDrawer.png",
+      "papel": "prop",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "office-main-table",
+      "notas": "Office_Main_Table embranquecida; móvel de gavetas removido."
+    },
+    {
+      "assetId": "created-maindesk-white-smooth-drawer",
+      "kind": "desk",
+      "nome": "Mesa principal branca (gaveta lateral)",
+      "fileName": "created/MainDesk_White_Plastic_SmoothDrawer.png",
+      "papel": "prop",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "office-main-table",
+      "notas": "Office_Main_Table embranquecida; bloco de gavetas liso (abre para o lado oculto)."
+    },
+    {
+      "assetId": "created-rug-white-fabric",
+      "kind": "rug",
+      "nome": "Tapete branco tecido",
+      "fileName": "created/Rug_White_Fabric.png",
+      "papel": "prop",
+      "uso": "aleatorio",
+      "origem": "create"
+    },
+    {
+      "assetId": "created-cinema-camera",
+      "kind": "lamp",
+      "nome": "Camera de filmagem",
+      "fileName": "created/Cinema_Camera.png",
+      "papel": "prop",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "office-projector"
+    },
+    {
+      "assetId": "created-cinema-camera-pro",
+      "kind": "lamp",
+      "nome": "Camera de cinema",
+      "fileName": "created/Cinema_Camera_Pro.png",
+      "papel": "prop",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "office-projector"
+    },
+    {
+      "assetId": "created-camera-stand",
+      "kind": "lamp",
+      "nome": "Suporte camera",
+      "fileName": "created/Camera_Stand.png",
+      "papel": "prop",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "projector-stand"
+    },
+    {
+      "assetId": "created-wall-tv-3x",
+      "kind": "board",
+      "nome": "TV de parede 3×100",
+      "fileName": "created/Wall_TV_3x100.png",
+      "papel": "wall",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "office-tv-off",
+      "span": 3,
+      "heightPx": 100,
+      "notas": "Replica TV de parede TinyHouse em escala Lab: 3 tiles × 100px."
+    },
+    {
+      "assetId": "created-wall-tv-4x",
+      "kind": "board",
+      "nome": "TV de parede 4×100",
+      "fileName": "created/Wall_TV_4x100.png",
+      "papel": "wall",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "office-tv-off",
+      "span": 4,
+      "heightPx": 100,
+      "notas": "Replica TV de parede TinyHouse em escala Lab: 4 tiles × 100px."
+    },
+    {
+      "assetId": "created-wall-tv-war",
+      "kind": "board",
+      "nome": "TV war room 6×120",
+      "fileName": "created/Wall_TV_War_6x120.png",
+      "papel": "wall",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "big-tv-off",
+      "span": 6,
+      "heightPx": 120,
+      "notas": "TV panorâmica de war room (inspirada na BigTV), 6 tiles × 120px."
+    },
+    {
+      "assetId": "created-cork-wide",
+      "kind": "board",
+      "nome": "Cortica panoramica 3×72",
+      "fileName": "created/Wall_Cork_Wide_3x72.png",
+      "papel": "wall",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "corkboard-2",
+      "span": 3,
+      "heightPx": 72,
+      "notas": "Cortiça larga para murais/agenda (Cortica 2), 3 tiles × 72px."
+    },
+    {
+      "assetId": "created-cork-tall",
+      "kind": "board",
+      "nome": "Cortica mural 2×110",
+      "fileName": "created/Wall_Cork_Tall_2x110.png",
+      "papel": "wall",
+      "uso": "aleatorio",
+      "origem": "create",
+      "baseAssetId": "corkboard",
+      "span": 2,
+      "heightPx": 110,
+      "notas": "Cortiça alta para avisos empilhados (Cortica), 2 tiles × 110px."
+    }
+  ]
+}

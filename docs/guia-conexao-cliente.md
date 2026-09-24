@@ -1,4 +1,4 @@
-# Guia de conexao do cliente — MicroFirma
+# Guia de conexao do cliente — TradeClass
 
 Documento **completo** para conectar um sistema agentico ao escritorio.
 Use este arquivo quando for a mesa do cliente, treinar o time ou montar a
@@ -14,12 +14,12 @@ Complementos:
 
 ## 1. Ideia em uma frase
 
-MicroFirma **nao entra no codigo deles para “rodar tenant”**.
+TradeClass **nao entra no codigo deles para “rodar tenant”**.
 Eles (ou voce na integracao) configuram **uma fonte de eventos** que manda
 dados para o server; o browser so **abre o escritorio** com um JWT.
 
 ```
-Sistema do cliente  →  telemetria (codigo / tenantId)  →  server MicroFirma
+Sistema do cliente  →  telemetria (codigo / tenantId)  →  server TradeClass
 Humano no browser   →  JWT                            →  mesmo escritorio
 ```
 
@@ -41,27 +41,27 @@ Humano no browser   →  JWT                            →  mesmo escritorio
 
 ---
 
-## 3. Pre-requisitos do lado MicroFirma
+## 3. Pre-requisitos do lado TradeClass
 
 Suba (local):
 
 | Servico | URL tipica | Comando |
 |---------|------------|---------|
-| Server | `http://127.0.0.1:8787` | `npx pnpm --filter @microfirma/server dev` |
-| Landing | `http://localhost:5174` | `npx pnpm --filter @microfirma/landing dev` |
-| Demo | `http://localhost:5173` | `npx pnpm --filter @microfirma/demo dev` |
+| Server | `http://127.0.0.1:8787` | `npx pnpm --filter @tradeclass/server dev` |
+| Landing | `http://localhost:5174` | `npx pnpm --filter @tradeclass/landing dev` |
+| Demo | `http://localhost:5173` | `npx pnpm --filter @tradeclass/demo dev` |
 
 ### Variaveis de ambiente
 
 | Variavel | Quem | Default | Funcao |
 |----------|------|---------|--------|
-| `MICROFIRMA_HOST` | Server | `127.0.0.1` | Bind do API / OTLP / WS |
-| `MICROFIRMA_PORT` | Server | `8787` | Porta do server |
-| `MICROFIRMA_ONBOARDING_KEY` | Server | `microfirma-dev-onboarding` | `POST /api/tenants` (dev; landing publica nao usa) |
-| `VITE_MICROFIRMA_API` | Landing | `http://127.0.0.1:8787` | Para onde a ponte POSTA |
-| `VITE_MICROFIRMA_DEMO_URL` | Landing | `http://localhost:5173` | Link “entrar no escritorio” |
-| `VITE_MICROFIRMA_WS` | Demo (legado) | — | WS fixo sem `?token=` |
-| `VITE_MICROFIRMA_TOKEN` | Demo / scripts | — | Token para SimFirma etc. |
+| `TRADECLASS_HOST` | Server | `127.0.0.1` | Bind do API / OTLP / WS |
+| `TRADECLASS_PORT` | Server | `8787` | Porta do server |
+| `TRADECLASS_ONBOARDING_KEY` | Server | `TradeClass-dev-onboarding` | `POST /api/tenants` (dev; landing publica nao usa) |
+| `VITE_TRADECLASS_API` | Landing | `http://127.0.0.1:8787` | Para onde a ponte POSTA |
+| `VITE_TRADECLASS_DEMO_URL` | Landing | `http://localhost:5173` | Link “entrar no escritorio” |
+| `VITE_TRADECLASS_WS` | Demo (legado) | — | WS fixo sem `?token=` |
+| `VITE_TRADECLASS_TOKEN` | Demo / scripts | — | Token para SimFirma etc. |
 
 **Limite atual:** tenants ficam **em memoria**. Reiniciar o server apaga o
 codigo. Em piloto real, o server precisa ficar estavel (persistencia duravel
@@ -122,7 +122,7 @@ No exportador / Collector / SDK deles:
 |--------|-------|-------|
 | Protocolo | **OTLP/HTTP** | Nao gRPC neste ciclo |
 | Encoding | **JSON** | Nao protobuf |
-| Endpoint | `http://<host-microfirma>:8787/v1/traces` | Nao `:4318` padrao OTel |
+| Endpoint | `http://<host-TradeClass>:8787/v1/traces` | Nao `:4318` padrao OTel |
 | Header | `x-tenant-id: <codigo-da-ponte>` | Sem isso → 404 / sala errada |
 | Content-Type | `application/json` | |
 
@@ -140,7 +140,7 @@ O **efeito** tem que ser o da tabela; o nome exato da env depende do SDK.
 
 ```yaml
 exporters:
-  otlphttp/microfirma:
+  otlphttp/TradeClass:
     endpoint: http://SEU_HOST:8787
     traces_endpoint: http://SEU_HOST:8787/v1/traces
     encoding: json
@@ -151,13 +151,13 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlphttp/microfirma]
+      exporters: [otlphttp/TradeClass]
 ```
 
 Ajuste `endpoint` / `traces_endpoint` conforme a versao do Collector; o POST
 final precisa bater em `/v1/traces` com JSON + header.
 
-### 6.3 Atributos GenAI que o MicroFirma le
+### 6.3 Atributos GenAI que o TradeClass le
 
 Referencia de codigo: `packages/contracts/src/otlp.ts`.
 
@@ -272,10 +272,10 @@ Implementacao: `apps/server/src/eventos-nativos.ts`.
 Sem landing UI:
 
 ```powershell
-npx pnpm --filter @microfirma/server dev
+npx pnpm --filter @tradeclass/server dev
 .\scripts\setup-otlp-tenant.ps1
 npm run telemetria:enviar
-npx pnpm --filter @microfirma/demo dev
+npx pnpm --filter @tradeclass/demo dev
 ```
 
 Util para engenharia; na mesa do cliente prefira landing + Simular ou
@@ -293,7 +293,7 @@ Pacote para Slack / e-mail / Notion:
    - **B – Webhook:** `POST /api/events` (secao 7)
 3. **Viewer:** link da Demo com token (ou “Ja tenho codigo” na landing)
 4. **Privacidade:** nao enviar prompts / completions
-5. **Rede:** firewall / VPN ate o host do MicroFirma `:8787` (ou HTTPS publico)
+5. **Rede:** firewall / VPN ate o host do TradeClass `:8787` (ou HTTPS publico)
 
 Perguntas para eles:
 
@@ -333,7 +333,7 @@ Criterios de aceite detalhados: [`telemetria-otlp.md`](telemetria-otlp.md).
 |---------------|--------|-----------------|
 | PC do **viewer** | So fecha o Demo | Landing → Ja tenho codigo → novo JWT |
 | Processo **agentico do cliente** | Para de mandar eventos | Ao subir de novo, mesma config OTLP / `/api/events` |
-| **Server MicroFirma** | Perde tenant (hoje) | Nova empresa **ou** recriar + atualizar codigo no cliente |
+| **Server TradeClass** | Perde tenant (hoje) | Nova empresa **ou** recriar + atualizar codigo no cliente |
 
 A config OTLP / events no disco **deles** persiste; o que nao persiste ainda e
 o registry **nosso**.

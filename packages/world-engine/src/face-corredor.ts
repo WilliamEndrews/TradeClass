@@ -1,4 +1,4 @@
-import type { Cell, Room } from '@microfirma/contracts';
+import type { Cell, Room } from '@tradeclass/contracts';
 
 /**
  * True se a aresta norte/sul da sala compartilha lado com uma celula de

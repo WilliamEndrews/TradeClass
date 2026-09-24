@@ -1,8 +1,33 @@
-# MicroFirma
+# TradeClass
+
+**Escritorio espacial para desks de trading com agentes de IA.**
+
+Fork do Microfirma: herda TinyTraderLab (ex-TinyHouse), Debugpreview, PainterGlobal e world-engine. Escritorios pre-definidos (plantas fixas), multi-assento, wall media com graficos web mock, vista mobile top-down. Backend agentico e MT5 real ficam para evolucoes.
+
+```
+mock/telemetria -> DomainEvents -> Narrative Scheduler -> World Engine -> iso desktop | top-down mobile
+```
+
+## Quick start
+
+```bash
+corepack enable
+corepack pnpm install
+corepack pnpm dev:server   # terminal 1
+corepack pnpm dev          # terminal 2 -> http://localhost:5173
+corepack pnpm lab:iso      # TinyTraderLab -> http://127.0.0.1:3333/scripts/iso-validation/tinytraderlab.html
+corepack pnpm dev:debugpreview  # plantas fixas
+```
+
+Qualidade: `pnpm lint` | `pnpm typecheck` | `pnpm test` | `pnpm build` (teto 350 linhas em warn ate burndown).
+
+---
+
+## Heranca Microfirma (documentacao abaixo)
 
 **Plano de controle espacial para sistemas agenticos.**
 
-MicroFirma transforma a telemetria de agentes AI (spans OpenTelemetry, eventos de SDK, webhooks) em um escritorio isometrico vivo, onde cada agente e um personagem animado, cada mesa reflete metricas operacionais (calor, fila, lixo), e cada incidente tem um endereco visual. O humano ve o sistema agentico funcionando - e pode intervir sem perder o contexto.
+TradeClass transforma a telemetria de agentes AI (spans OpenTelemetry, eventos de SDK, webhooks) em um escritorio isometrico vivo, onde cada agente e um personagem animado, cada mesa reflete metricas operacionais (calor, fila, lixo), e cada incidente tem um endereco visual. O humano ve o sistema agentico funcionando - e pode intervir sem perder o contexto.
 
 ```
 telemetria -> eventos de dominio -> Narrative Scheduler -> World Engine -> render
@@ -31,6 +56,7 @@ telemetria -> eventos de dominio -> Narrative Scheduler -> World Engine -> rende
 - [Persistencia e Replay](#persistencia-e-replay)
 - [Sistema de temas](#sistema-de-temas)
 - [Agentes Arquiteto e Decorador](#agentes-arquiteto-e-decorador)
+- [TinyTraderLab e Create](#laboratorio-tinytraderlab-calibracao-visual)
 - [ADRs](#adrs)
 - [Convencoes](#convencoes)
 - [Roadmap](#roadmap)
@@ -40,7 +66,7 @@ telemetria -> eventos de dominio -> Narrative Scheduler -> World Engine -> rende
 
 ## O que e
 
-MicroFirma e um **plano de controle espacial** para sistemas agenticos. Em vez de dashboards com graficos de linhas, o operador humano ve um escritorio 2.5D onde:
+TradeClass e um **plano de controle espacial** para sistemas agenticos. Em vez de dashboards com graficos de linhas, o operador humano ve um escritorio 2.5D onde:
 
 - **Cada agente AI e um personagem** que caminha, trabalha em sua mesa, vai para a sala de descanso, ou vai ate a porta quando precisa de aprovacao humana.
 - **Cada mesa reflete o estado do agente**: calor (retries/loops), pilha de papel (profundidade de fila), sacos de lixo (runs concluidos nao coletados).
@@ -64,14 +90,14 @@ O canvas **nunca** e a unica fonte de uma informacao. Tudo que ele mostra tem eq
            │
            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  @microfirma/contracts - Eventos de dominio (zod)                    │
+│  @tradeclass/contracts - Eventos de dominio (zod)                    │
 │  agent.discovered | run.started | run.finished | tool.called |       │
 │  llm.completed | error.raised | approval.requested | queue.observed  │
 └──────────┬──────────────────────────────────────────────────────────┘
            │
            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  @microfirma/world-engine                                           │
+│  @tradeclass/world-engine                                           │
 │                                                                      │
 │  OtlpIngestor ──> Narrative Scheduler ──> World Engine               │
 │  (traduz OTLP)    (agrega eventos,    (cinematica, pathfinding,      │
@@ -88,7 +114,7 @@ O canvas **nunca** e a unica fonte de uma informacao. Tudo que ele mostra tem eq
            │
            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  @microfirma/server                                                 │
+│  @tradeclass/server                                                 │
 │                                                                      │
 │  TenantRegistry ──> OfficeSession (uma por tenant)                  │
 │  AuditTrail      │  AlertEngine    │  Auth (JWT + RBAC)             │
@@ -97,7 +123,7 @@ O canvas **nunca** e a unica fonte de uma informacao. Tudo que ele mostra tem eq
            │  WebSocket (WorldSnapshot / WorldDelta a 10 Hz)
            ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  @microfirma/demo (React + Vite)                                    │
+│  @tradeclass/demo (React + Vite)                                    │
 │                                                                      │
 │  world-source.ts (WS client) ──> office-renderer-2d.ts (Canvas 2D)  │
 │  sprite-factory.ts (sprites pre-renderizados)                       │
@@ -119,7 +145,7 @@ O canvas **nunca** e a unica fonte de uma informacao. Tudo que ele mostra tem eq
 ## Estrutura do repositorio
 
 ```
-microfirma/
+TradeClass/
 ├── package.json              # Raiz monorepo (pnpm workspace + turbo)
 ├── pnpm-workspace.yaml       # Declaracao dos workspaces
 ├── turbo.json                # Pipeline de build (turbo)
@@ -179,7 +205,7 @@ microfirma/
 │   │   │   ├── office-renderer-2d.ts   # Renderer Canvas 2D com sprites + camera
 │   │   │   ├── sprite-factory.ts       # Pre-renderizacao de sprites isometricos
 │   │   │   ├── world-source.ts         # Cliente WebSocket (snapshots + deltas)
-│   │   │   ├── calibracao-tinyhouse.json # Ancoras medidas no laboratorio
+│   │   │   ├── calibracao-tinytraderlab.json # Ancoras medidas no laboratorio
 │   │   │   ├── i18n.ts                 # Internacionalizacao (pt-BR, en-US)
 │   │   │   ├── use-i18n.ts             # Hook de i18n
 │   │   │   ├── style.css               # Estilos do painel e palco
@@ -195,8 +221,10 @@ microfirma/
 │       └── package.json
 │
 ├── scripts/
-│   └── iso-validation/       # Laboratorio TinyHouse (calibracao + biblia)
-│       ├── tinyhouse.html
+│   └── iso-validation/       # Laboratorio TinyTraderLab (calibracao + biblia)
+│       ├── tinytraderlab.html / tinytraderlab-lab.js
+│       ├── created-assets.json / gerar-created-assets.mjs
+│       └── lab-server.mjs
 │       ├── lab-server.mjs              # Serve assets + POST /api/temas-arquiteto
 │       └── catalogo-laboratorio.json
 │
@@ -240,24 +268,55 @@ corepack pnpm dev
 O cliente abre em `http://localhost:5173` e conecta ao servidor em `ws://localhost:8787/mundo`.
 Cenario visual padrao (7 agentes): `http://localhost:5173/?agents=7`.
 
-### Laboratorio TinyHouse (calibracao visual)
+### Laboratorio TinyTraderLab (calibracao visual)
 
-Sempre que piso, parede ou porta precisarem de ajuste, volte ao laboratorio
-antes de chutar ancora no renderer:
+Bancada oficial de ajuste visual e biblia do arquiteto. Sempre que piso,
+parede, porta ou um asset parecerem fora do lugar, volte aqui **antes** de
+chutar ancora no renderer da demo.
 
 ```bash
 corepack pnpm lab:iso
+# ou: node scripts/iso-validation/lab-server.mjs
 ```
 
-Abra `http://127.0.0.1:3333/scripts/iso-validation/tinyhouse.html`. Os numeros
-ficam em `apps/demo/src/calibracao-tinyhouse.json`. Ver `scripts/iso-validation/README.md`.
+Abra
+[`http://127.0.0.1:3333/scripts/iso-validation/tinytraderlab.html`](http://127.0.0.1:3333/scripts/iso-validation/tinytraderlab.html).
 
-O lab e a **bancada do Construtor**: caderninho com Assets / Ambiente / Temas,
-arraste-e-solte no palco, empilhamento de piso/parede/decor, **Ctrl+Z** para
-desfazer, combinar assets, e gravacao da biblia em
-`packages/world-engine/src/biblia/temas-arquiteto.json` via
-`POST /api/temas-arquiteto` (+ combos via `POST /api/combinacoes-laboratorio`).
+| O que | Onde |
+| --- | --- |
+| Calibracao (pe/ancora) | `apps/demo/src/calibracao-tinytraderlab.json` |
+| Catalogo + combos | `scripts/iso-validation/catalogo-laboratorio.json`, `combinacoes-laboratorio.json` |
+| Assets Create (gerados) | `scripts/iso-validation/created-assets.json` + `assets-source/tradeclass-created/` |
+| Biblia de temas | `packages/world-engine/src/biblia/temas-arquiteto.json` |
+| Guia completo do Lab | [`scripts/iso-validation/README.md`](scripts/iso-validation/README.md) |
 
+O `lab-server` serve a raiz do repo e persiste no disco:
+
+- `POST /api/temas-arquiteto` — temas / biblia
+- `POST /api/combinacoes-laboratorio` — combos
+- `POST /api/created-assets` — registro Create
+
+**Caderninho:** Assets | **Create** | Ambiente | Temas | midia na parede.
+
+**Create** — pecas procedurais (mesas brancas/metal, tapete, cameras, TVs/corticas
+XL). Regenerar:
+
+```bash
+node scripts/iso-validation/gerar-created-assets.mjs
+```
+
+**Canvas vivo (MVP):** pecas Create com `interativo.acao: "popup"` abrem overlay
+no Lab. Hoje a **Mesa centro metal** (`created-desk-metal`) responde a
+**Alt+clique** com o popup “Teste de design”. Clique simples continua
+selecionando/arrastando (edicao intacta). Contrato estavel:
+
+```json
+"interativo": { "acao": "popup", "titulo": "...", "corpo": "..." }
+```
+
+Outros destaques do Lab: grade ate 24x24, altura de parede por empilhamento
+1:1 (sem `scaleY`), espelho de anexos (`Ctrl+E` / `espelhado`), multi-assento,
+wall media (nest UV + iframe).
 ### Debugpreview (agencia a partir da biblia)
 
 Bancada isolada para validar o empacote visual sem subir a demo completa:
@@ -279,7 +338,7 @@ problema de oclusao de anexos na coluna oeste.
 ### Modo OTLP (telemetria real)
 
 ```bash
-MICROFIRMA_OTLP=1 corepack pnpm dev:server
+TRADECLASS_OTLP=1 corepack pnpm dev:server
 ```
 
 O servidor passa a aceitar spans OpenTelemetry em `http://localhost:8787/v1/traces` (POST JSON). Configure seu SDK para exportar para este endpoint.
@@ -288,11 +347,11 @@ O servidor passa a aceitar spans OpenTelemetry em `http://localhost:8787/v1/trac
 
 | Variavel | Default | Descricao |
 | --- | --- | --- |
-| `MICROFIRMA_PORT` | `8787` | Porta do servidor |
-| `MICROFIRMA_SEED` | `20260802` | Seed do tenant demo |
-| `MICROFIRMA_OTLP` | `0` | `1` ou `true` para modo OTLP |
-| `MICROFIRMA_JWT_SECRET` | `microfirma-dev-secret-...` | Segredo do JWT (mudar em producao) |
-| `MICROFIRMA_ONBOARDING_KEY` | (vazio) | Chave para criar tenants via API |
+| `TRADECLASS_PORT` | `8787` | Porta do servidor |
+| `TRADECLASS_SEED` | `20260802` | Seed do tenant demo |
+| `TRADECLASS_OTLP` | `0` | `1` ou `true` para modo OTLP |
+| `TRADECLASS_JWT_SECRET` | `TradeClass-dev-secret-...` | Segredo do JWT (mudar em producao) |
+| `TRADECLASS_ONBOARDING_KEY` | (vazio) | Chave para criar tenants via API |
 
 ---
 
@@ -318,7 +377,7 @@ corepack pnpm contracts:jsonschema
 
 ## Contratos
 
-`@microfirma/contracts` e a **fonte unica de verdade** dos tipos do sistema. Qualquer pacote (frontend, engine, servico Python via schema gerado) fala esta linguagem e apenas esta. Duplicar uma definicao de tipo e considerado bug.
+`@tradeclass/contracts` e a **fonte unica de verdade** dos tipos do sistema. Qualquer pacote (frontend, engine, servico Python via schema gerado) fala esta linguagem e apenas esta. Duplicar uma definicao de tipo e considerado bug.
 
 ### 5 contratos
 
@@ -342,7 +401,7 @@ Eventos **nao** carregam conteudo de prompt/resposta por padrao. Apenas forma e 
 
 ## World Engine
 
-`@microfirma/world-engine` e o motor de simulacao **autoritativo** (ADR-0006). Roda no servidor. O navegador apenas renderiza o que recebe.
+`@tradeclass/world-engine` e o motor de simulacao **autoritativo** (ADR-0006). Roda no servidor. O navegador apenas renderiza o que recebe.
 
 ### Componentes
 
@@ -400,7 +459,7 @@ O canvas **nunca** e a unica fonte de informacao. O painel lateral exibe:
 
 ## Servidor
 
-`@microfirma/server` e o processo de servidor. Na Fase 3, foi overhauled para **multi-tenant** com auth, RBAC, auditoria e alertas.
+`@tradeclass/server` e o processo de servidor. Na Fase 3, foi overhauled para **multi-tenant** com auth, RBAC, auditoria e alertas.
 
 ### Arquitetura
 
@@ -439,7 +498,7 @@ O token JWT e obrigatorio. Sem token = close 4001. Token invalido = close 4001. 
 
 - Algoritmo: HMAC-SHA256 (nativo do Node, sem dependencias externas)
 - Expiracao: 24h
-- Segredo: env var `MICROFIRMA_JWT_SECRET`
+- Segredo: env var `TRADECLASS_JWT_SECRET`
 - Anti-timing-attack: comparacao em tempo constante na verificacao
 
 ### RBAC
@@ -526,10 +585,10 @@ A Fase 3 transformou `waiting_approval` de apenas visual em **acionavel**:
 O onboarding self-service permite que uma empresa se cadastre e tenha seu escritorio rodando sem intervencao manual:
 
 ```bash
-# Criar tenant (precisa de admin token ou MICROFIRMA_ONBOARDING_KEY)
+# Criar tenant (precisa de admin token ou TRADECLASS_ONBOARDING_KEY)
 curl -X POST http://localhost:8787/api/tenants \
   -H "Content-Type: application/json" \
-  -H "x-api-key: $MICROFIRMA_ONBOARDING_KEY" \
+  -H "x-api-key: $TRADECLASS_ONBOARDING_KEY" \
   -d '{"displayName": "Acme Corp", "plano": "pro", "seed": 12345, "otlpEndpoint": "http://localhost:4318"}'
 
 # Resposta: { tenant: {...}, token: "eyJ..." }
@@ -547,7 +606,7 @@ ws://localhost:8787/mundo?token=<JWT>
 
 ### Formato SessionLog (NDJSON)
 
-`@microfirma/contracts/src/replay.ts` define o formato de gravacao:
+`@tradeclass/contracts/src/replay.ts` define o formato de gravacao:
 
 - **Header** (linha 1): `sessionId`, `seed`, `tickMs`, `protocolVersion`, `gravadoEm`
 - **Tick records** (linhas subsequentes): `tick`, `eventos[]`, `quadro` (snapshot ou delta)
@@ -618,7 +677,7 @@ O WorldEngine e **deterministico**: mesma seed + mesmos eventos = mesmo mundo. O
 ## Convencoes
 
 - **Codigo em portugues, sem acentos** (ASCII-only). Identificadores, comentarios e mensagens.
-- **`@microfirma/contracts`** e a unica fonte de tipos. Duplicar um tipo e bug.
+- **`@tradeclass/contracts`** e a unica fonte de tipos. Duplicar um tipo e bug.
 - **Nenhuma informacao pode existir SOMENTE no canvas** (ADR-0009).
 - **O LLM nunca gera coordenadas** (ADR-0004) e **nunca esta no caminho critico** (ADR-0005).
 - **Testes junto ao codigo**: arquivos `*.test.ts` ao lado do modulo que testam.
@@ -639,7 +698,7 @@ O roadmap completo vive em `docs/roadmap.md` e e o documento vivo do projeto.
 | **Fase 1** - Fundacao de produto | Concluida | Servidor autoritativo (WS), OTLP/HTTP, i18n, schema cross-linguagem, persistencia/replay |
 | **Fase 2** - Fidelidade visual e escala | Concluida | Sprites pre-renderizados, temas, camera (zoom/pan/follow/reset), arquiteto/decorador (LLM scaffold) |
 | **Fase 3** - Produto | Concluida | Multi-tenant, JWT+RBAC, auditoria, alertas (Slack/PagerDuty), aprovacao acionavel, onboarding self-service |
-| **Fase 3.5** - Refinamento TinyHouse | Em andamento | Lab gamificado + biblia; Construtor cola ProtoComodos; Debugpreview com painter global, faixa Wall_L (A/B) e agentes |
+| **Fase 3.5** - Refinamento TinyTraderLab | Em andamento | Lab gamificado + Create + wall media; Construtor cola ProtoComodos; Debugpreview painter/oclusao; canvas vivo (Alt+clique) |
 
 ### Proxima fase
 
@@ -678,9 +737,17 @@ As frentes abaixo foram implementadas e refletidas nos commits da main. Todos os
 ### 6. Alertas reais (webhook/Slack/PagerDuty)
 - `apps/server/src/alert-engine.ts` — entrega real por webhook, Slack, PagerDuty e email.
 
-### 7. Refinamento visual TinyHouse + Construtor (Fase 3.5)
-- Laboratorio oficial (`pnpm lab:iso`): caderninho, DnD, Ctrl+Z, empilhar
-  props, combinar assets; persistencia da biblia e de combos no disco.
+### 7. Refinamento visual TinyTraderLab + Construtor (Fase 3.5)
+- Laboratorio oficial (`pnpm lab:iso`): caderninho (Assets / Create / Ambiente /
+  Temas), DnD, Ctrl+Z, empilhar props, combinar assets; persistencia da biblia,
+  combos e Create no disco.
+- **Create**: gerador `gerar-created-assets.mjs` → PNGs em
+  `assets-source/tradeclass-created/` (mesas plastico/metal, mesas alternativa/
+  principal embranquecidas ±gaveta, tapete, cameras, TVs/corticas XL).
+- **Canvas vivo (MVP)**: `interativo` no Create; Alt+clique na Mesa centro metal
+  abre popup overlay (edicao por clique simples permanece).
+- Grade ate 24x24; altura de parede por empilhamento iso 1:1; espelho de anexos
+  (`espelhado` / Ctrl+E).
 - Construtor: `construtor-biblia.ts`, `emitir-paredes.ts`, `face-corredor.ts`,
   `politicaTiles` (corredor `Concrete` / `cool-lab`).
 - Debugpreview (`pnpm dev:debugpreview`):
@@ -689,7 +756,8 @@ As frentes abaixo foram implementadas e refletidas nos commits da main. Todos os
   - `stripParedeL` (atalho **W**) pre-compoe Wall_L + anexos sem clip.
   - `espaco-agencia` + `simulacao-agentes` — NavGrid e atores roteirizados.
   - Rosa dos ventos alinhada ao grid iso.
-
+- Demo: wall media (nest/iframe/charts mock), selecao tipada, vista top-down
+  mobile, calibracao renomeada para `calibracao-tinytraderlab.json`.
 ---
 
 ## Licenca

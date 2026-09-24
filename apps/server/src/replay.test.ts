@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { Writable } from 'node:stream';
 import { OfficeSession } from './office-session.js';
 import { SessionPlayer } from './session-player.js';
-import type { SessionLogHeader, TickRecord } from '@microfirma/contracts';
+import type { SessionLogHeader, TickRecord } from '@tradeclass/contracts';
 
 /** Stream em memoria que acumula linhas para inspecao nos testes. */
 class StreamMemoria extends Writable {
@@ -33,7 +33,7 @@ describe('SessionLog - gravacao e replay', () => {
     expect(linhas.length).toBeGreaterThanOrEqual(1);
     const header = JSON.parse(linhas[0]!);
     expect(header.kind).toBe('header');
-    expect(header.data.format).toBe('microfirma-session-log');
+    expect(header.data.format).toBe('TradeClass-session-log');
     expect(header.data.seed).toBe(42);
     expect(header.data.version).toBe(1);
   });
@@ -136,7 +136,7 @@ describe('SessionLog - gravacao e replay', () => {
   });
 
   it('SessionPlayer rejeita log com tick antes do header', () => {
-    const tickPrimeiro = JSON.stringify({ kind: 'tick', data: { tick: 1, events: [], frame: { kind: 'delta', tick: 1, tMundo: 0, alpha: 1, actors: [], desks: [], rooms: [], kpis: { activeRuns: 0, costUsdToday: 0, budgetUsdToday: 1, errorsLast5Min: 0, tokensPerMinute: 0, pendingApprovals: 0 }, chatter: [] } } });
+    const tickPrimeiro = JSON.stringify({ kind: 'tick', data: { tick: 1, events: [], frame: { kind: 'delta', tick: 1, tMundo: 0, alpha: 1, actors: [], desks: [], rooms: [], kpis: { activeRuns: 0, costUsdToday: 0, budgetUsdToday: 1, errorsLast5Min: 0, tokensPerMinute: 0, pendingApprovals: 0, pnlSessionUsd: 0, activeSignals: 0, riskScore: 0 }, chatter: [] } } });
     expect(() => new SessionPlayer(tickPrimeiro)).toThrow('antes do header');
   });
 

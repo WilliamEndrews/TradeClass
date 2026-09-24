@@ -1,9 +1,9 @@
 /**
- * Blit de anexos de parede identico ao tinyhouse-lab.
+ * Blit de anexos de parede identico ao TinyTraderLab-lab.
  * Coordenadas locais da sala + origem iso do slot.
  */
 
-import type { CalibracaoSala } from '@microfirma/contracts';
+import type { CalibracaoSala } from '@tradeclass/contracts';
 import { iso, type Pt } from './iso';
 import type { PecaPalcoItem } from './types';
 

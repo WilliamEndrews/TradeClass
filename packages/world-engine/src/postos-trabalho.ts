@@ -1,7 +1,7 @@
 /**
  * POSTOS DE TRABALHO: onde o agente efetivamente "trabalha" dentro da sala.
  *
- * O Lab (`tinyhouse-lab.js`, botao "marcar assento") grava `postosTrabalho`
+ * O Lab (`TinyTraderLab-lab.js`, botao "marcar assento") grava `postosTrabalho`
  * no tema: um ponto exato (com sub-celula opcional) + orientacao, por
  * `agentSlot`. Antes desta peca, esse dado so influenciava o DESENHO final
  * do ator (`seatFrac`, so no Debugpreview) - o PATHFINDING sempre usava um
@@ -14,7 +14,7 @@
  * continua para o desenho (`render`) - nunca podem divergir, porque sao o
  * mesmo calculo.
  */
-import type { Cell, Prop, Room } from '@microfirma/contracts';
+import type { Cell, Prop, Room } from '@tradeclass/contracts';
 import type { PostoTrabalho, TemaArquiteto } from './construtor-biblia.js';
 import { isWalkable, seatCellFor, type NavGrid } from './navgrid.js';
 
@@ -118,24 +118,70 @@ export function postoParaGridWorld(posto: PostoTrabalho, sala: Room, espelharY =
 
 /**
  * Posto autorado no Lab para este agente, com fallback deterministico:
- * slot exato -> slot `'default'` -> primeiro posto do tema. `undefined`
- * quando o tema nao tem nenhum posto marcado (mais comum hoje - ver script
- * de relatorio `scripts/relatorio-postos-trabalho.mjs`).
+ * slot exato -> seat-<indice> -> posto[indice] -> unico posto legado.
+ * Nunca colapsa N agentes no mesmo 'default' quando o tema tem multiplos postos.
  */
 export function resolverPostoAgente(
   tema: TemaArquiteto | undefined,
   agentSlot: string,
   sala: Room,
   espelharY = false,
+  indicePosto?: number,
 ): PostoResolvido | undefined {
   const postos = tema?.postosTrabalho;
   if (!postos?.length) return undefined;
-  const posto =
-    postos.find((p) => p.agentSlot === agentSlot) ??
-    postos.find((p) => p.agentSlot === 'default') ??
-    postos[0];
-  if (!posto) return undefined;
-  return postoParaGridWorld(posto, sala, espelharY);
+
+  const exato = postos.find((p) => p.agentSlot === agentSlot);
+  if (exato) return postoParaGridWorld(exato, sala, espelharY);
+
+  if (typeof indicePosto === 'number' && indicePosto >= 0) {
+    const porSeat = postos.find((p) => p.agentSlot === `seat-${indicePosto}`);
+    if (porSeat) return postoParaGridWorld(porSeat, sala, espelharY);
+    if (indicePosto < postos.length) {
+      return postoParaGridWorld(postos[indicePosto]!, sala, espelharY);
+    }
+  }
+
+  // Legado mono-assento: um unico posto (tipicamente 'default') serve qualquer agente.
+  if (postos.length === 1) {
+    return postoParaGridWorld(postos[0]!, sala, espelharY);
+  }
+
+  return undefined;
+}
+
+/**
+ * Resolve o posto da N-esima mesa na sala. Preferencia:
+ *  1) agentSlot === ownerAgentId
+ *  2) agentSlot === `seat-${indiceMesa}`
+ *  3) postos[indiceMesa] se existir
+ *  4) unico posto 'default' (sala mono-assento legado)
+ */
+export function resolverPostoParaMesa(
+  tema: TemaArquiteto | undefined,
+  ownerAgentId: string,
+  indiceMesa: number,
+  sala: Room,
+  espelharY = false,
+): PostoResolvido | undefined {
+  const postos = tema?.postosTrabalho;
+  if (!postos?.length) return undefined;
+
+  const porId = postos.find((p) => p.agentSlot === ownerAgentId);
+  if (porId) return postoParaGridWorld(porId, sala, espelharY);
+
+  const porSeat = postos.find((p) => p.agentSlot === `seat-${indiceMesa}`);
+  if (porSeat) return postoParaGridWorld(porSeat, sala, espelharY);
+
+  if (indiceMesa >= 0 && indiceMesa < postos.length) {
+    return postoParaGridWorld(postos[indiceMesa]!, sala, espelharY);
+  }
+
+  if (postos.length === 1) {
+    return postoParaGridWorld(postos[0]!, sala, espelharY);
+  }
+
+  return undefined;
 }
 
 /**

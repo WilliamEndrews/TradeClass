@@ -15,11 +15,9 @@
  * caminho de volta pixel -> span nao existe.
  */
 
-import type { AgentDescriptor, DomainEvent } from '@microfirma/contracts';
-import {
-  traduzirLoteOtlp,
-  type OtlpExportRequest,
-} from '@microfirma/contracts';
+import type { AgentDescriptor, DomainEvent, OtlpExportRequest } from '@tradeclass/contracts';
+import { traduzirLoteOtlp } from '@tradeclass/contracts';
+
 
 /**
  * Estatisticas do ingestor, para painel de observabilidade do proprio servidor.

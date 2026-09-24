@@ -10,10 +10,10 @@
  *   npx tsx scripts/load-test.ts [concorrencia=10] [requisicoes=100] [duracao=5000]
  */
 
-const HOST = process.env.MICROFIRMA_HOST ?? '127.0.0.1';
-const PORT = Number(process.env.MICROFIRMA_PORT ?? 8787);
+const HOST = process.env.TRADECLASS_HOST ?? '127.0.0.1';
+const PORT = Number(process.env.TRADECLASS_PORT ?? 8787);
 const BASE_URL = `http://${HOST}:${PORT}`;
-const ONBOARDING_KEY = process.env.MICROFIRMA_ONBOARDING_KEY ?? 'microfirma-dev-onboarding';
+const ONBOARDING_KEY = process.env.TRADECLASS_ONBOARDING_KEY ?? 'TradeClass-dev-onboarding';
 
 interface LoadReport {
   tenantId: string;
@@ -114,7 +114,7 @@ async function main() {
     rps,
   };
 
-  if (process.env.MICROFIRMA_LOAD_JSON) {
+  if (process.env.TRADECLASS_LOAD_JSON) {
     console.log(JSON.stringify(report, null, 2));
   } else {
     console.log(`[load-test] tenant ${tenantId} | concorrencia ${conc} | total ${total} | duracao ${duration}ms`);

@@ -6,7 +6,7 @@ import {
   prepararCenaIso,
   renderizarCenaIso,
   type CenaIsoPreparada,
-} from '@microfirma/iso-office';
+} from '@tradeclass/iso-office';
 
 const ZOOM_MS = 1800;
 const N_QUADROS = IDS_QUADROS_LANDING.length;

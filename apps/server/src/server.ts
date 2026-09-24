@@ -36,7 +36,7 @@ import {
   Tenant as TenantSchema,
   AlertConfig as AlertConfigSchema,
   SimulateRequest as SimulateRequestSchema,
-} from '@microfirma/contracts';
+} from '@tradeclass/contracts';
 import { AuditTrail } from './audit-trail.js';
 import { AlertEngine } from './alert-engine.js';
 import { TenantRegistry } from './tenant-registry.js';
@@ -55,9 +55,9 @@ import {
 import { conectarPublico, criarOnboardPublico } from './public-onboard.js';
 import { ingerirEventosPublicos, simularAgenciaPublica } from './eventos-nativos.js';
 
-const PORTA = Number(process.env.MICROFIRMA_PORT ?? 8787);
-const HOST = process.env.MICROFIRMA_HOST ?? '127.0.0.1';
-const SEED_PADRAO = Number(process.env.MICROFIRMA_SEED ?? 20260802);
+const PORTA = Number(process.env.TRADECLASS_PORT ?? 8787);
+const HOST = process.env.TRADECLASS_HOST ?? '127.0.0.1';
+const SEED_PADRAO = Number(process.env.TRADECLASS_SEED ?? 20260802);
 
 // --- Persistencia de replay ---
 const replayStorage = criarReplayStorage();
@@ -249,7 +249,7 @@ const http = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${PORTA}`);
   const path = url.pathname;
   const segments = path.split('/').filter(Boolean);
-  metrics.inc('microfirma_requests_total', { method: req.method ?? 'GET', route: path }, 1, 'Total de requisicoes HTTP');
+  metrics.inc('TRADECLASS_requests_total', { method: req.method ?? 'GET', route: path }, 1, 'Total de requisicoes HTTP');
 
   // Auth: POST /api/auth/login
   if (path === '/api/auth/login' && req.method === 'POST') {
@@ -307,7 +307,7 @@ const http = createServer(async (req, res) => {
 
   // POST /api/tenants - onboarding.
   if (path === '/api/tenants' && req.method === 'POST') {
-    const onboardingKey = process.env.MICROFIRMA_ONBOARDING_KEY ?? 'microfirma-dev-onboarding';
+    const onboardingKey = process.env.TRADECLASS_ONBOARDING_KEY ?? 'TradeClass-dev-onboarding';
     const apiKey = req.headers['x-api-key'] as string | undefined;
     const authOk = (payload && payload.papel === 'admin') || apiKey === onboardingKey;
 
@@ -625,8 +625,8 @@ wss.on('connection', async (socket, req) => {
 // --- Laco autoritativo multi-tenant ---
 const tickMsGlobal = 100;
 const timer = setInterval(() => {
-  metrics.inc('microfirma_ticks_total', {}, 1, 'Total de ticks executados');
-  metrics.set('microfirma_active_tenants', {}, registry.total, 'Tenants ativos');
+  metrics.inc('TRADECLASS_ticks_total', {}, 1, 'Total de ticks executados');
+  metrics.set('TRADECLASS_active_tenants', {}, registry.total, 'Tenants ativos');
   for (const { tenantId, sessao } of registry.sessoesAtivas()) {
     const quadro = sessao.tick();
     if (!quadro) continue;
@@ -670,12 +670,12 @@ async function carregarSessoesSalvas() {
 carregarSessoesSalvas().then(() => {
   http.listen(PORTA, HOST, () => {
     console.log(
-      `[server] MicroFirma multi-tenant no ar em ws://${HOST}:${PORTA}/mundo ` +
+      `[server] TradeClass multi-tenant no ar em ws://${HOST}:${PORTA}/mundo ` +
         `(${registry.total} tenant(s), ${tickMsGlobal}ms/tick)`,
     );
     console.log(`[server] REST API em http://${HOST}:${PORTA}/api/`);
     console.log(`[server] Receptor OTLP em http://${HOST}:${PORTA}/v1/traces`);
-    console.log('[server] Para onboarding: POST /api/tenants (admin token ou x-api-key: microfirma-dev-onboarding)');
+    console.log('[server] Para onboarding: POST /api/tenants (admin token ou x-api-key: TradeClass-dev-onboarding)');
   });
 });
 

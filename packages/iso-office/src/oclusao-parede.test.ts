@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gradeDoProto } from '@microfirma/world-engine';
+import { gradeDoProto } from '@tradeclass/world-engine';
 import { compilarCenaIso } from './cena-isometrica';
 import { montarAgencia } from './montar-agencia';
 import { oclusorNaFrente } from './oclusao-parede';

@@ -20,10 +20,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { traduzirLoteOtlp, type OtlpExportRequest } from '../packages/contracts/src/otlp.ts';
 
-const HOST = process.env.MICROFIRMA_HOST ?? '127.0.0.1';
-const PORT = Number(process.env.MICROFIRMA_PORT ?? 8787);
-const BASE_URL = process.env.MICROFIRMA_BASE_URL ?? `http://${HOST}:${PORT}`;
-const ONBOARDING_KEY = process.env.MICROFIRMA_ONBOARDING_KEY ?? 'microfirma-dev-onboarding';
+const HOST = process.env.TRADECLASS_HOST ?? '127.0.0.1';
+const PORT = Number(process.env.TRADECLASS_PORT ?? 8787);
+const BASE_URL = process.env.TRADECLASS_BASE_URL ?? `http://${HOST}:${PORT}`;
+const ONBOARDING_KEY = process.env.TRADECLASS_ONBOARDING_KEY ?? 'TradeClass-dev-onboarding';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const FIXTURE = join(ROOT, 'scripts/fixtures/agencia-3-agentes.otlp.json');
@@ -171,7 +171,7 @@ async function main(): Promise<void> {
 
   if (!(await healthOk())) {
     throw new Error(
-      `Servidor nao responde em ${BASE_URL}/health. Suba com: npx pnpm --filter @microfirma/server dev`,
+      `Servidor nao responde em ${BASE_URL}/health. Suba com: npx pnpm --filter @tradeclass/server dev`,
     );
   }
 

@@ -1,8 +1,8 @@
 import catalogoJson from '../../../../scripts/iso-validation/catalogo-laboratorio.json';
 import combosJson from '../../../../scripts/iso-validation/combinacoes-laboratorio.json';
-import calibracaoJson from '../../../../apps/demo/src/calibracao-tinyhouse.json';
-import { CALIBRACAO_PADRAO, type TemaArquiteto } from '@microfirma/world-engine';
-import type { CalibracaoSala } from '@microfirma/contracts';
+import calibracaoJson from '../../../../apps/demo/src/calibracao-tinytraderlab.json';
+import { CALIBRACAO_PADRAO, type TemaArquiteto } from '@tradeclass/world-engine';
+import type { CalibracaoSala } from '@tradeclass/contracts';
 
 export type SpecAsset = {
   assetId: string;

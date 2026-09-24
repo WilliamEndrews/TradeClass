@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Room } from '@microfirma/contracts';
+import { Room } from '@tradeclass/contracts';
 import { compilarCenaIso, validarCenaIso } from './cena-isometrica';
 import {
   IDS_QUADROS_LANDING,

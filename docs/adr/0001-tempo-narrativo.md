@@ -6,7 +6,7 @@
 
 ## Contexto
 
-A MicroFirma precisa mostrar o que acontece em um escritorio de agentes autonomos sem ser amarrada a velocidade do relogio de parede. Os eventos reais (OTLP) chegam em rajadas; o tempo de processamento varia; e o observador humano nao pode assimilar uma explosao de acoes na mesma cadencia em que elas ocorreram.
+A TradeClass precisa mostrar o que acontece em um escritorio de agentes autonomos sem ser amarrada a velocidade do relogio de parede. Os eventos reais (OTLP) chegam em rajadas; o tempo de processamento varia; e o observador humano nao pode assimilar uma explosao de acoes na mesma cadencia em que elas ocorreram.
 
 A arquitetura precisa permitir:
 

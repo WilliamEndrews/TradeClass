@@ -9,7 +9,7 @@
  * e o metodo `registrar` devolve uma copia congelada.
  */
 
-import type { AuditAction, AuditEvent } from '@microfirma/contracts';
+import type { AuditAction, AuditEvent } from '@tradeclass/contracts';
 import { gerarId } from './auth.js';
 
 const MAX_EVENTOS = 10_000;

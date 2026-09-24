@@ -2,7 +2,7 @@
  * INTERNACIONALIZACAO (ADR-0011)
  *
  * O dicionario e plano, nao hierarquico: uma chave, uma string. Sem ICU,
- * sem pluralizacao complexa - a UI da MicroFirma tem ~50 strings e nenhuma
+ * sem pluralizacao complexa - a UI da TradeClass tem ~50 strings e nenhuma
  * precisa de regras de plural. Se um dia precisar, troca-se a implementacao
  * do `t()` sem mudar as chamadas.
  *
@@ -26,8 +26,8 @@ type Dict = Record<string, string>;
 
 const ptBR: Dict = {
   // Header
-  'app.titulo': 'MicroFirma',
-  'app.subtitulo': 'Plano de controle espacial para sistemas agenticos',
+  'app.titulo': 'TradeClass',
+  'app.subtitulo': 'Escritorio espacial para desks de trading com agentes de IA',
   'app.fonteMundo': 'Fonte do mundo',
 
   // Estados de conexao
@@ -45,14 +45,44 @@ const ptBR: Dict = {
   'kpi.erros5min': 'Erros (5 min)',
   'kpi.tokensMin': 'Tokens / min',
   'kpi.aprovacoes': 'Aprovacoes',
+  'kpi.pnlSessao': 'PnL sessao',
+  'kpi.sinais': 'Sinais',
+  'kpi.risco': 'Risco',
+
+  // Painel de selecao (ADR-0009)
+  'painel.selecao': 'Selecao',
+  'painel.selecao.nenhuma': 'Nada selecionado — clique numa mesa, quadro ou tela.',
+  'painel.selecao.agente': 'Agente: {nome}',
+  'painel.selecao.mesa': 'Mesa: {id}',
+  'painel.selecao.quadro': 'Quadro: {id}',
+  'painel.selecao.midia': 'Tela {kind}: {id}',
+  'painel.aba.config': 'Configuracoes',
+  'painel.aba.contas': 'Contas',
+  'painel.aba.agente': 'Agente',
+  'painel.aba.grafico': 'Grafico',
+  'painel.config.vazio': 'Selecione um objeto no floor para ver a configuracao.',
+  'painel.config.agente': 'Configuracao do posto de {nome}.',
+  'painel.config.prop': 'Objeto {kind} ({id}).',
+  'painel.config.midia': 'Midia de parede {id}.',
+  'painel.contas.nota': 'Resumo de contas / PnL espelhado da selecao e dos KPIs globais.',
+  'painel.agente.vazio': 'Nenhum agente selecionado.',
+  'painel.grafico.vazio': 'Clique numa tela de grafico na parede para abrir a serie.',
+  'painel.grafico.serie': 'Serie {id} (mock OHLCV).',
+  'painel.propId': 'Prop',
+  'painel.kind': 'Tipo',
+  'painel.sala': 'Sala',
+  'painel.dono': 'Dono',
+  'painel.mediaId': 'Media',
+  'painel.serie': 'Serie',
+  'painel.saude': 'Saude',
 
   // Orcamento
   'orcamento.custoDia': 'Custo do dia',
   'orcamento.nota': 'Estourar o teto apaga as luzes do predio - o custo deixa de ser numero e passa a ser consequencia visivel.',
 
   // Dashboard
-  'dashboard.titulo': 'Visao executiva',
-  'dashboard.nota': 'KPIs atualizados em tempo real a cada tick do servidor.',
+  'dashboard.titulo': 'Visao do floor',
+  'dashboard.nota': 'KPIs de trade e operacao atualizados a cada tick.',
   'dashboard.historico': 'Historico',
 
   // Aprovacoes
@@ -110,7 +140,8 @@ const ptBR: Dict = {
 
   // Camera
   'camera.reset': 'Resetar camera',
-  'camera.dica': 'Scroll = zoom | Arrastar = pan | Duplo-clique = reset',
+  'camera.dica': 'Scroll = zoom | Arrastar = pan | Clique = selecionar',
+  'camera.dicaMobile': 'Vista top-down | Arrastar = pan | Toque = selecionar',
 
   // SimFirma
   'simfirma.titulo': 'SimFirma (what-if)',
@@ -125,12 +156,26 @@ const ptBR: Dict = {
 
   // Idioma
   'i18ma.seletor': 'Idioma',
+
+  // Trade / selecao
+  'trade.pnlSessao': 'PnL da sessao',
+  'trade.sinais': 'Sinais',
+  'trade.risco': 'Risco',
+  'tabs.config': 'Configuracoes',
+  'tabs.contas': 'Contas',
+  'tabs.agente': 'Agente',
+  'tabs.grafico': 'Grafico',
+  'selecao.nenhuma': 'Nada selecionado — clique numa mesa, quadro ou grafico de parede.',
+  'selecao.mesa': 'Mesa selecionada',
+  'selecao.quadro': 'Quadro selecionado',
+  'view.mobile': 'Vista mobile (planta)',
+  'view.desktop': 'Vista isometrica',
 };
 
 const enUS: Dict = {
   // Header
-  'app.titulo': 'MicroFirma',
-  'app.subtitulo': 'Spatial control plane for agentic systems',
+  'app.titulo': 'TradeClass',
+  'app.subtitulo': 'Spatial control plane for trading desks with AI agents',
   'app.fonteMundo': 'World source',
 
   // Estados de conexao
@@ -148,14 +193,44 @@ const enUS: Dict = {
   'kpi.erros5min': 'Errors (5 min)',
   'kpi.tokensMin': 'Tokens / min',
   'kpi.aprovacoes': 'Approvals',
+  'kpi.pnlSessao': 'Session PnL',
+  'kpi.sinais': 'Signals',
+  'kpi.risco': 'Risk',
+
+  // Selection panel (ADR-0009)
+  'painel.selecao': 'Selection',
+  'painel.selecao.nenhuma': 'Nothing selected — click a desk, board or wall screen.',
+  'painel.selecao.agente': 'Agent: {nome}',
+  'painel.selecao.mesa': 'Desk: {id}',
+  'painel.selecao.quadro': 'Board: {id}',
+  'painel.selecao.midia': 'Screen {kind}: {id}',
+  'painel.aba.config': 'Settings',
+  'painel.aba.contas': 'Accounts',
+  'painel.aba.agente': 'Agent',
+  'painel.aba.grafico': 'Chart',
+  'painel.config.vazio': 'Select an object on the floor to see its settings.',
+  'painel.config.agente': 'Desk settings for {nome}.',
+  'painel.config.prop': 'Object {kind} ({id}).',
+  'painel.config.midia': 'Wall media {id}.',
+  'painel.contas.nota': 'Accounts / PnL summary mirrored from selection and global KPIs.',
+  'painel.agente.vazio': 'No agent selected.',
+  'painel.grafico.vazio': 'Click a wall chart screen to open the series.',
+  'painel.grafico.serie': 'Series {id} (mock OHLCV).',
+  'painel.propId': 'Prop',
+  'painel.kind': 'Kind',
+  'painel.sala': 'Room',
+  'painel.dono': 'Owner',
+  'painel.mediaId': 'Media',
+  'painel.serie': 'Series',
+  'painel.saude': 'Health',
 
   // Budget
   'orcamento.custoDia': 'Daily cost',
   'orcamento.nota': 'Exceeding the ceiling turns off the building lights - cost stops being a number and becomes a visible consequence.',
 
   // Dashboard
-  'dashboard.titulo': 'Executive view',
-  'dashboard.nota': 'KPIs updated in real time on every server tick.',
+  'dashboard.titulo': 'Floor view',
+  'dashboard.nota': 'Trade and ops KPIs updated every tick.',
   'dashboard.historico': 'History',
 
   // Approvals
@@ -213,7 +288,8 @@ const enUS: Dict = {
 
   // Camera
   'camera.reset': 'Reset camera',
-  'camera.dica': 'Scroll = zoom | Drag = pan | Double-click = reset',
+  'camera.dica': 'Scroll = zoom | Drag = pan | Click = select',
+  'camera.dicaMobile': 'Top-down view | Drag = pan | Tap = select',
 
   // SimFirma
   'simfirma.titulo': 'SimFirma (what-if)',
@@ -228,12 +304,25 @@ const enUS: Dict = {
 
   // Idioma
   'i18ma.seletor': 'Language',
+
+  'trade.pnlSessao': 'Session PnL',
+  'trade.sinais': 'Signals',
+  'trade.risco': 'Risk',
+  'tabs.config': 'Settings',
+  'tabs.contas': 'Accounts',
+  'tabs.agente': 'Agent',
+  'tabs.grafico': 'Chart',
+  'selecao.nenhuma': 'Nothing selected — click a desk, board or wall chart.',
+  'selecao.mesa': 'Desk selected',
+  'selecao.quadro': 'Board selected',
+  'view.mobile': 'Mobile view (floor plan)',
+  'view.desktop': 'Isometric view',
 };
 
 const esES: Dict = {
   // Header
-  'app.titulo': 'MicroFirma',
-  'app.subtitulo': 'Plano de control espacial para sistemas agenticos',
+  'app.titulo': 'TradeClass',
+  'app.subtitulo': 'Oficina espacial para desks de trading con agentes de IA',
   'app.fonteMundo': 'Fuente del mundo',
 
   // Estados de conexion
@@ -251,14 +340,44 @@ const esES: Dict = {
   'kpi.erros5min': 'Errores (5 min)',
   'kpi.tokensMin': 'Tokens / min',
   'kpi.aprovacoes': 'Aprobaciones',
+  'kpi.pnlSessao': 'PnL sesion',
+  'kpi.sinais': 'Senales',
+  'kpi.risco': 'Riesgo',
+
+  // Panel de seleccion (ADR-0009)
+  'painel.selecao': 'Seleccion',
+  'painel.selecao.nenhuma': 'Nada seleccionado — haga clic en un escritorio, tablero o pantalla.',
+  'painel.selecao.agente': 'Agente: {nome}',
+  'painel.selecao.mesa': 'Escritorio: {id}',
+  'painel.selecao.quadro': 'Tablero: {id}',
+  'painel.selecao.midia': 'Pantalla {kind}: {id}',
+  'painel.aba.config': 'Configuracion',
+  'painel.aba.contas': 'Cuentas',
+  'painel.aba.agente': 'Agente',
+  'painel.aba.grafico': 'Grafico',
+  'painel.config.vazio': 'Seleccione un objeto en el floor para ver la configuracion.',
+  'painel.config.agente': 'Configuracion del puesto de {nome}.',
+  'painel.config.prop': 'Objeto {kind} ({id}).',
+  'painel.config.midia': 'Media de pared {id}.',
+  'painel.contas.nota': 'Resumen de cuentas / PnL reflejado de la seleccion y KPIs globales.',
+  'painel.agente.vazio': 'Ningun agente seleccionado.',
+  'painel.grafico.vazio': 'Haga clic en una pantalla de grafico para abrir la serie.',
+  'painel.grafico.serie': 'Serie {id} (mock OHLCV).',
+  'painel.propId': 'Prop',
+  'painel.kind': 'Tipo',
+  'painel.sala': 'Sala',
+  'painel.dono': 'Duenio',
+  'painel.mediaId': 'Media',
+  'painel.serie': 'Serie',
+  'painel.saude': 'Salud',
 
   // Presupuesto
   'orcamento.custoDia': 'Costo del dia',
   'orcamento.nota': 'Superar el techo apaga las luces del edificio - el costo deja de ser un numero y pasa a ser una consecuencia visible.',
 
   // Dashboard
-  'dashboard.titulo': 'Vista ejecutiva',
-  'dashboard.nota': 'KPIs actualizados en tiempo real en cada tick del servidor.',
+  'dashboard.titulo': 'Vista del floor',
+  'dashboard.nota': 'KPIs de trade y operacion actualizados en cada tick.',
   'dashboard.historico': 'Historial',
 
   // Aprobaciones
@@ -316,7 +435,8 @@ const esES: Dict = {
 
   // Camara
   'camera.reset': 'Resetear camara',
-  'camera.dica': 'Scroll = zoom | Arrastrar = pan | Doble-clic = reset',
+  'camera.dica': 'Scroll = zoom | Arrastrar = pan | Clic = seleccionar',
+  'camera.dicaMobile': 'Vista top-down | Arrastrar = pan | Toque = seleccionar',
 
   // SimFirma
   'simfirma.titulo': 'SimFirma (what-if)',
@@ -331,6 +451,19 @@ const esES: Dict = {
 
   // Idioma
   'i18ma.seletor': 'Idioma',
+
+  'trade.pnlSessao': 'PnL de la sesion',
+  'trade.sinais': 'Senales',
+  'trade.risco': 'Riesgo',
+  'tabs.config': 'Configuracion',
+  'tabs.contas': 'Cuentas',
+  'tabs.agente': 'Agente',
+  'tabs.grafico': 'Grafico',
+  'selecao.nenhuma': 'Nada seleccionado — haga clic en un escritorio, tablero o grafico de pared.',
+  'selecao.mesa': 'Escritorio seleccionado',
+  'selecao.quadro': 'Tablero seleccionado',
+  'view.mobile': 'Vista movil (planta)',
+  'view.desktop': 'Vista isometrica',
 };
 
 const DICCIONARIOS: Record<Idioma, Dict> = {

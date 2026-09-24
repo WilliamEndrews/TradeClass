@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <!--
-  Laboratorio TinyHouse — construtor gamificado de escritorio.
+  Laboratorio TinyTraderLab — construtor gamificado de escritorio.
 
   Servidor: pnpm lab:iso
-  URL: http://127.0.0.1:3333/scripts/iso-validation/tinyhouse.html
+  URL: http://127.0.0.1:3333/scripts/iso-validation/tinytraderlab.html
 
   Catalogo: catalogo-laboratorio.json
   Temas: packages/world-engine/src/biblia/temas-arquiteto.json
-  Calibracao: apps/demo/src/calibracao-tinyhouse.json
+  Calibracao: apps/demo/src/calibracao-tinytraderlab.json
 -->
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
-<title>TinyHouse Lab — montar escritorio</title>
+<title>TinyTraderLab — trading floor builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -148,6 +148,26 @@
   canvas.palco.marcando-assento { cursor: crosshair; }
   canvas#palco-compose { cursor: grab; }
   .stage-canvas-slot canvas[hidden] { display: none !important; }
+  #nest-live-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 3;
+    border-radius: 10px;
+  }
+  #nest-live-overlay iframe {
+    position: absolute;
+    left: 0;
+    top: 0;
+    border: 0;
+    transform-origin: 0 0;
+    pointer-events: auto;
+    background: #000;
+  }
 
   .dock {
     display: flex;
@@ -327,6 +347,19 @@
     border-radius: 999px;
     font-size: 11px;
   }
+  .iframe-lista { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 10px; }
+  .iframe-lista-item { display: flex; flex-direction: column; gap: 4px; }
+  .iframe-lista-top { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .iframe-lista-top button { font-size: 11px; padding: 2px 8px; }
+  .iframe-url-row {
+    width: 100%;
+    font-size: 11px;
+    padding: 4px 6px;
+    background: var(--bg-deep, #0c1210);
+    border: 1px solid var(--line, #2a3a34);
+    color: inherit;
+    border-radius: 4px;
+  }
   .filtro { width: 100%; margin: 0; }
 
   .cards {
@@ -491,6 +524,65 @@
   }
   .help-card h2 { color: var(--accent); margin-bottom: 10px; font-size: 13px; }
   .help-card ul { padding-left: 18px; margin: 0; }
+
+  .interact-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s var(--ease);
+  }
+  .interact-drawer.open { opacity: 1; pointer-events: auto; }
+  .interact-card {
+    width: min(72vw, 960px);
+    height: min(72vh, 640px);
+    max-width: 960px;
+    max-height: 640px;
+    overflow: auto;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px 32px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+  }
+  .interact-card h2 {
+    color: var(--accent);
+    margin: 0;
+    font-size: 18px;
+    padding-right: 36px;
+  }
+  .interact-card .interact-corpo {
+    flex: 1;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .interact-card .interact-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--line);
+    background: var(--bg-deep);
+    color: var(--text);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .interact-card .interact-close:hover { border-color: var(--accent); color: var(--accent); }
   .celula { display: none; }
   .lista-camadas { margin: 8px 0; display: flex; flex-direction: column; gap: 4px; padding: 0; list-style: none; }
   .camada-row {
@@ -515,7 +607,7 @@
 <body>
 <div class="app">
   <header class="topbar">
-    <div class="brand">TinyHouse <span>Lab</span></div>
+    <div class="brand">TinyTraderLab <span>Lab</span></div>
     <div class="modos" role="tablist" aria-label="Modo do laboratorio">
       <button type="button" id="btn-modo-palco" class="ativo" role="tab" aria-selected="true">Palco Principal</button>
       <button type="button" id="btn-modo-combinar" role="tab" aria-selected="false">Combinar assets</button>
@@ -551,6 +643,7 @@
           role="img"
           aria-label="Preview de combinacao. Arraste sprites para alinhar."
           tabindex="0"></canvas>
+        <div id="nest-live-overlay" aria-hidden="true"></div>
       </div>
 
       <div class="dock" id="barra-grade">
@@ -572,6 +665,11 @@
           <strong id="txt-subida">—</strong>
           <button type="button" id="btn-subida-plus">+</button>
         </span>
+        <div class="sep"></div>
+        <span class="dock-label">parede</span>
+        <button type="button" id="btn-altura-parede-minus" title="Diminui altura da parede">−</button>
+        <strong id="txt-altura-parede">1.0×</strong>
+        <button type="button" id="btn-altura-parede-plus" title="Aumenta altura da parede">+</button>
       </div>
       <p id="grade-hint" class="hint-combo" hidden></p>
       <p id="celula-txt" class="celula">celula selecionada</p>
@@ -609,6 +707,8 @@
     <aside class="book" id="caderninho" aria-label="Caderninho do laboratorio">
       <div class="book-tabs" role="tablist">
         <button type="button" class="ativo" data-book-tab="assets" id="tab-assets">Assets</button>
+        <button type="button" data-book-tab="create" id="tab-create">Create</button>
+        <button type="button" data-book-tab="iframe" id="tab-iframe">Iframe</button>
         <button type="button" data-book-tab="ambiente" id="tab-ambiente">Ambiente</button>
         <button type="button" data-book-tab="temas" id="tab-temas">Temas</button>
       </div>
@@ -616,7 +716,7 @@
         <div class="book-pane" id="pane-assets">
           <section class="catalogo" aria-labelledby="tit-catalogo">
             <h2 id="tit-catalogo">Catalogo</h2>
-            <p class="hint-combo">Arraste um card para o palco. Clique e arraste pecas ja plantadas. Grade/ancoras so aparecem com diagnostico ligado.</p>
+            <p class="hint-combo">Arraste um card para o palco (posicao livre no piso; Shift = snap nos quartis). Clique e arraste pecas ja plantadas. Grade/ancoras so aparecem com diagnostico ligado.</p>
             <button type="button" id="btn-combinar" hidden aria-pressed="false">combinar assets</button>
             <div class="book-filters">
               <label class="sr" for="filtro">Filtrar catalogo</label>
@@ -641,6 +741,74 @@
               </div>
             </div>
             <div class="cards" id="cards" role="list"></div>
+          </section>
+        </div>
+
+        <div class="book-pane" id="pane-create" hidden>
+          <section class="catalogo" aria-labelledby="tit-create">
+            <h2 id="tit-create">Create</h2>
+            <p class="hint-combo">Assets gerados proceduralmente (TradeClass). Arraste para o palco como no Catalogo. Nao aparecem na aba Assets.</p>
+            <p class="hint-combo"><kbd>Alt</kbd>+clique na <strong>Mesa centro metal</strong> abre o popup de teste.</p>
+            <div class="cards" id="cards-create" role="list"></div>
+          </section>
+        </div>
+
+        <div class="book-pane" id="pane-iframe" hidden>
+          <section class="catalogo" aria-labelledby="tit-iframe">
+            <h2 id="tit-iframe">Mídia na parede</h2>
+            <p class="hint-combo">Encaixa imagem/iframe nos 4 cantos UV da tela (nest). Presets no código + calibração no Lab.</p>
+            <div class="row" style="flex-direction:column;gap:8px;align-items:stretch">
+              <label>URL
+                <input id="iframe-url" type="url" placeholder="https://... ou .png/.webp" style="width:100%" />
+              </label>
+              <label>Moldura / nest
+                <select id="iframe-frame">
+                  <option value="none">Sem moldura (painel)</option>
+                  <option value="tv">TV de parede</option>
+                  <option value="big-tv">TV grande</option>
+                  <option value="cork">Cortica</option>
+                  <option value="screen">Tela projetor</option>
+                  <option value="tv-3x">TV 3×100 (Create)</option>
+                  <option value="tv-4x">TV 4×100 (Create)</option>
+                  <option value="tv-war">TV war room 6×120 (Create)</option>
+                  <option value="cork-wide">Cortica panoramica 3×72 (Create)</option>
+                  <option value="cork-tall">Cortica mural 2×110 (Create)</option>
+                </select>
+              </label>
+              <label>Display
+                <select id="iframe-display">
+                  <option value="auto">auto (detecta imagem)</option>
+                  <option value="image">image (warp canvas)</option>
+                  <option value="iframe">iframe (matrix3d)</option>
+                  <option value="hybrid">hybrid (preview + painel)</option>
+                </select>
+              </label>
+              <label>Blend
+                <select id="iframe-blend">
+                  <option value="normal" selected>normal (nitido)</option>
+                  <option value="screen">screen (holograma)</option>
+                  <option value="linear-dodge">linear-dodge</option>
+                </select>
+              </label>
+              <div class="row">
+                <label>Largura (tiles)
+                  <input id="iframe-span" type="number" min="1" max="16" value="2" style="width:4rem" />
+                </label>
+                <label>Altura (px)
+                  <input id="iframe-height" type="number" min="16" max="480" value="44" style="width:4rem" />
+                </label>
+              </div>
+              <button type="button" id="btn-iframe-plantar">plantar na parede selecionada</button>
+              <hr style="border:none;border-top:1px solid #2a3a34;margin:4px 0" />
+              <p class="hint-combo">Calibrar tela (4 cantos UV) — selecione um item na lista:</p>
+              <div class="row">
+                <button type="button" id="btn-iframe-calib">calibrar cantos</button>
+                <button type="button" id="btn-iframe-warp">toggle warp 3×3</button>
+                <button type="button" id="btn-iframe-export">exportar preset</button>
+              </div>
+              <p class="hint-combo" id="iframe-hint">Aplicar: imagem, #chart/#table, ou link YouTube (watch/youtu.be/shorts). Chip = calibrar.</p>
+              <ul id="iframe-lista" class="kpi-lista iframe-lista" style="font-size:12px"></ul>
+            </div>
           </section>
         </div>
 
@@ -718,6 +886,17 @@
               <button type="button" id="btn-copiar-temas">copiar temas JSON</button>
               <button type="button" id="btn-recarregar-disco">recarregar do disco</button>
               <button type="button" id="btn-marcar-assento">marcar assento</button>
+              <label class="assento-lab">
+                slot
+                <select id="assento-slot-ativo" title="Assento ativo para marcar/girar"></select>
+              </label>
+              <button type="button" id="btn-assento-add" title="Novo slot seat-N">+ assento</button>
+              <button type="button" id="btn-assento-del" title="Remove o slot ativo">- assento</button>
+              <label class="assento-lab">
+                max
+                <input id="assento-max" type="number" min="1" max="12" value="6" style="width:3rem" />
+              </label>
+              <span id="assento-contagem" class="mute">0/6</span>
               <span id="tema-persist-status" class="tema-persist-status" aria-live="polite"></span>
             </div>
             <p id="palco-aviso" class="palco-aviso" data-ok="1" aria-live="polite"></p>
@@ -733,20 +912,23 @@
   <div class="help-card">
     <h2 id="help-title">Como funciona</h2>
     <ul>
-      <li><strong>Palco Principal</strong> — arraste assets do caderninho para montar o escritorio. Perto da parede NW o Lab ancora como anexo; no centro ancora no piso (quarteis internos, sem UI de subdivisao). Clique no chao vazio nao seleciona grade — so pecas sao selecionaveis/arrastaveis. Piso, parede e decor empilham: um asset novo nao substitui o anterior.</li>
-      <li><strong>Marcar assento</strong> — o botao entra num modo: o piso aparece subdividido em quartos. Passe o mouse para destacar, clique esquerdo para travar (verde). Clique outra subcelula para trocar. <kbd>Esc</kbd> ou o botao de novo cancela o modo. A marca so vai para a biblia quando voce <strong>salvar tema</strong>. No modo assento: <kbd>Q</kbd> / <kbd>E</kbd> giram o facing.</li>
+      <li><strong>Palco Principal</strong> — arraste assets do caderninho para montar o escritorio. Perto da parede NW o Lab ancora como anexo; no centro o piso aceita posicionamento livre (checkpoint dx/dy na celula). Segure <kbd>Shift</kbd> ao soltar/arrastar para snap nos quartis. Clique no chao vazio nao seleciona grade — so pecas sao selecionaveis/arrastaveis. Piso, parede e decor empilham: um asset novo nao substitui o anterior.</li>
+      <li><strong>Marcar assento</strong> — multiplos slots por tema (seat-0, seat-1, macro-0...). Use +/- assento e o seletor de slot; max padrao 6. O botao entra no modo: piso subdividido, clique para travar o slot selecionado. <kbd>Esc</kbd> cancela. No modo: <kbd>Q</kbd>/<kbd>E</kbd> giram o facing do slot atual. Salve o tema para gravar todos os postos na biblia.</li>
       <li><strong>Atalhos do canvas</strong> —
         <kbd>Delete</kbd> ou <kbd>Ctrl+Del</kbd> (Mac: <kbd>Cmd+Del</kbd>) remove a peca/camada selecionada;
         <kbd>Esc</kbd> limpa a selecao;
         <kbd>[</kbd> / <kbd>]</kbd> (ou PageDown / PageUp) muda z-order entre vizinhos (palco e Combinar);
+        <kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> (Mac: <kbd>Cmd</kbd>) sobe/desce a camada do selecionado;
         setas ←↑→↓ ajustam <code>dx</code>/<code>dy</code> de anexo de parede em 1 px;
         <kbd>Ctrl+Z</kbd> desfaz; <kbd>Ctrl+Y</kbd> ou <kbd>Ctrl+Shift+Z</kbd> refaz.
       </li>
       <li><strong>Desfazer</strong> — <kbd>Ctrl+Z</kbd> volta a ultima acao do canvas (plantar, mover, remover, limpar). <kbd>Ctrl+Y</kbd> ou <kbd>Ctrl+Shift+Z</kbd> refaz.</li>
       <li><strong>Combinar assets</strong> — monte sprites compostos (ex.: notebook no tampo). Salvo, vira card do catalogo.</li>
-      <li><strong>Caderninho</strong> — Assets, Ambiente (tiles/pisos/paredes/zonas) e Temas do arquiteto.</li>
-      <li><strong>Camadas</strong> — com uma peca selecionada, o chip mostra <strong>remover</strong>; ajuste frente/atras so entre vizinhos proximos (botoes ou <kbd>[</kbd>/<kbd>]</kbd>).</li>
-      <li><strong>Espelho</strong> — em anexos elegiveis, botao no chip troca face L↔R.</li>
+      <li><strong>Caderninho</strong> — Assets, Create (assets gerados proceduralmente), Ambiente (tiles/pisos/paredes/zonas) e Temas do arquiteto.</li>
+      <li><strong>Iframe</strong> — midia HTML na parede (sem/com moldura TV/cortica). Plantavel na face; salva no tema como <code>wallMedia</code>.</li>
+      <li><strong>Create</strong> — pecas geradas sob demanda (mesa/tapete etc.). Plantaveis no palco; ficam em <code>created-assets.json</code> + <code>assets-source/tradeclass-created/</code>. <kbd>Alt</kbd>+clique na <strong>Mesa centro metal</strong> abre o popup de teste.</li>
+      <li><strong>Camadas</strong> — com uma peca selecionada, o chip mostra <strong>remover</strong>; ajuste frente/atras so entre vizinhos proximos (botoes, <kbd>[</kbd>/<kbd>]</kbd> ou <kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd>).</li>
+      <li><strong>Espelho</strong> — anexos com badge <em>espelho</em>: botao no chip ou <kbd>Ctrl</kbd>+<kbd>E</kbd> inverte o sprite (<em>espelhado</em>) e move para a parede oposta. Drop/arraste <em>nao</em> espelha sozinho.</li>
       <li><strong>Diagnostico</strong> — mostra quartos azuis, ancoras e pe. Desligado por padrao para nao atrapalhar o DnD.</li>
       <li>Temas gravados alimentam <code>temas-arquiteto.json</code> via <code>pnpm lab:iso</code>. O botao <strong>i</strong> mostra pe/ancora e diagnostico tecnico.</li>
     </ul>
@@ -754,6 +936,14 @@
   </div>
 </div>
 
-<script type="module" src="tinyhouse-lab.js"></script>
+<div class="interact-drawer" id="interact-drawer" role="dialog" aria-modal="true" aria-labelledby="interact-title" aria-hidden="true">
+  <div class="interact-card">
+    <button type="button" class="interact-close" id="btn-interact-close" aria-label="Fechar">×</button>
+    <h2 id="interact-title">Teste de design</h2>
+    <p class="interact-corpo" id="interact-corpo">Teste de design</p>
+  </div>
+</div>
+
+<script type="module" src="tinytraderlab-lab.js"></script>
 </body>
 </html>

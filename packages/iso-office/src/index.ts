@@ -1,5 +1,5 @@
 /**
- * @microfirma/iso-office
+ * @tradeclass/iso-office
  *
  * Pipeline do escritorio isometrico do lab (painter, temas, 1 Boss + 1 copa),
  * sem o shell do Debugpreview. Cliente e servidor usam as mesmas funcoes.
@@ -21,12 +21,26 @@ export {
 export {
   montarAgencia,
   montarAgenciaGeracao,
+  montarAgenciaDeProtos,
+  empacotarProtosFixos,
   assinaturaAgencia,
   type AgenciaMontada,
   type SlotAgencia,
   type RectAgencia,
   type CelulaAgencia,
 } from './montar-agencia';
+
+export {
+  listarPlantas,
+  obterPlanta,
+  carregarPlanta,
+  bindingsDaPlanta,
+  elencoDaPlanta,
+  PLANTAS_FIXAS,
+  type PlantaFixa,
+  type PlantaSala,
+  type PlantaDesk,
+} from './plants';
 
 export {
   construirEspacoAgencia,
@@ -36,6 +50,7 @@ export {
   pontosDeInteresseNaSala,
   celulasDePasseio,
   celulasWalkableNaSala,
+  agentIdsDosPostos,
   KINDS_INTERESSE,
   type CenarioEspacial,
   type AgenteEspacial,
@@ -87,3 +102,32 @@ export { desenharAtores, projetarAtorSentado } from './desenhar-atores';
 
 export { iso, LARGURA_TILE, ALTURA_TILE, type Pt } from './proto-blit/iso';
 export { resolverSpecLab, calibracaoDoTema, coresDoTema } from './proto-blit/catalogo';
+export {
+  FRAME_PRESETS,
+  presetDaFrame,
+  retanguloTelaWallMedia,
+  posicaoMediaParede,
+  type FramePreset,
+  type RetanguloTela as RetanguloTelaMidia,
+} from './proto-blit/wall-media-frame';
+export {
+  SCREEN_NEST_PRESETS,
+  nestPresetPorAsset,
+  nestPresetIds,
+  resolverCantosTela,
+  quadrilateroTelaWallMedia,
+  aabbDoQuad,
+  pontoEmPoligono,
+  quadComoPoligono,
+  homografiaMatrix3d,
+  homografiaMatriz,
+  aplicarHomografia,
+  cssBlendMode,
+  urlPareceImagem,
+  resolverDisplay,
+  exportarPresetSnippet,
+  gradeApartirCantos,
+  type ScreenNestPreset,
+  type CantosResolvidos,
+  type QuadTela,
+} from './proto-blit/screen-nest';

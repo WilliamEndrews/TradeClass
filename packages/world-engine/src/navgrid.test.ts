@@ -8,7 +8,7 @@
  * outro lado seja caminhavel (corredor ou outra sala).
  */
 import { describe, expect, it } from 'vitest';
-import type { OfficeLayout, Room } from '@microfirma/contracts';
+import type { OfficeLayout, Room, AgentDescriptor, AgentRole  } from '@tradeclass/contracts';
 import { planSpaceProgram } from './space-program.js';
 import { solveLayout } from './layout-solver.js';
 import { validarLayout } from './layout-validation.js';
@@ -19,7 +19,7 @@ import {
   isWalkable,
   reachableFrom,
 } from './navgrid.js';
-import type { AgentDescriptor, AgentRole } from '@microfirma/contracts';
+
 
 function elenco(tamanho: number): AgentDescriptor[] {
   const papeis: AgentRole[] = ['orchestrator', 'researcher', 'analyst', 'support', 'engineer', 'finance', 'guardian'];

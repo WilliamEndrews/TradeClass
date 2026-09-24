@@ -1,5 +1,5 @@
 /**
- * @microfirma/contracts
+ * @tradeclass/contracts
  *
  * Fonte unica de verdade dos contratos do sistema. Qualquer pacote (frontend,
  * engine, servico Python via schema gerado) fala esta linguagem e apenas esta.
@@ -14,3 +14,4 @@ export * from './wire.js';
 export * from './otlp.js';
 export * from './replay.js';
 export * from './tenant.js';
+export * from './agent-desk.js';

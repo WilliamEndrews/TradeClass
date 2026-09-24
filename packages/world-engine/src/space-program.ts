@@ -15,8 +15,8 @@
  * O LLM NUNCA gera coordenadas. Ver ADR-0004.
  */
 
-import type { AgentDescriptor, SpaceProgram, ZoneRequest } from '@microfirma/contracts';
-import { ROOM_PREFERENCE } from '@microfirma/contracts';
+import type { AgentDescriptor, SpaceProgram, ZoneRequest } from '@tradeclass/contracts';
+import { ROOM_PREFERENCE } from '@tradeclass/contracts';
 import { createRng, hashString } from './prng.js';
 import { TEMAS } from './themes.js';
 import { gradeDoZona } from './construtor-biblia.js';

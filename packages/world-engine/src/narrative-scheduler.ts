@@ -1,7 +1,7 @@
 /**
  * MOTOR DE TEMPO NARRATIVO - o Narrative Scheduler
  *
- * ESTE E O CORACAO DO PRODUTO. Se este arquivo estiver errado, a MicroFirma
+ * ESTE E O CORACAO DO PRODUTO. Se este arquivo estiver errado, a TradeClass
  * parece um brinquedo quebrado, independentemente da qualidade da arte.
  *
  * O PROBLEMA (ignorado pelas duas consultorias iniciais):
@@ -34,7 +34,7 @@
  * Spec completa: docs/specs/motor-de-tempo-narrativo.md
  */
 
-import type { DomainEvent, NarrativeIntent, WorldKpis } from '@microfirma/contracts';
+import type { DomainEvent, NarrativeIntent, WorldKpis } from '@tradeclass/contracts';
 
 export interface NarrativeConfig {
   /** Duracao minima, em ms, para que uma encenacao seja compreensivel. */
@@ -292,13 +292,23 @@ export class NarrativeScheduler {
       if (t.aprovacaoPendente) pendingApprovals++;
     }
 
+    const tokensMin = this.tokensRecentes.reduce((s, x) => s + x.tokens, 0);
+    const erros = this.errosRecentes.length;
+    // KPIs de trade: mock deterministico ate o feed MT5 entrar.
+    const pnlSessionUsd = Math.round((activeRuns * 12.5 - erros * 8.3 + tokensMin * 0.002) * 100) / 100;
+    const activeSignals = Math.max(0, activeRuns + pendingApprovals);
+    const riskScore = Math.min(100, Math.round(erros * 12 + pendingApprovals * 8 + (this.custoUsdHoje / Math.max(1, this.cfg.budgetUsdToday)) * 40));
+
     return {
       activeRuns,
       costUsdToday: this.custoUsdHoje,
       budgetUsdToday: this.cfg.budgetUsdToday,
-      errorsLast5Min: this.errosRecentes.length,
-      tokensPerMinute: this.tokensRecentes.reduce((s, x) => s + x.tokens, 0),
+      errorsLast5Min: erros,
+      tokensPerMinute: tokensMin,
       pendingApprovals,
+      pnlSessionUsd,
+      activeSignals,
+      riskScore,
     };
   }
 

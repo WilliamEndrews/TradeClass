@@ -1,41 +1,23 @@
 /**
  * RENDERIZADOR DO ESCRITORIO (Canvas 2D + Sprites) - FASE 2
  *
- * Papel deste arquivo: desenhar um quadro de mundo. Nada mais.
- * Ele NAO simula, NAO decide, NAO guarda regra de negocio. Recebe
- * `WorldSnapshot`/`WorldDelta` e pinta. Essa fronteira e o que permite mover a
- * simulacao para o servidor sem tocar uma linha de render (ADR-0006).
- *
- * FASE 2 - MELHORIAS (ADR-0008):
- *   - Sprites pre-renderizados substituem vetores em todos os slots de
- *     mobiliario e atores. Gradientes, sombras suaves, highlights de borda
- *     e ambient occlusion - calculados uma vez, gratis em runtime.
- *   - Theme-aware: cores derivadas do tema do layout, nao de constantes.
- *   - Camera: zoom (wheel), pan (drag), seguir agente (click), reset (duplo-click).
- *
- * Projecao: dimetrica 2:1 (a mesma de Stardew/Gather e de Age of Empires II).
+ * Papel deste arquivo: orquestrar camera + passes de desenho.
+ * Implementacao fatiada em helpers, camera, static e dynamic.
  */
-
-import type { OfficeLayout, WorldDelta, WorldSnapshot } from '@microfirma/contracts';
-import { dimensoesPersonagem, PersonagemKit } from '@microfirma/iso-characters';
-import { resolverPaleta, tileSetsDoLayout, type PaletaResolvida } from '@microfirma/world-engine';
-import { carregarAtlas, type LoadedAsset } from './asset-atlas';
+import type { OfficeLayout, WorldDelta, WorldSnapshot } from '@tradeclass/contracts';
+import { PersonagemKit } from '@tradeclass/iso-characters';
+import { resolverPaleta, tileSetsDoLayout } from '@tradeclass/world-engine';
+import { carregarAtlas } from './asset-atlas';
+import { criarFabrica } from './sprite-factory';
 import {
-  criarFabrica,
-  desenharSpriteProp,
-  desenharSpriteDecor,
-  desenharSpriteAtor,
-  desenharAnexoParede,
-  obterSpriteProp,
-  obterSpriteDecor,
-  obterSpriteAtor,
-  obterTile,
-  desenharTile,
-  type SpriteCache,
-  type PropKind,
-  type DecorKind,
-} from './sprite-factory';
-import { ALTURA_TILE, LARGURA_TILE } from './projecao';
+  aplicarZoomNoPonto,
+  cameraInicial,
+  resetarCamera,
+  seguirPontoMundo,
+} from './office-renderer-2d-camera';
+import { desenharAmbiente, desenharAtores, desenharPenumbra } from './office-renderer-2d-dynamic';
+import { cor, extensaoDoMundo, iso } from './office-renderer-2d-helpers';
+import { construirEstatico } from './office-renderer-2d-static';
 
 export interface RendererHandle {
   /** Entrega um quadro para desenho. Chamada a 10 Hz pelo laco de simulacao. */
@@ -49,20 +31,6 @@ export interface RendererHandle {
   destroy(): void;
 }
 
-interface Extensao {
-  minX: number;
-  minY: number;
-  largura: number;
-  altura: number;
-}
-
-interface Camera {
-  zoom: number;
-  panX: number;
-  panY: number;
-  seguirAgente: string | null;
-}
-
 export async function criarRenderer(
   canvas: HTMLCanvasElement,
   layout: OfficeLayout,
@@ -73,7 +41,6 @@ export async function criarRenderer(
   const palco = canvas.parentElement ?? canvas;
   const ext = extensaoDoMundo(layout);
   const paleta = resolverPaleta(layout.theme);
-  // O tema decide o tileset de piso/parede, entao o atlas precisa saber dele.
   const atlas = carregarAtlas('', tileSetsDoLayout(layout));
   await atlas.ready;
   const sprites = criarFabrica(paleta, atlas);
@@ -89,9 +56,8 @@ export async function criarRenderer(
   };
 
   let estatico: HTMLCanvasElement | null = null;
-  let escalaDoEstatico = 0;
 
-  const camera: Camera = { zoom: 1, panX: 0, panY: 0, seguirAgente: null };
+  const camera = cameraInicial();
 
   let escalaBase = 1;
   let deslocX = 0;
@@ -123,16 +89,8 @@ export async function criarRenderer(
     deslocX = (larguraCss - ext.largura * escalaBase) / 2 - ext.minX * escalaBase;
     deslocY = (alturaCss - ext.altura * escalaBase) / 2 - ext.minY * escalaBase;
 
-    // A camada estatica e construida UMA VEZ, em resolucao NATIVA (escala 1).
-    //
-    // Antes ela era reconstruida a cada mudanca de zoom, na escala efetiva da
-    // tela. Isso fazia os sprites serem reamostrados em fator nao-inteiro na
-    // hora de desenhar - o que borra e serrilha pixel art. Desenhando sempre
-    // 1:1 e deixando a reducao para o blit final (com suavizacao desligada),
-    // o pixel art sobrevive e ainda economizamos a reconstrucao por zoom.
     if (!estatico) {
       estatico = construirEstatico(layout, ext, 1, paleta, sprites);
-      escalaDoEstatico = 1;
     }
   };
 
@@ -140,23 +98,19 @@ export async function criarRenderer(
   const observador = new ResizeObserver(ajustar);
   observador.observe(palco);
 
-  // --- Eventos de camera ---
   const onWheel = (e: WheelEvent): void => {
     e.preventDefault();
     const fator = e.deltaY < 0 ? 1.12 : 1 / 1.12;
-    const novoZoom = Math.max(0.4, Math.min(4, camera.zoom * fator));
     const rect = canvas.getBoundingClientRect();
-    const cx = e.clientX - rect.left;
-    const cy = e.clientY - rect.top;
-    const ea = escalaBase * camera.zoom;
-    const ed = escalaBase * novoZoom;
-    const wx = (cx - deslocX - camera.panX) / ea;
-    const wy = (cy - deslocY - camera.panY) / ea;
-    camera.panX = cx - deslocX - wx * ed;
-    camera.panY = cy - deslocY - wy * ed;
-    camera.zoom = novoZoom;
-    // Nada a reconstruir: a camada estatica vive em resolucao nativa e o zoom
-    // e aplicado no blit final. Ver comentario em `ajustar`.
+    aplicarZoomNoPonto(
+      camera,
+      fator,
+      e.clientX - rect.left,
+      e.clientY - rect.top,
+      escalaBase,
+      deslocX,
+      deslocY,
+    );
   };
 
   const onPointerDown = (e: PointerEvent): void => {
@@ -181,10 +135,7 @@ export async function criarRenderer(
   };
 
   const onDoubleClick = (): void => {
-    camera.zoom = 1;
-    camera.panX = 0;
-    camera.panY = 0;
-    camera.seguirAgente = null;
+    resetarCamera(camera);
     ajustar();
   };
 
@@ -211,10 +162,16 @@ export async function criarRenderer(
       const ator = quadro.actors.find((a) => a.agentId === camera.seguirAgente);
       if (ator) {
         const pos = iso(ator.x + 0.5, ator.y + 0.5);
-        const alvoX = canvas.width / dpr / 2 - pos.x * escalaEfetiva;
-        const alvoY = canvas.height / dpr / 2 - pos.y * escalaEfetiva;
-        camera.panX += (alvoX - deslocX - camera.panX) * 0.08;
-        camera.panY += (alvoY - deslocY - camera.panY) * 0.08;
+        seguirPontoMundo(
+          camera,
+          pos.x,
+          pos.y,
+          canvas.width / dpr / 2,
+          canvas.height / dpr / 2,
+          escalaEfetiva,
+          deslocX,
+          deslocY,
+        );
       }
     }
 
@@ -223,17 +180,20 @@ export async function criarRenderer(
       const dstY = (panEfetivoY + ext.minY * escalaEfetiva) * dpr;
       const dstW = ext.largura * escalaEfetiva * dpr;
       const dstH = ext.altura * escalaEfetiva * dpr;
-      // Suavizacao DESLIGADA: a camada estatica esta em resolucao nativa e
-      // aqui pode ser reduzida por um fator qualquer. Interpolacao bilinear
-      // borraria o pixel art; vizinho-mais-proximo mantem as bordas duras,
-      // que e a aparencia correta para este estilo de arte.
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(estatico, dstX, dstY, dstW, dstH);
       ctx.imageSmoothingEnabled = true;
     }
 
     if (quadro) {
-      ctx.setTransform(escalaEfetiva * dpr, 0, 0, escalaEfetiva * dpr, panEfetivoX * dpr, panEfetivoY * dpr);
+      ctx.setTransform(
+        escalaEfetiva * dpr,
+        0,
+        0,
+        escalaEfetiva * dpr,
+        panEfetivoX * dpr,
+        panEfetivoY * dpr,
+      );
       desenharPenumbra(ctx, layout, quadro, fase, paleta);
       desenharAmbiente(ctx, layout, quadro, fase, paleta);
       desenharAtores(ctx, quadro, selecionado, fase, paleta, sprites, personagens);
@@ -248,13 +208,14 @@ export async function criarRenderer(
       quadro = f;
       garantirAtores(f);
     },
-    select: (id) => { selecionado = id; },
-    focusAgent: (id) => { camera.seguirAgente = id; },
+    select: (id) => {
+      selecionado = id;
+    },
+    focusAgent: (id) => {
+      camera.seguirAgente = id;
+    },
     resetCamera: () => {
-      camera.zoom = 1;
-      camera.panX = 0;
-      camera.panY = 0;
-      camera.seguirAgente = null;
+      resetarCamera(camera);
       ajustar();
     },
     destroy: () => {
@@ -268,725 +229,4 @@ export async function criarRenderer(
       canvas.removeEventListener('dblclick', onDoubleClick);
     },
   };
-}
-
-// ---------------------------------------------------------------------------
-// Projecao
-// ---------------------------------------------------------------------------
-
-function iso(gx: number, gy: number): { x: number; y: number } {
-  return { x: ((gx - gy) * LARGURA_TILE) / 2, y: ((gx + gy) * ALTURA_TILE) / 2 };
-}
-
-function losango(gx: number, gy: number, recuo = 0) {
-  const a = recuo;
-  const b = 1 - recuo;
-  return [iso(gx + a, gy + a), iso(gx + b, gy + a), iso(gx + b, gy + b), iso(gx + a, gy + b)];
-}
-
-function extensaoDoMundo(layout: OfficeLayout): Extensao {
-  const { width: w, height: h } = layout.grid;
-  return {
-    minX: (-h * LARGURA_TILE) / 2,
-    minY: 0,
-    largura: ((w + h) * LARGURA_TILE) / 2,
-    altura: ((w + h) * ALTURA_TILE) / 2,
-  };
-}
-
-function caminho(ctx: CanvasRenderingContext2D, pts: Array<{ x: number; y: number }>): void {
-  ctx.beginPath();
-  ctx.moveTo(pts[0]!.x, pts[0]!.y);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i]!.x, pts[i]!.y);
-  ctx.closePath();
-}
-
-function cantosDaSala(rect: { x0: number; y0: number; x1: number; y1: number }) {
-  return [iso(rect.x0, rect.y0), iso(rect.x1, rect.y0), iso(rect.x1, rect.y1), iso(rect.x0, rect.y1)];
-}
-
-// ---------------------------------------------------------------------------
-// Camada estatica: piso + paredes + mobiliario (sprites)
-// ---------------------------------------------------------------------------
-
-const ALTURA_PAREDE = 52;
-
-function construirEstatico(
-  layout: OfficeLayout,
-  ext: Extensao,
-  escalaFisica: number,
-  paleta: PaletaResolvida,
-  sprites: SpriteCache,
-): HTMLCanvasElement {
-  const alvo = document.createElement('canvas');
-  alvo.width = Math.max(1, Math.ceil(ext.largura * escalaFisica));
-  alvo.height = Math.max(1, Math.ceil(ext.altura * escalaFisica));
-  const g = alvo.getContext('2d');
-  if (!g) return alvo;
-  // Sprites entram aqui 1:1 (ESCALA_ASSET = 1). Suavizacao desligada garante
-  // que nenhum arredondamento de sub-pixel introduza borrao no pixel art.
-  g.imageSmoothingEnabled = false;
-  g.setTransform(escalaFisica, 0, 0, escalaFisica, -ext.minX * escalaFisica, -ext.minY * escalaFisica);
-  desenharPiso(g, layout, paleta, sprites);
-  desenharCenarioEstatico(g, layout, paleta, sprites);
-  return alvo;
-}
-
-/**
- * Piso do escritorio.
- *
- * Caminho preferido: tile de piso do TinyHouse, blitado uma vez por celula.
- * Caminho de emergencia (tile faltando): losango pintado, so para nao deixar
- * o chao vazio - reconhecivelmente pior, e de proposito, para que a ausencia
- * do asset seja obvia em vez de silenciosa.
- */
-function desenharPiso(
-  ctx: CanvasRenderingContext2D,
-  layout: OfficeLayout,
-  paleta: PaletaResolvida,
-  sprites: SpriteCache,
-): void {
-  const tilePisoPadrao = obterTile(sprites, 'floor', layout.corridorTileSetId ?? layout.theme.name);
-
-  /** Todas as celulas com piso: salas + corredores. */
-  const celulas: Array<{
-    x: number;
-    y: number;
-    corBase: number;
-    tileSetId: string;
-    calibracao?: OfficeLayout['rooms'][number]['calibracao'];
-  }> = [];
-  const idCorredor = layout.corridorTileSetId ?? layout.theme.name;
-  for (const c of layout.corridors) {
-    celulas.push({ x: c.x, y: c.y, corBase: paleta.corredor, tileSetId: idCorredor });
-  }
-  for (const sala of layout.rooms) {
-    const base = paleta.piso[sala.kind] ?? paleta.piso.open!;
-    const tileSetId = sala.tileSetId ?? layout.theme.name;
-    for (let y = sala.rect.y0; y < sala.rect.y1; y++) {
-      for (let x = sala.rect.x0; x < sala.rect.x1; x++) {
-        celulas.push({ x, y, corBase: base, tileSetId, calibracao: sala.calibracao });
-      }
-    }
-  }
-
-  if (tilePisoPadrao) {
-    celulas.sort((a, b) => a.x + a.y - (b.x + b.y));
-    for (const c of celulas) {
-      const tile = obterTile(sprites, 'floor', c.tileSetId) ?? tilePisoPadrao;
-      desenharTile(ctx, tile, c.x, c.y, 'floor', c.calibracao);
-    }
-    return;
-  }
-
-  for (const c of celulas) {
-    caminho(ctx, losango(c.x, c.y));
-    ctx.fillStyle = cor(c.corBase);
-    ctx.fill();
-  }
-}
-
-function desenharCenarioEstatico(
-  ctx: CanvasRenderingContext2D,
-  layout: OfficeLayout,
-  paleta: PaletaResolvida,
-  sprites: SpriteCache,
-): void {
-  interface Item { depth: number; draw: () => void; }
-  const itens: Item[] = [];
-
-  const desenharParede = (
-    gx: number,
-    gy: number,
-    tileWall: LoadedAsset | undefined,
-    papelWall: 'wall_l' | 'wall_r',
-    cal?: OfficeLayout['rooms'][number]['calibracao'],
-  ): void => {
-    if (tileWall) {
-      desenharTile(ctx, tileWall, gx, gy, papelWall, cal);
-      return;
-    }
-    segmentoParede(ctx, iso(gx, gy), iso(gx + 1, gy), ALTURA_PAREDE, paleta.paredeInterna, false);
-  };
-
-  const tileSetDaSala = (roomId: string): string => {
-    const sala = layout.rooms.find((s) => s.roomId === roomId);
-    return sala?.tileSetId ?? layout.theme.name;
-  };
-
-  const calibracaoDaSala = (roomId: string) =>
-    layout.rooms.find((s) => s.roomId === roomId)?.calibracao;
-
-  if ((layout.walls ?? []).length > 0) {
-    for (const face of layout.walls) {
-      const ts = tileSetDaSala(face.roomId);
-      const cal = calibracaoDaSala(face.roomId);
-      const gx = face.cell.x;
-      const gy = face.cell.y;
-      const papel = face.papel === 'wall_l' ? 'wall_l' : 'wall_r';
-      itens.push({
-        depth: gx + gy + 0.4,
-        draw: () => desenharParede(gx, gy, obterTile(sprites, papel, ts), papel, cal),
-      });
-      if (face.temPorta) {
-        const porta = obterTile(sprites, 'door', ts);
-        if (porta) {
-          itens.push({
-            depth: gx + gy + 0.45,
-            draw: () => desenharTile(ctx, porta, gx, gy, 'door', cal),
-          });
-        }
-      }
-    }
-  } else {
-    // Proto do lab: estrutura NW + porta no norte, iguais ao blitEstrutura.
-    for (const sala of layout.rooms) {
-      const { x0, y0, y1 } = sala.rect;
-      const x1 = sala.rect.x1;
-      const ts = sala.tileSetId ?? layout.theme.name;
-      const cal = sala.calibracao;
-      const wallR = obterTile(sprites, 'wall_r', ts);
-      const wallL = obterTile(sprites, 'wall_l', ts);
-      const porta = obterTile(sprites, 'door', ts);
-      const gxPorta = x0 + Math.floor((x1 - x0 - 1) / 2);
-
-      for (let x = x0; x < x1; x++) {
-        itens.push({
-          depth: x + y0 + 0.4,
-          draw: () => desenharParede(x, y0, wallR, 'wall_r', cal),
-        });
-        if (x === gxPorta && porta) {
-          itens.push({
-            depth: x + y0 + 0.45,
-            draw: () => desenharTile(ctx, porta, x, y0, 'door', cal),
-          });
-        }
-      }
-      for (let y = y0; y < y1; y++) {
-        itens.push({
-          depth: x0 + y + 0.4,
-          draw: () => desenharParede(x0, y, wallL, 'wall_l', cal),
-        });
-      }
-    }
-  }
-
-  for (const m of layout.wallMounts ?? []) {
-    const cal = calibracaoDaSala(m.roomId);
-    itens.push({
-      depth: m.gx + m.gy + 0.43,
-      draw: () => {
-        const asset = sprites.atlas?.getById(m.assetId);
-        if (!asset) return;
-        desenharAnexoParede(ctx, asset, m.face, m.gx, m.gy, m.dx, m.dy, cal);
-      },
-    });
-  }
-
-  const props = [...layout.props].sort((a, b) => a.cell.x + a.cell.y - (b.cell.x + b.cell.y));
-  for (const p of props) {
-    itens.push({
-      // +0.5: na frente da parede da mesma celula (0.4). Permite mesa na
-      // fileira do fundo sem a Wall_R pintar por cima do tampo.
-      depth: p.cell.x + p.cell.y + 0.5,
-      draw: () => {
-        const kind = p.kind as PropKind;
-        const asset = (p.assetId ? sprites.atlas?.getById(p.assetId) : undefined) ?? sprites.atlas?.get(kind);
-        desenharSpriteProp(
-          ctx,
-          obterSpriteProp(sprites, kind, p.assetId),
-          p.cell.x,
-          p.cell.y,
-          kind,
-          asset,
-        );
-      },
-    });
-  }
-
-  // Decor de superficie: desenhado DEPOIS do prop sobre o qual repousa,
-  // com depth ligeiramente maior para manter ordem correta na projecao isometrica.
-  const decor = [...layout.decor].sort((a, b) => a.cell.x + a.cell.y - (b.cell.x + b.cell.y));
-  for (const d of decor) {
-    itens.push({
-      depth: d.cell.x + d.cell.y + 0.7,
-      draw: () => {
-        desenharSpriteDecor(ctx, obterSpriteDecor(sprites, d.kind as DecorKind), d.cell.x, d.cell.y);
-      },
-    });
-  }
-
-  itens.sort((a, b) => a.depth - b.depth);
-  for (const item of itens) item.draw();
-}
-
-function segmentoParede(
-  ctx: CanvasRenderingContext2D,
-  pA: { x: number; y: number },
-  pB: { x: number; y: number },
-  altura: number,
-  corFace: number,
-  externo: boolean,
-): void {
-  const opacidade = externo ? 1 : 0.55;
-  const topoA = { x: pA.x, y: pA.y - altura };
-  const topoB = { x: pB.x, y: pB.y - altura };
-  const grad = ctx.createLinearGradient(pA.x, pA.y, topoA.x, topoA.y);
-  grad.addColorStop(0, cor(escurecer(corFace, 0.82), opacidade));
-  grad.addColorStop(0.5, cor(corFace, opacidade));
-  grad.addColorStop(1, cor(clarear(corFace, 0.08), opacidade));
-  caminho(ctx, [pA, pB, topoB, topoA]);
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // Rodape (base da parede mais escura)
-  ctx.fillStyle = cor(escurecer(corFace, 0.7), 0.6);
-  ctx.fillRect(Math.min(pA.x, pB.x), Math.min(pA.y, pB.y) - 3, Math.abs(pB.x - pA.x) + 2, 3);
-
-  // Janela: apenas em paredes externas (fachada do predio).
-  const dx = pB.x - pA.x;
-  const dy = pB.y - pA.y;
-  const len = Math.hypot(dx, dy);
-  if (externo && len > 14) {
-    const jx = (pA.x + pB.x) / 2;
-    const jy = (pA.y + pB.y) / 2;
-    const jAltura = altura * 0.55;
-    const jBase = altura * 0.25;
-    const jLargura = Math.min(len * 0.4, 18);
-    const ux = dx / len;
-    const uy = dy / len;
-    const jA = { x: jx - ux * jLargura / 2, y: jy - uy * jLargura / 2 };
-    const jB = { x: jx + ux * jLargura / 2, y: jy + uy * jLargura / 2 };
-    const jTopoA = { x: jA.x, y: jA.y - jBase - jAltura };
-    const jTopoB = { x: jB.x, y: jB.y - jBase - jAltura };
-    const jBaseA = { x: jA.x, y: jA.y - jBase };
-    const jBaseB = { x: jB.x, y: jB.y - jBase };
-    // Vidro da janela (azul claro translucido)
-    const gradJ = ctx.createLinearGradient(jA.x, jBaseA.y, jB.x, jTopoB.y);
-    gradJ.addColorStop(0, cor(0xa8c8e8, 0.35));
-    gradJ.addColorStop(0.5, cor(0xc8ddf0, 0.25));
-    gradJ.addColorStop(1, cor(0xa8c8e8, 0.35));
-    caminho(ctx, [jBaseA, jBaseB, jTopoB, jTopoA]);
-    ctx.fillStyle = gradJ;
-    ctx.fill();
-    // Moldura da janela
-    ctx.strokeStyle = cor(escurecer(corFace, 0.6), 0.7);
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    // Cruzeta da janela
-    ctx.beginPath();
-    ctx.moveTo((jA.x + jB.x) / 2, jBaseA.y);
-    ctx.lineTo((jA.x + jB.x) / 2, jTopoA.y);
-    ctx.moveTo(jA.x, (jBaseA.y + jTopoA.y) / 2);
-    ctx.lineTo(jB.x, (jBaseB.y + jTopoB.y) / 2);
-    ctx.strokeStyle = cor(escurecer(corFace, 0.5), 0.5);
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-
-  ctx.strokeStyle = cor(escurecer(corFace, 0.8), 0.5);
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(pA.x, pA.y);
-  ctx.lineTo(pB.x, pB.y);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(topoA.x, topoA.y);
-  ctx.lineTo(topoB.x, topoB.y);
-  ctx.strokeStyle = cor(clarear(corFace, 0.15), 0.4);
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-}
-
-// ---------------------------------------------------------------------------
-// Camadas dinamicas
-// ---------------------------------------------------------------------------
-
-const PENUMBRA_NORMAL = 0.05;
-
-function desenharPenumbra(
-  ctx: CanvasRenderingContext2D,
-  layout: OfficeLayout,
-  quadro: WorldSnapshot | WorldDelta,
-  fase: number,
-  paleta: PaletaResolvida,
-): void {
-  const estados = new Map(quadro.rooms.map((r) => [r.roomId, r]));
-  for (const sala of layout.rooms) {
-    const c = iso((sala.rect.x0 + sala.rect.x1) / 2, (sala.rect.y0 + sala.rect.y1) / 2);
-    const raio = Math.max(20, (sala.rect.x1 - sala.rect.x0 + sala.rect.y1 - sala.rect.y0) * 6);
-    const quebrada = estados.get(sala.roomId)?.lightBroken;
-
-    // Luz ambiente no centro do teto (halo claro).
-    const g = ctx.createRadialGradient(c.x, c.y - 10, 0, c.x, c.y - 10, raio);
-    g.addColorStop(0, cor(paleta.paredeTopo, 0.12));
-    g.addColorStop(0.6, cor(paleta.paredeTopo, 0.04));
-    g.addColorStop(1, cor(paleta.paredeTopo, 0));
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.ellipse(c.x, c.y, raio, raio * 0.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    let escuridao = PENUMBRA_NORMAL;
-    if (quebrada) {
-      const h = hashTexto(sala.roomId);
-      const periodo = 2.4 + pseudoAleatorio(h, 1) * 1.8;
-      const defasagem = pseudoAleatorio(h, 2) * periodo;
-      const cicloId = Math.floor((fase + defasagem) / periodo);
-      const piscaNesteCiclo = pseudoAleatorio(cicloId, h) > 0.55;
-      escuridao = 0.45;
-      if (piscaNesteCiclo) {
-        const t = ((fase + defasagem) % periodo) / periodo;
-        if (t < 0.12) {
-          const envelope = Math.sin((t / 0.12) * Math.PI);
-          escuridao += 0.25 * envelope;
-        }
-      }
-    }
-    caminho(ctx, cantosDaSala(sala.rect));
-    ctx.fillStyle = cor(paleta.penumbra, escuridao);
-    ctx.fill();
-  }
-}
-
-function hashTexto(texto: string): number {
-  let h = 0;
-  for (let i = 0; i < texto.length; i++) h = (h * 31 + texto.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-function halo(ctx: CanvasRenderingContext2D, x: number, y: number, raio: number, matiz: number, alpha: number): void {
-  const g = ctx.createRadialGradient(x, y, 0, x, y, raio);
-  g.addColorStop(0, cor(matiz, alpha));
-  g.addColorStop(0.55, cor(matiz, alpha * 0.42));
-  g.addColorStop(1, cor(matiz, 0));
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(1, (ALTURA_TILE / LARGURA_TILE) * 2);
-  ctx.translate(-x, -y);
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.arc(x, y, raio, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-}
-
-function desenharAmbiente(
-  ctx: CanvasRenderingContext2D,
-  layout: OfficeLayout,
-  quadro: WorldSnapshot | WorldDelta,
-  fase: number,
-  paleta: PaletaResolvida,
-): void {
-  const propPorId = new Map(layout.props.map((p) => [p.propId, p]));
-  for (const mesa of quadro.desks) {
-    const prop = propPorId.get(mesa.propId);
-    if (!prop) continue;
-    const c = iso(prop.cell.x + 0.5, prop.cell.y + 0.5);
-    if (mesa.heat > 0.05) {
-      const pulso = 0.75 + 0.25 * Math.sin(fase * 4);
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      halo(ctx, c.x, c.y - 6, 34 + mesa.heat * 26, 0xff7a45, 0.4 * mesa.heat * pulso);
-      ctx.restore();
-    }
-    for (let i = 0; i < mesa.queuePile; i++) {
-      const topo = c.y - 14 - i * 2.1;
-      ctx.beginPath();
-      ctx.rect(c.x - 9, topo, 18, 2);
-      ctx.fillStyle = cor(0xfdfdfd, 0.95);
-      ctx.fill();
-      ctx.strokeStyle = cor(0xc9c4bb, 1);
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-    }
-    for (let i = 0; i < mesa.litter; i++) {
-      const ang = (i / Math.max(1, mesa.litter)) * Math.PI * 2;
-      disco(ctx, c.x + Math.cos(ang) * 16, c.y + 6 + Math.sin(ang) * 8, 3, 0x9aa0a6, 0.85);
-    }
-  }
-  for (const sala of quadro.rooms) {
-    if (sala.incident < 0.35) continue;
-    const geo = layout.rooms.find((r) => r.roomId === sala.roomId);
-    if (!geo) continue;
-    const c = iso((geo.rect.x0 + geo.rect.x1) / 2, (geo.rect.y0 + geo.rect.y1) / 2);
-    for (let i = 0; i < 4; i++) {
-      const t = (fase * 0.6 + i * 0.25) % 1;
-      disco(ctx, c.x + Math.sin((fase + i) * 1.7) * 10, c.y - 20 - t * 60, 8 + t * 16, 0x6b7280, (1 - t) * 0.28 * sala.incident);
-    }
-  }
-}
-
-function desenharAtores(
-  ctx: CanvasRenderingContext2D,
-  quadro: WorldSnapshot | WorldDelta,
-  selecionado: string | null,
-  fase: number,
-  paleta: PaletaResolvida,
-  sprites: SpriteCache,
-  personagens: PersonagemKit,
-): void {
-  const tMs = fase * 1000;
-  const dimensoes = dimensoesPersonagem(personagens.escalaPadrao);
-  const ordenados = [...quadro.actors].sort((a, b) => a.x + a.y - (b.x + b.y));
-  for (const ator of ordenados) {
-    const c = iso(ator.x + 0.5, ator.y + 0.5);
-    const base = corDoAtor(ator.agentId, ator.isInternal, paleta);
-    const bob =
-      ator.activity === 'walking' ? Math.abs(Math.sin(fase * 8)) * 2.5 : Math.sin(fase * 2) * 0.8;
-    const peY = c.y + bob;
-
-    elipse(ctx, c.x, peY + 2, dimensoes.largura * 0.16, 4, cor(0x000000, 0.18));
-
-    if (selecionado === ator.agentId) {
-      ctx.beginPath();
-      ctx.ellipse(c.x, peY + 2, 18, 8, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = cor(0x1f2937, 0.8);
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    const klimmos = personagens.desenhar(
-      ctx,
-      ator.agentId,
-      ator.activity,
-      ator.pose,
-      ator.facing,
-      tMs,
-      c.x,
-      peY,
-    );
-    if (!klimmos) {
-      const sprite = obterSpriteAtor(sprites, base, ator.isInternal);
-      desenharSpriteAtor(ctx, sprite, c.x, peY, 0);
-    }
-
-    const topo = peY - (klimmos ? dimensoes.altura + 4 : 38);
-
-    if (ator.health !== 'healthy') {
-      ctx.beginPath();
-      ctx.rect(c.x - 7, topo, 14, 3);
-      ctx.fillStyle = cor(ator.health === 'failing' ? paleta.perigo : 0xe0a03f);
-      ctx.fill();
-    }
-
-    if (ator.activity === 'working' && ator.progress > 0) {
-      ctx.beginPath();
-      ctx.rect(c.x - 10, topo - 6, 20, 3.5);
-      ctx.fillStyle = cor(0x000000, 0.18);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.rect(c.x - 10, topo - 6, 20 * ator.progress, 3.5);
-      ctx.fillStyle = cor(0x3f8f52);
-      ctx.fill();
-    }
-
-    if (ator.activity === 'waiting_approval') {
-      const pulso = 0.6 + 0.4 * Math.sin(fase * 5);
-      const iy = topo - 14;
-      disco(ctx, c.x, iy, 8, 0xffffff, 0.95);
-      ctx.beginPath();
-      ctx.arc(c.x, iy, 8, 0, Math.PI * 2);
-      ctx.strokeStyle = cor(paleta.perigo, pulso);
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.rect(c.x - 1, iy - 4, 2, 5);
-      ctx.fillStyle = cor(paleta.perigo);
-      ctx.fill();
-      disco(ctx, c.x, iy + 3, 1.2, paleta.perigo);
-    }
-
-    if (ator.activity === 'sweeping') {
-      ctx.beginPath();
-      ctx.rect(c.x + 10, peY - 36, 2, 18);
-      ctx.fillStyle = cor(0x8d6e63);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.rect(c.x + 6, peY - 20, 10, 3);
-      ctx.fillStyle = cor(0xd9a86c);
-      ctx.fill();
-    }
-    if (ator.activity === 'repairing') {
-      ctx.beginPath();
-      ctx.rect(c.x + 10, peY - 34, 2, 10);
-      ctx.fillStyle = cor(0x9aa0a6);
-      ctx.fill();
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      halo(ctx, c.x, peY - 40, 26, 0xfff3d6, 0.35);
-      ctx.restore();
-    }
-  }
-}
-
-// ---------------------------------------------------------------------------
-// utilitarios
-// ---------------------------------------------------------------------------
-
-function disco(ctx: CanvasRenderingContext2D, x: number, y: number, raio: number, matiz: number, alpha = 1): void {
-  ctx.beginPath();
-  ctx.arc(x, y, raio, 0, Math.PI * 2);
-  ctx.fillStyle = cor(matiz, alpha);
-  ctx.fill();
-}
-
-function elipse(ctx: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, estilo: string): void {
-  ctx.beginPath();
-  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
-  ctx.fillStyle = estilo;
-  ctx.fill();
-}
-
-function cor(matiz: number, alpha = 1): string {
-  const v = Math.max(0, Math.min(0xffffff, Math.round(matiz)));
-  const r = (v >> 16) & 0xff;
-  const g = (v >> 8) & 0xff;
-  const b = v & 0xff;
-  return alpha >= 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`;
-}
-
-function pseudoAleatorio(a: number, b: number): number {
-  const v = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
-  return v - Math.floor(v);
-}
-
-function corDoAtor(agentId: string, interno: boolean, paleta: PaletaResolvida): number {
-  if (interno) return agentId.includes('zelador') ? paleta.internoZelador : paleta.internoTecnico;
-  let h = 0;
-  for (let i = 0; i < agentId.length; i++) h = (h * 31 + agentId.charCodeAt(i)) >>> 0;
-  return paleta.ator[h % paleta.ator.length] as number;
-}
-
-function escurecer(matiz: number, fator: number): number {
-  const r = Math.floor(((matiz >> 16) & 0xff) * fator);
-  const g = Math.floor(((matiz >> 8) & 0xff) * fator);
-  const b = Math.floor((matiz & 0xff) * fator);
-  return (r << 16) | (g << 8) | b;
-}
-
-function clarear(matiz: number, fator: number): number {
-  const r = Math.min(255, Math.floor(((matiz >> 16) & 0xff) + (255 - ((matiz >> 16) & 0xff)) * fator));
-  const g = Math.min(255, Math.floor(((matiz >> 8) & 0xff) + (255 - ((matiz >> 8) & 0xff)) * fator));
-  const b = Math.min(255, Math.floor((matiz & 0xff) + (255 - (matiz & 0xff)) * fator));
-  return (r << 16) | (g << 8) | b;
-}
-
-function desenharTexturaPiso(
-  ctx: CanvasRenderingContext2D,
-  gx: number,
-  gy: number,
-  material: string,
-  base: number,
-): void {
-  const pts = losango(gx, gy, 0.02);
-  const cx = (pts[0]!.x + pts[2]!.x) / 2;
-  const cy = (pts[0]!.y + pts[2]!.y) / 2;
-
-  switch (material) {
-    case 'carpete': {
-      // Tecido felpudo: pontilhado denso com variacao de cor e sombra em V.
-      const h = gx * 17 + gy * 31;
-      for (let i = 0; i < 14; i++) {
-        const px = cx + ((h + i * 7) % 24) - 12;
-        const py = cy + ((h + i * 5 + 11) % 14) - 7;
-        ctx.fillStyle = cor(i % 2 === 0 ? escurecer(base, 0.88) : clarear(base, 0.1), 0.5);
-        ctx.fillRect(px, py, 1.5, 1.5);
-      }
-      ctx.strokeStyle = cor(escurecer(base, 0.75), 0.15);
-      ctx.lineWidth = 0.6;
-      ctx.beginPath();
-      ctx.moveTo(cx - 8, cy + 4);
-      ctx.lineTo(cx - 4, cy);
-      ctx.lineTo(cx, cy + 4);
-      ctx.lineTo(cx + 4, cy);
-      ctx.lineTo(cx + 8, cy + 4);
-      ctx.stroke();
-      break;
-    }
-    case 'madeira': {
-      // Tabuas com veios sinuosos, no e reflexo.
-      ctx.strokeStyle = cor(escurecer(base, 0.7), 0.55);
-      ctx.lineWidth = 0.8;
-      for (let i = 1; i < 3; i++) {
-        const t = i / 3;
-        const a = iso(gx, gy + t);
-        const b = iso(gx + 1, gy + t);
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.stroke();
-      }
-      ctx.strokeStyle = cor(escurecer(base, 0.65), 0.35);
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(cx - 10, cy - 2);
-      ctx.bezierCurveTo(cx - 4, cy - 5, cx + 2, cy + 2, cx + 10, cy - 1);
-      ctx.stroke();
-      ctx.fillStyle = cor(escurecer(base, 0.55), 0.4);
-      ctx.beginPath();
-      ctx.ellipse(cx + 1, cy, 3, 1.8, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = cor(clarear(base, 0.08), 0.25);
-      ctx.fillRect(cx - 6, cy - 4, 12, 2);
-      break;
-    }
-    case 'azulejo': {
-      // Ladrilho 2x2 com juntas escuras, borda e reflexo de porcelana.
-      ctx.strokeStyle = cor(escurecer(base, 0.55), 0.75);
-      ctx.lineWidth = 1;
-      const m1 = iso(gx + 0.5, gy);
-      const m2 = iso(gx + 0.5, gy + 1);
-      ctx.beginPath();
-      ctx.moveTo(m1.x, m1.y);
-      ctx.lineTo(m2.x, m2.y);
-      ctx.stroke();
-      const m3 = iso(gx, gy + 0.5);
-      const m4 = iso(gx + 1, gy + 0.5);
-      ctx.beginPath();
-      ctx.moveTo(m3.x, m3.y);
-      ctx.lineTo(m4.x, m4.y);
-      ctx.stroke();
-      const borda = losango(gx, gy, 0.06);
-      caminho(ctx, borda);
-      ctx.strokeStyle = cor(escurecer(base, 0.6), 0.5);
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-      ctx.fillStyle = cor(clarear(base, 0.2), 0.25);
-      ctx.beginPath();
-      ctx.ellipse(cx - 3, cy - 4, 8, 3, -0.2, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-    }
-    case 'cimento': {
-      // Cimento com manchas, rachaduras e juntas de dilatacao.
-      ctx.fillStyle = cor(escurecer(base, 0.78), 0.4);
-      ctx.beginPath();
-      ctx.ellipse(cx + 4, cy - 2, 6, 3, 0.3, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = cor(clarear(base, 0.06), 0.3);
-      ctx.beginPath();
-      ctx.ellipse(cx - 3, cy + 3, 5, 3.5, 0.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = cor(escurecer(base, 0.55), 0.35);
-      ctx.lineWidth = 0.7;
-      ctx.beginPath();
-      ctx.moveTo(cx - 6, cy - 4);
-      ctx.lineTo(cx - 2, cy - 1);
-      ctx.lineTo(cx + 1, cy - 2);
-      ctx.moveTo(cx + 2, cy + 2);
-      ctx.lineTo(cx + 7, cy + 4);
-      ctx.stroke();
-      ctx.strokeStyle = cor(escurecer(base, 0.5), 0.25);
-      ctx.lineWidth = 0.8;
-      ctx.beginPath();
-      const j1 = iso(gx, gy + 0.7);
-      const j2 = iso(gx + 1, gy + 0.7);
-      ctx.moveTo(j1.x, j1.y);
-      ctx.lineTo(j2.x, j2.y);
-      ctx.stroke();
-      break;
-    }
-  }
 }

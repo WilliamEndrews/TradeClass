@@ -1,5 +1,5 @@
 {
-  "name": "@microfirma/demo",
+  "name": "@tradeclass/demo",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,11 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@microfirma/contracts": "workspace:*",
-    "@microfirma/iso-characters": "workspace:*",
-    "@microfirma/iso-office": "workspace:*",
-    "@microfirma/synthetic": "workspace:*",
-    "@microfirma/world-engine": "workspace:*",
+    "@tradeclass/contracts": "workspace:*",
+    "@tradeclass/iso-characters": "workspace:*",
+    "@tradeclass/iso-office": "workspace:*",
+    "@tradeclass/synthetic": "workspace:*",
+    "@tradeclass/world-engine": "workspace:*",
+    "lightweight-charts": "^5.2.1",
     "pixi.js": "^8.6.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

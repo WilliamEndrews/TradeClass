@@ -3,12 +3,12 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import type { ActorState } from '@microfirma/contracts';
-import { PersonagemKit } from '@microfirma/iso-characters';
+import type { ActorState } from '@tradeclass/contracts';
+import { PersonagemKit } from '@tradeclass/iso-characters';
 import { prepararCenaIso } from './cena-isometrica';
 import { desenharAgencia } from './desenhar-agencia';
 import { desenharAtores, desenharDebugOverlay } from './desenhar-atores';
-import { construirEspacoAgencia, type CenarioEspacial } from './espaco-agencia';
+import { construirEspacoAgencia, type CenarioEspacial } from '@tradeclass/iso-office';
 import type { AgenciaMontada } from './montar-agencia';
 import { OclusaoCorredor } from './oclusao-parede';
 import { RosaVentos } from './RosaVentos';
@@ -23,6 +23,7 @@ type Props = {
   agencia: AgenciaMontada | null;
   vazioSemTemas?: boolean;
   tarefaEspecial?: Historia | null;
+  elencoIds?: string[];
 };
 
 function contarAtividades(atores: ActorState[]): string {
@@ -58,6 +59,7 @@ export function PreviewStage({
   agencia,
   vazioSemTemas = false,
   tarefaEspecial = null,
+  elencoIds,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef(0);
@@ -118,7 +120,7 @@ export function PreviewStage({
         await desenharAgencia(staticCtx, agencia, cena);
         if (cancelado || generationId !== generationRef.current) return;
 
-        const cenario: CenarioEspacial = construirEspacoAgencia(agencia);
+        const cenario: CenarioEspacial = construirEspacoAgencia(agencia, elencoIds);
         const kit = await PersonagemKit.carregar({
           agentIdsExtras: cenario.agentes.map((a) => a.agentId),
         });
@@ -198,7 +200,7 @@ export function PreviewStage({
       cancelado = true;
       cancelAnimationFrame(rafRef.current);
     };
-  }, [agencia, vazioSemTemas, stripParedeL, tarefaEspecial]);
+  }, [agencia, vazioSemTemas, stripParedeL, tarefaEspecial, elencoIds]);
 
   return (
     <section className="stage" aria-label="Palco blueprint">

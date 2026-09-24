@@ -1,6 +1,6 @@
 /**
  * Helpers puros para salvar/carregar temas do arquiteto no lab.
- * Testados via vitest; importados por tinyhouse-lab.js (module).
+ * Testados via vitest; importados por TinyTraderLab-lab.js (module).
  */
 
 /**
@@ -157,7 +157,9 @@ export function rebasearAnexoParede(
     const pe = pes[candidato.face];
     const dx = alvo.x - candidato.p.x + pe.x;
     const dy = alvo.y - candidato.p.y + pe.y;
-    const atual = Math.abs(dx) + Math.abs(dy) * 1.5;
+    // Prefere permanecer na mesma face: evita "saltar" de parede ao so arrastar.
+    const trocaFace = candidato.face !== faceOriginal ? 48 : 0;
+    const atual = Math.abs(dx) + Math.abs(dy) * 1.5 + trocaFace;
     if (atual < custo) {
       custo = atual;
       melhor = candidato;
@@ -172,6 +174,7 @@ export function rebasearAnexoParede(
     gy: melhor.gy,
     dx: Math.round(alvo.x - melhor.p.x + peMelhor.x),
     dy: Math.round(alvo.y - melhor.p.y + peMelhor.y),
+    espelhado: !!peca.espelhado,
   };
 }
 

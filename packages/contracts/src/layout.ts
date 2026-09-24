@@ -161,6 +161,101 @@ export const WallMount = z.object({
 });
 export type WallMount = z.infer<typeof WallMount>;
 
+/**
+ * Midia de parede / tela do trading floor (grafico, banner, iframe, projecao).
+ * Nao-colidivel: navgrid nunca consome. Preview no canvas = blit offscreen;
+ * detalhe interativo no painel HTML (ADR-0009).
+ *
+ * Charts legados usam `cell` (piso). Iframes/projection wall-native usam
+ * `face` + `gx/gy/dx/dy` (mesmo modelo de WallMount).
+ */
+export const ScreenInset = z.object({
+  u0: z.number().min(0).max(1),
+  v0: z.number().min(0).max(1),
+  u1: z.number().min(0).max(1),
+  v1: z.number().min(0).max(1),
+});
+export type ScreenInset = z.infer<typeof ScreenInset>;
+
+/** Canto UV relativo ao bbox do sprite.
+ * 0..1 = dentro do PNG; valores fora (ex.: -0.5..1.5) esticam alem do bezel
+ * — Smart Object parentado ao mount, nao coords absolutas de cena.
+ */
+export const UV_SOFT_MIN = -4;
+export const UV_SOFT_MAX = 5;
+
+export const UvPoint = z.object({
+  u: z.number().min(UV_SOFT_MIN).max(UV_SOFT_MAX),
+  v: z.number().min(UV_SOFT_MIN).max(UV_SOFT_MAX),
+});
+export type UvPoint = z.infer<typeof UvPoint>;
+
+/** Quatro cantos da tela no sprite (fonte de verdade para nest/warp). */
+export const ScreenCorners = z.object({
+  tl: UvPoint,
+  tr: UvPoint,
+  br: UvPoint,
+  bl: UvPoint,
+});
+export type ScreenCorners = z.infer<typeof ScreenCorners>;
+
+/** Grade de warp opcional (ex.: 3x3 CRT). points.length === cols * rows. */
+export const WarpGrid = z.object({
+  cols: z.number().int().min(2).max(8),
+  rows: z.number().int().min(2).max(8),
+  points: z.array(UvPoint).min(4),
+});
+export type WarpGrid = z.infer<typeof WarpGrid>;
+
+export const WallMediaBlendMode = z.enum(['normal', 'screen', 'linear-dodge']);
+export type WallMediaBlendMode = z.infer<typeof WallMediaBlendMode>;
+
+export const WallMediaDisplay = z.enum(['auto', 'image', 'iframe', 'hybrid']);
+export type WallMediaDisplay = z.infer<typeof WallMediaDisplay>;
+
+export const WallMediaFrame = z.enum(['none', 'tv', 'big-tv', 'cork', 'screen']);
+export type WallMediaFrame = z.infer<typeof WallMediaFrame>;
+
+export const WallMedia = z.object({
+  mediaId: z.string().min(1),
+  kind: z.enum(['chart', 'banner', 'iframe', 'projection']),
+  roomId: z.string(),
+  /** Celula ancora no grid (legado charts / pick footprint). */
+  cell: Cell,
+  /** Tamanho em tiles (w x h) para pick / span ao longo da face. */
+  size: Footprint.default({ w: 2, h: 1 }),
+  /** Serie OHLCV mock / futura feed MT5. */
+  seriesId: z.string().optional(),
+  /** URL para iframe/banner/projection. */
+  url: z.string().optional(),
+  /** Face da parede (obrigatorio para iframe wall-native). */
+  face: z.enum(['R', 'L']).optional(),
+  /** Celula local/absoluta na face (WallMount). */
+  gx: z.number().int().optional(),
+  gy: z.number().int().optional(),
+  dx: z.number().default(0).optional(),
+  dy: z.number().default(0).optional(),
+  /** Moldura TinyHouse ou painel sem moldura. */
+  frame: WallMediaFrame.optional(),
+  /** Asset da moldura (ponte WallMount). */
+  mountAssetId: z.string().optional(),
+  /** Asset do catálogo que define sprite + cantos de nest. */
+  nestAssetId: z.string().optional(),
+  /** Regiao AABB da tela no bbox do sprite (0-1) — legado; preferir screenCorners (UV livre). */
+  screenInset: ScreenInset.optional(),
+  /** Quatro cantos UV da tela (override do tema / calibração Lab). UV pode sair de 0..1. */
+  screenCorners: ScreenCorners.optional(),
+  /** Warp opcional (CRT / curvatura). */
+  warpGrid: WarpGrid.optional(),
+  /** Blend Photoshop-like (default screen no renderer). */
+  blendMode: WallMediaBlendMode.optional(),
+  /** Como renderizar na parede: auto detecta imagem vs iframe. */
+  display: WallMediaDisplay.optional(),
+  /** Altura do painel sem moldura (px de cena). */
+  heightPx: z.number().positive().optional(),
+});
+export type WallMedia = z.infer<typeof WallMedia>;
+
 /** Mobiliario e equipamento. `ownerAgentId` liga o objeto ao dono. */
 export const Prop = z.object({
   propId: z.string(),
@@ -178,8 +273,8 @@ export const Prop = z.object({
    * Celula exata para "trabalhar" nesta mesa - vem do `postoTrabalho`
    * autorado no Lab (botao "marcar assento"), resolvido em geometria pura
    * no momento em que o palco e colado (sem depender do NavGrid, que ainda
-   * nao existe nesse ponto do pipeline). So preenchido em `desk` cujo
-   * `ownerAgentId` e inequivoco na sala (ver `colarProto`).
+   * nao existe nesse ponto do pipeline). Preenchido em `desk` com
+   * `ownerAgentId` via match de agentSlot ou indice 1:1 (ver `colarProto`).
    * Ausente = quem consumir usa o vizinho generico (`seatCellFor`), como
    * sempre foi - este campo e aditivo e nao quebra layouts antigos.
    */
@@ -228,6 +323,8 @@ export const OfficeLayout = z.object({
   walls: z.array(WallFace).default([]),
   /** Anexos de parede. Navgrid nao consome. */
   wallMounts: z.array(WallMount).default([]),
+  /** Telas / graficos de parede. Navgrid nao consome. */
+  wallMedia: z.array(WallMedia).default([]),
   /** Tileset do corredor-espinha (politicaTiles.corridor). */
   corridorTileSetId: z.string().optional(),
 });

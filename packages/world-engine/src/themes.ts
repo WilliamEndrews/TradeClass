@@ -66,6 +66,10 @@ export const TEMAS: readonly Tema[] = [
   { name: 'forest-deep', palette: ['#E8EDE6', '#A8C0A0', '#5C7A5A', '#2A3B2A'], greenery: 0.75, packs: PACOTES_ESTRUTURAIS_PADRAO },
   { name: 'sunset-loft', palette: ['#FAF0E6', '#E8B894', '#C97864', '#3D2B2B'], greenery: 0.35, packs: PACOTES_ESTRUTURAIS_PADRAO },
   { name: 'midnight-ops', palette: ['#DDE3EA', '#9BA8BC', '#4A5C7A', '#1A2332'], greenery: 0.2, packs: PACOTES_ESTRUTURAIS_PADRAO },
+  // Temas trader (TradeClass)
+  { name: 'trading-floor', palette: ['#0c1210', '#1a2a24', '#5eb8a0', '#c4a35a'], greenery: 0.15, packs: PACOTES_ESTRUTURAIS_PADRAO },
+  { name: 'bull-desk', palette: ['#0e1612', '#1e3a2f', '#7dba7a', '#d4a84b'], greenery: 0.2, packs: PACOTES_ESTRUTURAIS_PADRAO },
+  { name: 'bear-ops', palette: ['#120e10', '#2a1e28', '#d47868', '#4a6fa5'], greenery: 0.1, packs: PACOTES_ESTRUTURAIS_PADRAO },
 ] as const;
 
 /**

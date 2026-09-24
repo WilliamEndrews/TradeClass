@@ -3,12 +3,12 @@
  * Nao passa por selecionarPedido / montarMundoIso / space-program.
  */
 
-import { Room, type Room as RoomTipo } from '@microfirma/contracts';
+import { Room, type Room as RoomTipo } from '@tradeclass/contracts';
 import {
   BIBLIA_TEMAS,
   gradeDoProto,
   type TemaArquiteto,
-} from '@microfirma/world-engine';
+} from '@tradeclass/world-engine';
 import type { AgenciaMontada } from './montar-agencia';
 
 /** Ordem de morfismo: longe (0) → perto (3). */

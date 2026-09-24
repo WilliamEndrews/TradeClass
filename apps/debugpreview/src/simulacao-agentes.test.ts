@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isWalkable } from '@microfirma/world-engine';
+import { isWalkable } from '@tradeclass/world-engine';
 import { celulasOcupadasPorProps, construirEspacoAgencia } from './espaco-agencia';
 import { montarAgencia } from './montar-agencia';
 import { SimulacaoAgentes } from './simulacao-agentes';

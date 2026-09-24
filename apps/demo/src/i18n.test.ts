@@ -17,7 +17,7 @@ describe('i18n', () => {
   });
 
   it('es-ES traduz as mesmas chaves de pt-BR', () => {
-    expect(traduzir('es-ES', 'app.titulo')).toBe('MicroFirma');
+    expect(traduzir('es-ES', 'app.titulo')).toBe('TradeClass');
     expect(traduzir('es-ES', 'controles.titulo')).toBe('Controles');
     expect(traduzir('es-ES', 'kpi.execucoesAtivas')).toBe('Ejecuciones activas');
   });

@@ -6,7 +6,7 @@
 
 ## Contexto
 
-A MicroFirma observa agentes autonomos que processam dados de clientes: prompts, respostas, conteudo de tickets, codigo fonte. Exibir esse conteudo no canvas ou no painel lateral seria um vazamento de privacidade e um risco de compliance.
+A TradeClass observa agentes autonomos que processam dados de clientes: prompts, respostas, conteudo de tickets, codigo fonte. Exibir esse conteudo no canvas ou no painel lateral seria um vazamento de privacidade e um risco de compliance.
 
 ## Investigacao
 

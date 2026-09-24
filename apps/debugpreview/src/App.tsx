@@ -3,6 +3,11 @@
  */
 
 import { useRef, useState, type FormEvent } from 'react';
+import {
+  carregarPlanta,
+  listarPlantas,
+  type AgenciaMontada as AgenciaPlanta,
+} from '@tradeclass/iso-office/planta';
 import { PreviewStage } from './PreviewStage';
 import {
   assinaturaAgencia,
@@ -15,14 +20,30 @@ import { sortearHistoria } from './tarefa-especial/sortear';
 
 const HISTORICO_MAX = 8;
 const TENTATIVAS_MAX = 12;
+const PLANTAS = listarPlantas();
 
 export default function App() {
+  const [plantaId, setPlantaId] = useState(PLANTAS[0]?.id ?? 'macro-desk');
   const [salas, setSalas] = useState(1);
   const [agencia, setAgencia] = useState<AgenciaMontada | null>(null);
   const [vazioSemTemas, setVazioSemTemas] = useState(false);
   const [geracao, setGeracao] = useState(0);
   const [tarefaEspecial, setTarefaEspecial] = useState<Historia | null>(null);
   const historicoRef = useRef<string[]>([]);
+
+  function aplicarAgencia(escolhida: AgenciaMontada | AgenciaPlanta | null) {
+    setAgencia(escolhida as AgenciaMontada | null);
+    setVazioSemTemas(escolhida !== null && escolhida.slots.length === 0);
+  }
+
+  function onCarregarPlanta(ev: FormEvent) {
+    ev.preventDefault();
+    setTarefaEspecial(null);
+    const proxima = geracao + 1;
+    setGeracao(proxima);
+    const escolhida = carregarPlanta(plantaId, 20260915 + proxima);
+    aplicarAgencia(escolhida);
+  }
 
   function gerarAgencia(pedido: PedidoGeracao, proxima: number): AgenciaMontada | null {
     let escolhida: AgenciaMontada | null = null;
@@ -47,7 +68,7 @@ export default function App() {
     return escolhida;
   }
 
-  function onGerar(ev: FormEvent) {
+  function onGerarSpam(ev: FormEvent) {
     ev.preventDefault();
     const pedido: PedidoGeracao = {
       salas: Math.max(1, Math.floor(Number(salas)) || 1),
@@ -59,8 +80,7 @@ export default function App() {
     setGeracao(proxima);
 
     const escolhida = gerarAgencia(pedido, proxima);
-    setAgencia(escolhida);
-    setVazioSemTemas(escolhida !== null && escolhida.slots.length === 0);
+    aplicarAgencia(escolhida);
   }
 
   function onTarefaEspecial() {
@@ -73,12 +93,12 @@ export default function App() {
     const historia = sortearHistoria(salt);
     const escolhida = gerarAgencia(pedido, proxima);
     setTarefaEspecial(historia);
-    setAgencia(escolhida);
-    setVazioSemTemas(escolhida !== null && escolhida.slots.length === 0);
+    aplicarAgencia(escolhida);
   }
 
   function onResetar() {
     setSalas(1);
+    setPlantaId(PLANTAS[0]?.id ?? 'macro-desk');
     setAgencia(null);
     setVazioSemTemas(false);
     setGeracao(0);
@@ -94,9 +114,36 @@ export default function App() {
           <p className="tagline">bancada de tilesets</p>
         </div>
 
-        <form className="dash" onSubmit={onGerar} aria-label="Pedido de geracao">
+        <form className="dash" onSubmit={onCarregarPlanta} aria-label="Planta fixa">
           <label className="dash-field">
-            <span className="dash-q">Quantas salas (escritorios)?</span>
+            <span className="dash-q">Planta</span>
+            <select
+              className="dash-input"
+              name="planta"
+              value={plantaId}
+              onChange={(e) => setPlantaId(e.target.value)}
+            >
+              {PLANTAS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="dash-hint" title="Catalogo fixo sem RNG">
+            plantas fixas (sem spam)
+          </p>
+          <button className="dash-gerar" type="submit">
+            Carregar planta
+          </button>
+          <button className="dash-reset" type="button" onClick={onResetar}>
+            Resetar
+          </button>
+        </form>
+
+        <form className="dash" onSubmit={onGerarSpam} aria-label="Pedido de geracao RNG">
+          <label className="dash-field">
+            <span className="dash-q">Gerar N salas (legado)</span>
             <input
               className="dash-input"
               type="number"
@@ -107,11 +154,8 @@ export default function App() {
               onChange={(e) => setSalas(Number(e.target.value))}
             />
           </label>
-          <p className="dash-hint" title="Leis fixas da agencia">
-            1 Boss Room + 1 copa obrigatorias
-          </p>
-          <button className="dash-gerar" type="submit">
-            Gerar
+          <button className="dash-tarefa" type="submit" title="Selecao RNG de temas">
+            Gerar RNG
           </button>
           <button
             className="dash-tarefa"
@@ -120,9 +164,6 @@ export default function App() {
             title="Sorteia uma historia colaborativa com 3 agentes"
           >
             Tarefa especial
-          </button>
-          <button className="dash-reset" type="button" onClick={onResetar}>
-            Resetar
           </button>
         </form>
       </header>

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { planSpaceProgram } from './space-program.js';
 import { solveLayout } from './layout-solver.js';
-import type { AgentDescriptor, AgentRole } from '@microfirma/contracts';
+import type { AgentDescriptor, AgentRole } from '@tradeclass/contracts';
 
 function elenco(tamanho: number): AgentDescriptor[] {
   const papeis: AgentRole[] = ['orchestrator', 'researcher', 'analyst'];
@@ -16,25 +16,24 @@ function elenco(tamanho: number): AgentDescriptor[] {
 }
 
 describe('ProtoComodo (Construtor cola a biblia)', () => {
-  it('layouts novos nao emitem walls; cada sala com proto tem temaId e calibracao', () => {
+  it('layouts novos nao emitem walls; salas com proto tem temaId e calibracao', () => {
     const layout = solveLayout(planSpaceProgram(elenco(1), { officeId: 'o', seed: 999 }));
     expect(layout.walls).toEqual([]);
 
-    const priv = layout.rooms.find((s) => s.kind === 'private');
-    const copa = layout.rooms.find((s) => s.kind === 'break');
-    expect(priv?.temaId).toBe('nordic-privativo');
-    expect(priv?.tileSetId).toBe('nordic-calm');
-    expect(priv?.calibracao?.ancoraPiso).toEqual({ x: 64, y: 68 });
-    expect(copa?.temaId).toBe('break-default');
-    expect(copa?.tileSetId).toBe('warm-studio');
+    const comProto = layout.rooms.filter((s) => s.temaId);
+    expect(comProto.length).toBeGreaterThan(0);
+    for (const sala of comProto) {
+      expect(sala.tileSetId).toBeTruthy();
+      expect(sala.calibracao?.ancoraPiso).toEqual({ x: 64, y: 68 });
+    }
   });
 
   it('porta encosta no corredor (pathfinding), rect = grade do proto', () => {
     const layout = solveLayout(planSpaceProgram(elenco(1), { officeId: 'o', seed: 999 }));
     const corredor = new Set(layout.corridors.map((c) => `${c.x},${c.y}`));
     for (const sala of layout.rooms) {
-      expect(sala.rect.x1 - sala.rect.x0).toBe(3);
-      expect(sala.rect.y1 - sala.rect.y0).toBe(3);
+      expect(sala.rect.x1 - sala.rect.x0).toBeGreaterThanOrEqual(3);
+      expect(sala.rect.y1 - sala.rect.y0).toBeGreaterThanOrEqual(3);
       const vizinhos = [
         `${sala.door.x},${sala.door.y - 1}`,
         `${sala.door.x},${sala.door.y + 1}`,

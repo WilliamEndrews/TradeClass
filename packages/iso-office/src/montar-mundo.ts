@@ -5,8 +5,8 @@
  * Deterministico: mesma entrada, mesma planta (ADR-0006).
  */
 
-import type { AgentDescriptor, OfficeLayout } from '@microfirma/contracts';
-import { BIBLIA_TEMAS } from '@microfirma/world-engine';
+import type { AgentDescriptor, OfficeLayout } from '@tradeclass/contracts';
+import { BIBLIA_TEMAS } from '@tradeclass/world-engine';
 import { resolverSpecLab } from './proto-blit/catalogo';
 import {
   assinaturaElenco,
@@ -16,7 +16,7 @@ import {
 } from './espaco-agencia';
 import { montarAgencia, type AgenciaMontada } from './montar-agencia';
 import type { ZonaPedido } from './selecionar-pedido';
-import { resolverColisaoDoCatalogo, type ResolverColisao } from '@microfirma/world-engine';
+import { resolverColisaoDoCatalogo, type ResolverColisao } from '@tradeclass/world-engine';
 
 export const COLAR_LAB = { resolverSpec: resolverSpecLab };
 
@@ -34,7 +34,7 @@ export type MundoIso = {
  * Placeholder ate o primeiro span OTLP. 1 Boss + 1 copa, mesa do placeholder.
  */
 export const AGENTE_PLACEHOLDER: AgentDescriptor = {
-  agentId: 'microfirma-placeholder',
+  agentId: 'TradeClass-placeholder',
   displayName: 'Aguardando telemetria',
   role: 'unknown',
   framework: 'unknown',
@@ -52,7 +52,7 @@ export function montarMundoIso(
   agentes: readonly AgentDescriptor[],
 ): MundoIso {
   const elenco = elencoParaPlanta(agentes);
-  const nClientes = elenco.filter((a) => a.agentId !== 'microfirma-placeholder').length;
+  const nClientes = elenco.filter((a) => a.agentId !== 'TradeClass-placeholder').length;
   const salas = Math.max(1, nClientes);
   const agencia = montarAgencia({ salas }, seed);
   if (!agencia) {

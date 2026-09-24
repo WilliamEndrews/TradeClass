@@ -1,5 +1,5 @@
 /**
- * A calibracao TinyHouse tem de sobreviver ao round-trip lab -> JSON -> ancora.
+ * A calibracao TinyTraderLab tem de sobreviver ao round-trip lab -> JSON -> ancora.
  * Se este teste quebrar, o laboratorio e a demo divergiram.
  */
 import { describe, expect, it } from 'vitest';
@@ -18,7 +18,7 @@ import {
   specObjeto,
 } from './projecao';
 
-describe('calibracao TinyHouse (rodada 5, plano B)', () => {
+describe('calibracao TinyTraderLab (rodada 5, plano B)', () => {
   it('piso permanece no centro da face do diamante', () => {
     expect(ANCORA_PISO).toEqual({ x: 64, y: 68 });
   });

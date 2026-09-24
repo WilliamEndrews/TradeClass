@@ -1,4 +1,4 @@
-# Deploy e Runbook da MicroFirma
+# Deploy e Runbook da TradeClass
 
 ## Ambiente local (desenvolvimento)
 
@@ -11,18 +11,18 @@ pnpm typecheck
 pnpm test
 
 # Sobe o servidor
-$env:MICROFIRMA_REPLAY_DIR=".\replays"
-pnpm --filter @microfirma/server start
+$env:TRADECLASS_REPLAY_DIR=".\replays"
+pnpm --filter @tradeclass/server start
 
 # Em outro terminal, sobe a demo
-pnpm --filter @microfirma/demo dev
+pnpm --filter @tradeclass/demo dev
 ```
 
 ## Ambiente Windows (PowerShell 5.1+)
 
 ```powershell
 .\scripts\setup-demo.ps1
-pnpm --filter @microfirma/demo dev
+pnpm --filter @tradeclass/demo dev
 ```
 
 O `setup-demo.ps1` cria um tenant, gera o JWT e escreve `apps/demo/.env.local` com as URLs apontando para `127.0.0.1`.
@@ -44,14 +44,14 @@ O container `demo` faz onboarding automatico no `server` e gera `.env.local` com
 
 | Variavel | Default | Descricao |
 |----------|---------|-----------|
-| `MICROFIRMA_PORT` | `8787` | Porta do servidor |
-| `MICROFIRMA_HOST` | `127.0.0.1` | Bind do servidor. Use `0.0.0.0` no Docker. |
-| `MICROFIRMA_ONBOARDING_KEY` | `microfirma-dev-onboarding` | Chave para `POST /api/tenants` em dev |
-| `MICROFIRMA_REPLAY_DIR` | - | Diretorio para persistir `SessionLog` NDJSON |
+| `TRADECLASS_PORT` | `8787` | Porta do servidor |
+| `TRADECLASS_HOST` | `127.0.0.1` | Bind do servidor. Use `0.0.0.0` no Docker. |
+| `TRADECLASS_ONBOARDING_KEY` | `TradeClass-dev-onboarding` | Chave para `POST /api/tenants` em dev |
+| `TRADECLASS_REPLAY_DIR` | - | Diretorio para persistir `SessionLog` NDJSON |
 
 ## Replay e auditoria
 
-Quando `MICROFIRMA_REPLAY_DIR` esta configurado, cada tenant grava seu `SessionLog` em `<tenantId>.ndjson`. Na proxima subida do servidor, os arquivos sao lidos e os tenants sao restaurados com a mesma seed.
+Quando `TRADECLASS_REPLAY_DIR` esta configurado, cada tenant grava seu `SessionLog` em `<tenantId>.ndjson`. Na proxima subida do servidor, os arquivos sao lidos e os tenants sao restaurados com a mesma seed.
 
 Download do replay:
 
@@ -126,20 +126,20 @@ Configuracao pronta em `fly.toml`. A aplicacao escuta em `0.0.0.0:8787` e expoe 
 
 Crie um projeto a partir do repositorio Git. A plataforma usa o `Dockerfile` para build. Configure as variaveis de ambiente no painel:
 
-- `MICROFIRMA_HOST=0.0.0.0`
-- `MICROFIRMA_JWT_SECRET` (valor aleatorio de 64 chars)
-- `MICROFIRMA_REPLAY_DIR=/app/replays` (para disco) ou `MICROFIRMA_REPLAY_S3_BUCKET=...`
+- `TRADECLASS_HOST=0.0.0.0`
+- `TRADECLASS_JWT_SECRET` (valor aleatorio de 64 chars)
+- `TRADECLASS_REPLAY_DIR=/app/replays` (para disco) ou `TRADECLASS_REPLAY_S3_BUCKET=...`
 
 ### Variaveis obrigatorias em producao
 
 | Variavel | Exemplo | Descricao |
 |----------|---------|-----------|
-| `MICROFIRMA_HOST` | `0.0.0.0` | Bind para containers/nuvem |
-| `MICROFIRMA_JWT_SECRET` | `...` | Chave simetrica para assinar JWT |
-| `MICROFIRMA_ONBOARDING_KEY` | `...` | Protege a criacao de tenants |
+| `TRADECLASS_HOST` | `0.0.0.0` | Bind para containers/nuvem |
+| `TRADECLASS_JWT_SECRET` | `...` | Chave simetrica para assinar JWT |
+| `TRADECLASS_ONBOARDING_KEY` | `...` | Protege a criacao de tenants |
 
 ## Troubleshooting
 
 - **Tela preta no canvas**: o Canvas 2D (ADR-0010) e o fallback. Verifique `document.documentElement.lang` e o seletor de idioma.
 - **WebSocket falha com `localhost`**: use `127.0.0.1` para evitar resolucao IPv6/IPv4. O `setup-demo.ps1` e o `docker-compose` ja fazem isso.
-- **Erro 403 no SimFirma**: `VITE_MICROFIRMA_TOKEN` nao esta preenchido ou expirou. Rode `setup-demo.ps1` novamente.
+- **Erro 403 no SimFirma**: `VITE_TRADECLASS_TOKEN` nao esta preenchido ou expirou. Rode `setup-demo.ps1` novamente.

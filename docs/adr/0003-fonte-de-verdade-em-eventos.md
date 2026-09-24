@@ -6,7 +6,7 @@
 
 ## Contexto
 
-A MicroFirma consome telemetria de agentes de duas origens: dados sinteticos (demo) e OTLP (producao). O risco e criar dois mundos distintos: um para demo, outro para producao. A decisao arquitetural precisa garantir que ambos os fluxos alimentem o mesmo `WorldEngine` com a mesma linguagem.
+A TradeClass consome telemetria de agentes de duas origens: dados sinteticos (demo) e OTLP (producao). O risco e criar dois mundos distintos: um para demo, outro para producao. A decisao arquitetural precisa garantir que ambos os fluxos alimentem o mesmo `WorldEngine` com a mesma linguagem.
 
 ## Investigacao
 

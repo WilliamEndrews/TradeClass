@@ -30,7 +30,7 @@ import type {
   RoomAmbient,
   WorldDelta,
   WorldSnapshot,
-} from '@microfirma/contracts';
+} from '@tradeclass/contracts';
 import { resolverColisaoDoCatalogo } from './construtor-biblia.js';
 import { facingDeDelta } from './facing.js';
 import { buildNavGrid, findPath, isWalkable, type NavGrid } from './navgrid.js';
@@ -119,11 +119,11 @@ export class WorldEngine {
 
     for (const agente of opts.agents) this.registrarAgente(agente);
 
-    // Equipe interna da MicroFirma. Sao atores de verdade no mundo, mas o seu
+    // Equipe interna da tradeclass. Sao atores de verdade no mundo, mas o seu
     // comportamento e 100% codigo (behavior tree simples): chamar LLM para
     // decidir "ir varrer" seria queimar dinheiro sem ganho algum (ADR-0005).
-    this.criarAtorInterno('microfirma-zelador', 'janitor');
-    this.criarAtorInterno('microfirma-tecnico', 'technician');
+    this.criarAtorInterno('TradeClass-zelador', 'janitor');
+    this.criarAtorInterno('TradeClass-tecnico', 'technician');
   }
 
   /** Registra um agente descoberto em runtime (deploy novo = cena de RH). */
@@ -340,13 +340,13 @@ export class WorldEngine {
   // -------------------------------------------------------------------------
 
   private decidirServicosInternos(): void {
-    const zelador = this.atores.get('microfirma-zelador');
+    const zelador = this.atores.get('TradeClass-zelador');
     if (zelador && !zelador.atendendo && zelador.path.length === 0 && zelador.ateMs === 0) {
       const alvo = this.agenteComMaior((a) => this.scheduler.ambientFor(a).litter, 2);
       if (alvo) this.despacharServico(zelador, alvo, 'sweep', 2500);
     }
 
-    const tecnico = this.atores.get('microfirma-tecnico');
+    const tecnico = this.atores.get('TradeClass-tecnico');
     if (tecnico && !tecnico.atendendo && tecnico.path.length === 0 && tecnico.ateMs === 0) {
       const alvo = this.agenteComMaior(
         (a) => (this.scheduler.ambientFor(a).lightBroken ? 1 : 0),

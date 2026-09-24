@@ -5,10 +5,10 @@
  * Sem dependencia externa para manter o servidor enxuto e multi-plataforma.
  *
  * Metricas expostas:
- *   - microfirma_requests_total (counter, rotulado por metodo e rota)
- *   - microfirma_active_tenants (gauge)
- *   - microfirma_ticks_total (counter)
- *   - microfirma_kpi_* (gauges com tenantId)
+ *   - TRADECLASS_requests_total (counter, rotulado por metodo e rota)
+ *   - TRADECLASS_active_tenants (gauge)
+ *   - TRADECLASS_ticks_total (counter)
+ *   - TRADECLASS_kpi_* (gauges com tenantId)
  */
 
 export interface MetricPoint {

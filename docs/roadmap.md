@@ -1,4 +1,4 @@
-# MicroFirma - Roadmap
+# TradeClass - Roadmap
 
 > Documento vivo. Fonte unica de verdade do planejamento. Se uma decisao nao
 > esta aqui nem num ADR, ela nao existe - foi conversa de corredor.
@@ -25,7 +25,7 @@ Convencoes do repositorio que NAO devem ser alteradas sem ADR:
 
 - Codigo, identificadores e comentarios em portugues, sem acentos (ASCII-only).
   Isso vale tambem para este documento.
-- `@microfirma/contracts` e a unica fonte de tipos. Duplicar um tipo e bug.
+- `@tradeclass/contracts` e a unica fonte de tipos. Duplicar um tipo e bug.
 - Nenhuma informacao pode existir SOMENTE no canvas (ADR-0009).
 - O LLM nunca gera coordenadas (ADR-0004) e nunca esta no caminho critico
   (ADR-0005).
@@ -121,7 +121,7 @@ no bundle.
 
 ### Motivacao comercial
 
-A MicroFirma nao sera vendida apenas no Brasil. Observabilidade de sistemas
+A TradeClass nao sera vendida apenas no Brasil. Observabilidade de sistemas
 agenticos e um mercado global e a barreira de idioma elimina o comprador
 internacional antes da primeira demo. Idiomas do primeiro ciclo:
 
@@ -246,7 +246,7 @@ identica a que seria exposta por WebSocket. O trabalho foi:
   (13), mais os 55 ja existentes da Fase 1.1.
 
 Resultado: `App.tsx` e o renderer nao mudaram. A unica linha que sabe da
-existencia do servidor e `const URL_SERVIDOR = import.meta.env.VITE_MICROFIRMA_WS`.
+existencia do servidor e `const URL_SERVIDOR = import.meta.env.VITE_TRADECLASS_WS`.
 
 ### 1.3 Ingest OTLP real - feito em 2026-08-03
 
@@ -265,7 +265,7 @@ Adaptador que traduz spans OTLP para `DomainEvent`. `SyntheticStream`
   `SyntheticStream`, permitindo troca sem mudar `OfficeSession`.
 - **1.3c Receptor OTLP/HTTP** (`apps/server/src/server.ts`): endpoint
   `/v1/traces` (POST JSON), compativel com SDKs OpenTelemetry. Ativado por
-  `MICROFIRMA_OTLP=1`. Sem essa env, o servidor usa SyntheticStream.
+  `TRADECLASS_OTLP=1`. Sem essa env, o servidor usa SyntheticStream.
 - **1.3d Testes**: 24 novos testes (15 do adaptador, 9 do ingestor). Total:
   102 testes, 7 arquivos, suite verde.
 
@@ -434,7 +434,7 @@ Total: 123 testes, 9 arquivos, suite verde.
 - **WS auth**: token na query string. Sem token = close 4001. Token
   invalido = close 4001. Tenant inexistente = close 4004.
 - **REST auth**: Bearer token no header. Onboarding aceita admin token
-  ou `MICROFIRMA_ONBOARDING_KEY`.
+  ou `TRADECLASS_ONBOARDING_KEY`.
 
 ### 3.4 Trilha de auditoria
 
@@ -465,7 +465,7 @@ Total: 123 testes, 9 arquivos, suite verde.
 
 - **POST /api/tenants**: cria tenant + OfficeSession + OtlpIngestor +
   emite JWT admin. Valida contra schema zod. Precisa de admin token ou
-  `MICROFIRMA_ONBOARDING_KEY`.
+  `TRADECLASS_ONBOARDING_KEY`.
 - **GET /api/tenants**: lista tenants (admin).
 - **GET /api/tenants/:id**: detalhes do tenant.
 - **DELETE /api/tenants/:id**: remove tenant (admin).
@@ -494,7 +494,7 @@ Total: 123 testes, 9 arquivos, suite verde.
 
 ---
 
-## Fase 3.5 - Refinamento visual com TinyHouse - em andamento
+## Fase 3.5 - Refinamento visual com TinyTraderLab - em andamento
 
 ### Motivacao
 
@@ -503,10 +503,10 @@ intransponivel de qualidade. O usuario rejeitou o resultado ("um conjunto de
 formas geometricas que juntas dao a impressao de parecer uma mesa") e pediu
 escritorio reconhecivel, proximo de Stardew Valley / SoWork / Gather.town.
 
-### 3.5.1 Migracao para TinyHouse pack
+### 3.5.1 Migracao para TinyTraderLab pack
 
-- **Pack**: `TinyHouse_0.17(@Pixel_Salvaje)` extraido para
-  `assets-source/TinyHouse`. Pack CC0 com tiles de piso/parede 128px,
+- **Pack**: `TinyTraderLab_0.17(@Pixel_Salvaje)` extraido para
+  `assets-source/TinyTraderLab`. Pack CC0 com tiles de piso/parede 128px,
   mobiliario de escritorio, computadores, portas, plantas, livros, etc.
 - **Projecao nativa** (`apps/demo/src/projecao.ts`): `LARGURA_TILE=128`,
   `ALTURA_TILE=64`, `ALTURA_PERSONAGEM=96`. Substituiu a projecao 44x22.
@@ -557,8 +557,8 @@ escritorio reconhecivel, proximo de Stardew Valley / SoWork / Gather.town.
 ### 3.5.6 Gramatica de tiles medida (2026-08-16)
 
 - Laboratorio oficial: `pnpm lab:iso` abre
-  `scripts/iso-validation/tinyhouse.html`. Calibracao gravada em
-  `apps/demo/src/calibracao-tinyhouse.json`; `projecao.ts` deriva as
+  `scripts/iso-validation/TinyTraderLab.html`. Calibracao gravada em
+  `apps/demo/src/calibracao-tinytraderlab.json`; `projecao.ts` deriva as
   ancoras (`ancoraDePe`). Toda rodada de olhometro volta ao lab, nao ao
   chute direto no renderer.
 - Piso ancora (64, 68). Paredes pregam o pe do chao no vertice da aresta
@@ -569,7 +569,7 @@ escritorio reconhecivel, proximo de Stardew Valley / SoWork / Gather.town.
 - **Testes:** `apps/demo/src/projecao.test.ts` trava o round-trip
   pe -> ancora. Banco visual: `?agents=7`.
 
-### 3.5.7 Catalogo TinyHouse expandido (2026-08-17)
+### 3.5.7 Catalogo TinyTraderLab expandido (2026-08-17)
 
 - `INITIAL_CATALOG` v2.2 cobre printer, water, coffee, board, lamp, rug,
   radio (telefone/calculadora/headset), copiadora preta, caixas, lixeiras,
@@ -581,7 +581,7 @@ escritorio reconhecivel, proximo de Stardew Valley / SoWork / Gather.town.
 
 ### 3.5.8 Laboratorio do arquiteto (2026-08-17)
 
-- `tinyhouse.html` deixou de ser so calibracao: palco, catalogo, temas e
+- `TinyTraderLab.html` deixou de ser so calibracao: palco, catalogo, temas e
   mix de piso/parede. Combos em `combinacoes-laboratorio.json`.
 
 ### 3.5.9 Lab gamificado + painter global (2026-09-04)
@@ -597,7 +597,7 @@ escritorio reconhecivel, proximo de Stardew Valley / SoWork / Gather.town.
 
 O Demo deixa de usar `planSpaceProgram`/`solveLayout` + `office-renderer-2d`
 (piso vetorial + overlays de clima). A planta e o painter passam a ser os
-do Debugpreview, extraidos para `@microfirma/iso-office` **sem editar** o
+do Debugpreview, extraidos para `@tradeclass/iso-office` **sem editar** o
 app-lab.
 
 - **Planta:** `selecionarPedido` + `montarAgencia` + `construirEspacoAgencia`.
@@ -639,7 +639,7 @@ o dashboard-lab e **sem** o fundo blueprint.
 - Aceite visual do usuario em `?agents=7` e no strip Wall_L (W).
 - Promover `stripParedeL` como padrao; depois Wall_R.
 - Variedade por seed no atlas (hoje o ultimo asset de cada `kind` vence).
-- Meter ainda sem PNG de repouso no TinyHouse.
+- Meter ainda sem PNG de repouso no TinyTraderLab.
 - Promover combos do laboratorio e a intencao obrigatorio/aleatorio/off
   para o solver/atlas, sem quebrar invariantes.
 
@@ -647,7 +647,7 @@ o dashboard-lab e **sem** o fundo blueprint.
 
 ## Fase 4 - Go-to-Market: landing page
 
-**Objetivo:** apresentar o MicroFirma como produto e converter a curiosidade
+**Objetivo:** apresentar o TradeClass como produto e converter a curiosidade
 em uma demonstracao viva sem confundir com a demo tecnica. Inclui ponte de
 onboarding/cliente **antes** da telemetria iniciar.
 
@@ -676,7 +676,7 @@ nao emitem essa zona.
 
 - **Typecheck:** limpo
 - **Deploy:** build estatico (`vite build`)
-- **Ponte:** tenant + JWT sem `MICROFIRMA_ONBOARDING_KEY` no browser
+- **Ponte:** tenant + JWT sem `TRADECLASS_ONBOARDING_KEY` no browser
 
 ---
 

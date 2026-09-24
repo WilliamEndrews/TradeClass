@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { KNOWN_PACKS } from '@microfirma/contracts';
+import { KNOWN_PACKS } from '@tradeclass/contracts';
 import { TEMAS, resolverPaleta, buscarTema, resolverPacksDoTema, PACOTES_BASE_COMPARTILHADA } from './themes.js';
 
 const PACK_IDS_CONHECIDOS = new Set(KNOWN_PACKS.map((p) => p.packId));

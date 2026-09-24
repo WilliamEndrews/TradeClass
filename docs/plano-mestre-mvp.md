@@ -1,4 +1,4 @@
-# MicroFirma - Plano Mestre rumo ao MVP
+# TradeClass - Plano Mestre rumo ao MVP
 
 > Documento vivo de rastreamento. Criado em 2026-08-10 a partir de auditoria
 > real do codigo (nao de memoria de conversa) cruzada com a arquitetura de
@@ -23,7 +23,7 @@ O projeto tem uma **Fase 0-3 de demonstracao sintetica completa e testada**
 (218 testes, typecheck limpo) com a arquitetura correta nos pontos que a
 terceira analise identificou como criticos (motor de tempo narrativo, LLM sem
 coordenadas, simulacao autoritativa no servidor). A frente de refinamento
-visual (Fase 3.5) migrou para o pack TinyHouse com tiles nativos de piso/parede,
+visual (Fase 3.5) migrou para o pack TinyTraderLab com tiles nativos de piso/parede,
 salas mais quadradas, porta alinhada e cenarios de 1-2 agentes. O que falta
 para um **MVP com clientes reais** nao e retrabalho - e a camada de
 ingestao/persistencia de producao (Semantic Core) e a camada de orquestracao
@@ -41,7 +41,7 @@ ou scaffold) / **GAP** (nao existe nenhuma linha de codigo).
 | Item da referencia | Status | Evidencia |
 | --- | --- | --- |
 | OTLP como via primaria | **PARCIAL** | `packages/contracts/src/otlp.ts` traduz spans OTLP/JSON -> `DomainEvent` (`traduzirSpan`, `traduzirLoteOtlp`), com semantica GenAI (`gen_ai.*`). E so o parser; nao ha OTel Collector proprio, nem suporte a OTLP/gRPC ou OTLP/protobuf - so JSON via HTTP. |
-| SDK enriquecedor opcional | **GAP** | Nenhum pacote `sdk` no monorepo. Nao existe `officeverse-sdk`/`microfirma-sdk` em nenhuma linguagem. |
+| SDK enriquecedor opcional | **GAP** | Nenhum pacote `sdk` no monorepo. Nao existe `officeverse-sdk`/`TradeClass-sdk` em nenhuma linguagem. |
 | A2A Agent Card (`/.well-known/agent-card.json`) | **GAP** | Nenhuma referencia a A2A no codigo. Apenas citado como ideia futura em `docs/agentes.md`. |
 | MCP (descoberta de ferramentas) | **GAP** | Nenhuma referencia a MCP no codigo. |
 
@@ -49,7 +49,7 @@ ou scaffold) / **GAP** (nao existe nenhuma linha de codigo).
 
 | Item da referencia | Status | Evidencia |
 | --- | --- | --- |
-| Receptor OTLP/HTTP | **FEITO** | `apps/server/src/server.ts:127` - `POST /v1/traces`, roteado por tenant via header `x-tenant-id`, ativado por `MICROFIRMA_OTLP=1`. |
+| Receptor OTLP/HTTP | **FEITO** | `apps/server/src/server.ts:127` - `POST /v1/traces`, roteado por tenant via header `x-tenant-id`, ativado por `TRADECLASS_OTLP=1`. |
 | OTel Collector no cliente (redacao de PII na borda) | **GAP** | Redacao de PII e um PRINCIPIO (ADR-0007: eventos carregam forma e numeros, nunca conteudo), aplicado em `traduzirSpan` (nao copia `gen_ai.prompt`/`gen_ai.completion`). Mas nao ha Collector distribuivel para o cliente instalar - hoje o cliente aponta o exportador OTLP direto pro nosso endpoint. |
 | Fila de mensageria (Kafka/Redpanda) | **GAP** | Nao existe. Ingestao e sincrona: HTTP POST -> `OtlpIngestor.ingerir()` em memoria. Sem fila, um pico de trafego acima da capacidade do processo derruba ingestao (mitigado parcialmente pelo `NarrativeScheduler`, que so absorve o excesso NA CAMADA DE ENCENACAO, nao na de ingestao). |
 | Normalizador multi-dialeto (OTel/OpenInference/nativo) | **PARCIAL** | So o dialeto OTel GenAI e suportado. OpenInference (Langfuse/Arize) e "nativo" (webhook proprio) nao tem adaptador. |
@@ -154,7 +154,7 @@ polimento de produto (video, modo executivo, arte), nao arquitetura.
 
 Isto e a **Fase 1 da 3a analise (Walking Skeleton) + parte da Fase 2**. O
 caminho de dados minimo (`OTLP -> DomainEvent -> WorldEngine -> render`) **ja
-existe e funciona** (`MICROFIRMA_OTLP=1`, endpoint `/v1/traces`). Isso e
+existe e funciona** (`TRADECLASS_OTLP=1`, endpoint `/v1/traces`). Isso e
 importante: o Walking Skeleton nao e um GAP, e o que a Fase 1 do roadmap
 historico ja entregou.
 
@@ -295,9 +295,9 @@ visual ja estar comprovado.
 | 3. `assetId` opcional + atlas no renderer com fallback | **FEITO (parcial)** | `apps/demo/src/asset-atlas.ts` (`carregarAtlas`, com fallback silencioso se a imagem faltar), `apps/demo/src/sprite-factory.ts` (`PropSprite`, `obterSpriteProp` agora prioriza o atlas e cai para o sprite procedural), `apps/demo/src/office-renderer-2d.ts` (injeta o atlas em `criarFabrica`). 213 testes passando, `tsc --noEmit` limpo em `contracts`, `world-engine` e `demo`. Parcial porque `byKind` no atlas guarda 1 asset por `PropKind` (o ultimo do catalogo vence) - selecao deterministica entre variantes do mesmo `kind` (ex.: qual planta usar em cada celula) ainda nao existe. |
 | 4. Footprint multi-celula | **FEITO** | `Prop.footprint` em `packages/contracts/src/layout.ts` (w/h, default 1x1, ancorado no canto sup.-esq. de `cell`, sem rotacao por `facing`). `navgrid.ts` (`footprintCells`, `buildNavGrid` bloqueia todas as celulas). `layout-validation.ts` estende `prop-dentro-da-sala`/`porta-desobstruida`/`sem-props-empilhados` para todo o footprint. `layout-solver.ts` (`reservarBloco`, sofa da copa tenta 2x1 e cai para 1x1 se nao couber). 3 novos testes em `layout-solver.test.ts` (commit `cf6dcd6`). 213 testes passando, `tsc --noEmit` limpo. |
 | 5. Array `decor[]` | **FEITO** | `packages/contracts/src/layout.ts`: `Decor` (laptop/monitor/keyboard/mouse/books/radio), `OfficeLayout.decor` separado de `props`, sem footprint - `navgrid` nunca o consome (ADR-0012, decisao 5). `packages/contracts/src/asset-catalog.ts`: `AssetEntry.kind` generalizado para `Prop.kind` OU `Decor.kind`; 6 novas entradas usando itens que ja existiam em `kenney-furniture-kit/Isometric` (nao precisou do Omie's Assets nem do pipeline Blender). `layout-solver.ts` (`decorar()`): notebook OU monitor+teclado+mouse em ~90% das mesas, livros em ~70% de estantes/armarios, forkado da mesma seed. `layout-validation.ts` valida contencao na sala e que `onPropId` aponta para um prop existente - deliberadamente SEM checar colisao (nao-colidivel por design). `apps/demo/src/sprite-factory.ts`: `DecorKind`, cache de sprites procedurais para os 6 decor kinds, `obterSpriteDecor`/`desenharSpriteDecor` com suporte ao atlas. `apps/demo/src/office-renderer-2d.ts`: desenha `decor` apos os props, com depth +0.5 para ordenacao isometrica correta. `apps/demo/src/asset-atlas.ts`: `AtlasKind` unifica `PropKind` e `DecorKind`. 5 novos testes em `layout-solver.test.ts` (incluindo decor em celula vazia nao bloqueando navgrid). 218 testes passando, `tsc --noEmit` limpo. |
-| 5b. Migracao TinyHouse + correcoes visuais | **PARCIAL (calibracao 2026-08-16, plano B; lab catalogo 2026-08-17)** | Pack em `assets-source/tinyhouse-pixel-salvaje/TinyHouse`. Laboratorio oficial `pnpm lab:iso` / `scripts/iso-validation/tinyhouse.html` (palco 3x3 + tabela de sprites + paletas de piso/parede). Numeros em `apps/demo/src/calibracao-tinyhouse.json`. Biblia visual em `catalogo-laboratorio.json` (intencao obrigatorio/aleatorio/off ainda nao entra no solver). Piso ancora (64, 68). Paredes no vertice. Porta folha 1:1 sobre Wall_R. |
+| 5b. Migracao TinyTraderLab + correcoes visuais | **PARCIAL (calibracao 2026-08-16, plano B; lab catalogo 2026-08-17)** | Pack em `assets-source/tinyhouse-pixel-salvaje/TinyHouse`. Laboratorio oficial `pnpm lab:iso` / `scripts/iso-validation/TinyTraderLab.html` (palco 3x3 + tabela de sprites + paletas de piso/parede). Numeros em `apps/demo/src/calibracao-tinytraderlab.json`. Biblia visual em `catalogo-laboratorio.json` (intencao obrigatorio/aleatorio/off ainda nao entra no solver). Piso ancora (64, 68). Paredes no vertice. Porta folha 1:1 sobre Wall_R. |
 | 6. Reducao de temas (6 -> 2-3) | GAP (bloqueado pelo passo 1/2) | Nao ha ainda 2 packs estruturais completos para diferenciar temas por FORMA (so por cor seria a abordagem rejeitada pela ADR). |
-| 7. Expandir catalogo TinyHouse | **PARCIAL (2026-08-17)** | `INITIAL_CATALOG` v2.4: copa TinyHouse (Kitchen Furniture wood 1-7, mesa, pia, fogao, geladeira, lava-loucas, tapete, armario aereo/prateleira/janela) mapeada em `coffee`/`cabinet`/`rug`/`board` sem kind novo. v2.3: AC/janela/poster como `board` wall; extintor/rumba `meter`; projetor `lamp`. Laboratorio: modo parede + `zonaKind`. Atlas last-wins. Fora: variedade por seed, solver nao planta parede, fax sem sprite. |
+| 7. Expandir catalogo TinyTraderLab | **PARCIAL (2026-08-17)** | `INITIAL_CATALOG` v2.4: copa TinyTraderLab (Kitchen Furniture wood 1-7, mesa, pia, fogao, geladeira, lava-loucas, tapete, armario aereo/prateleira/janela) mapeada em `coffee`/`cabinet`/`rug`/`board` sem kind novo. v2.3: AC/janela/poster como `board` wall; extintor/rumba `meter`; projetor `lamp`. Laboratorio: modo parede + `zonaKind`. Atlas last-wins. Fora: variedade por seed, solver nao planta parede, fax sem sprite. |
 
 ## 7. Como manter este arquivo honesto
 

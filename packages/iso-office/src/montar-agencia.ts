@@ -3,7 +3,7 @@
  * Nao usa solveLayout / emitirParedes / colarProto — o blit do lab fica intacto.
  */
 
-import { createRng, gradeDoProto } from '@microfirma/world-engine';
+import { createRng, gradeDoProto } from '@tradeclass/world-engine';
 import {
   assinaturaTemas,
   seedDaGeracao,
@@ -116,6 +116,38 @@ function empacotar(protos: ProtoEscolhido[], seed: number): Omit<AgenciaMontada,
     corredorY,
     pisoCorredor: PISO_CORREDOR,
   };
+}
+
+/** Empacota protos na ordem dada (sem shuffle) — usado por plantas fixas. */
+export function empacotarProtosFixos(
+  protos: ProtoEscolhido[],
+): Omit<AgenciaMontada, 'seed' | 'geracao'> {
+  const meio = Math.ceil(protos.length / 2);
+  const sul = protos.slice(0, meio);
+  const norte = protos.slice(meio);
+
+  const hNorte = norte.length === 0 ? 0 : Math.max(...norte.map((p) => gradeDoProto(p.tema).h));
+  const hSul = sul.length === 0 ? 0 : Math.max(...sul.map((p) => gradeDoProto(p.tema).h));
+  const corredorY = PAD + hNorte;
+  const height = corredorY + 1 + hSul + PAD;
+
+  const faixaSul = alocarFaixa(sul, corredorY, 'sul');
+  const faixaNorte = alocarFaixa(norte, corredorY, 'norte');
+  const slots = [...faixaNorte.slots, ...faixaSul.slots];
+  const width = Math.max(faixaNorte.xFim, faixaSul.xFim, PAD + 2) + PAD;
+
+  return {
+    grid: { width, height },
+    slots,
+    corridors: celulasDeCorredor(slots, width, corredorY),
+    corredorY,
+    pisoCorredor: PISO_CORREDOR,
+  };
+}
+
+/** Monta agencia a partir de protos ja escolhidos (plantas fixas). */
+export function montarAgenciaDeProtos(protos: ProtoEscolhido[], seed: number): AgenciaMontada {
+  return { seed: seed >>> 0, ...empacotarProtosFixos(protos) };
 }
 
 export function assinaturaAgencia(agencia: AgenciaMontada): string {

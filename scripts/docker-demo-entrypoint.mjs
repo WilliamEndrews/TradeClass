@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 
 const server = process.env.SERVER_URL || 'http://server:8787';
-const onboardingKey = process.env.MICROFIRMA_ONBOARDING_KEY || 'microfirma-dev-onboarding';
+const onboardingKey = process.env.TRADECLASS_ONBOARDING_KEY || 'TradeClass-dev-onboarding';
 const envFile = '/app/apps/demo/.env.local';
 
 async function aguardarServidor() {
@@ -36,7 +36,7 @@ async function main() {
   await aguardarServidor();
   const token = await criarTenant();
   const wsUrl = `${server.replace(/^http/, 'ws')}/mundo?token=${token}`;
-  const env = `# Gerado automaticamente pelo container demo\nVITE_MICROFIRMA_WS=${wsUrl}\nVITE_MICROFIRMA_TOKEN=${token}\n`;
+  const env = `# Gerado automaticamente pelo container demo\nVITE_TRADECLASS_WS=${wsUrl}\nVITE_TRADECLASS_TOKEN=${token}\n`;
   writeFileSync(envFile, env);
   console.log('[demo-entrypoint] .env.local criado, iniciando Vite');
 

@@ -13,11 +13,13 @@ import {
   type Prop,
   type Room,
   type TileSet,
+  type WallMedia,
+  type WallMediaFrame,
   type WallMount,
-} from '@microfirma/contracts';
+} from '@tradeclass/contracts';
 import type { Rng } from './prng.js';
 import temasJson from './biblia/temas-arquiteto.json';
-import { resolverPostoAgente } from './postos-trabalho.js';
+import { resolverPostoAgente, resolverPostoParaMesa } from './postos-trabalho.js';
 
 export type ZonaKindTiles =
   | 'open'
@@ -49,6 +51,37 @@ export interface PecaPalco {
   dy?: number;
 }
 
+/** Iframe / midia autorada no lab (coords locais do palco). */
+export interface WallMediaPalco {
+  mediaId: string;
+  kind?: 'iframe' | 'projection' | 'banner' | 'chart';
+  url?: string;
+  frame?: WallMediaFrame;
+  mountAssetId?: string;
+  nestAssetId?: string;
+  face: 'R' | 'L';
+  gx: number;
+  gy: number;
+  dx?: number;
+  dy?: number;
+  size?: { w: number; h: number };
+  heightPx?: number;
+  screenInset?: { u0: number; v0: number; u1: number; v1: number };
+  screenCorners?: {
+    tl: { u: number; v: number };
+    tr: { u: number; v: number };
+    br: { u: number; v: number };
+    bl: { u: number; v: number };
+  };
+  warpGrid?: {
+    cols: number;
+    rows: number;
+    points: { u: number; v: number }[];
+  };
+  blendMode?: 'normal' | 'screen' | 'linear-dodge';
+  display?: 'auto' | 'image' | 'iframe' | 'hybrid';
+}
+
 export interface PostoTrabalho {
   agentSlot: string;
   gx: number;
@@ -73,6 +106,8 @@ export interface TemaArquiteto {
   unicoNaAgencia: boolean;
   zonaKind: ZonaKindTiles;
   palco: PecaPalco[];
+  /** Midias de parede (iframe etc.) autoradas no lab. */
+  wallMedia?: WallMediaPalco[];
   grade?: { w: number; h: number };
   calibracao?: CalibracaoSala | null;
   postosTrabalho?: PostoTrabalho[];
@@ -337,10 +372,11 @@ export function colarProto(
   agentIds: readonly string[],
   espelharY = false,
   opts?: ColarProtoOpts,
-): { props: Prop[]; mounts: WallMount[] } {
+): { props: Prop[]; mounts: WallMount[]; wallMedia: WallMedia[] } {
   const props: Prop[] = [];
   const mounts: WallMount[] = [];
-  if (!proto) return { props, mounts };
+  const wallMedia: WallMedia[] = [];
+  if (!proto) return { props, mounts, wallMedia };
   const { x0, y0, x1, y1 } = sala.rect;
   const altura = y1 - y0;
   const ocupado = new Set<string>([`${sala.door.x},${sala.door.y}`]);
@@ -380,14 +416,9 @@ export function colarProto(
         ? agentIds[indiceAgente++]
         : undefined;
 
-    // Posto de trabalho (geometria pura, sem NavGrid - ver docstring de
-    // Prop.seat). So resolvido quando a sala e inequivocamente de UM agente
-    // (agentIds.length === 1): com mais de uma mesa na mesma sala, o tema
-    // so tem um posto 'default', e aplicar o mesmo ponto a todas colocaria
-    // os agentes empilhados na mesma celula.
     const postoResolvido =
-      kind === 'desk' && ownerAgentId && agentIds.length === 1
-        ? resolverPostoAgente(proto, ownerAgentId, sala, espelharY)
+      kind === 'desk' && ownerAgentId
+        ? resolverPostoParaMesa(proto, ownerAgentId, indiceAgente - 1, sala, espelharY)
         : undefined;
 
     props.push({
@@ -407,5 +438,60 @@ export function colarProto(
         : {}),
     });
   }
-  return { props, mounts };
+
+  for (const mid of proto.wallMedia ?? []) {
+    const gx = x0 + mid.gx;
+    const gy = y0 + (espelharY ? altura - 1 - mid.gy : mid.gy);
+    if (gx < x0 || gx >= x1 || gy < y0 || gy >= y1) continue;
+    const face = mid.face === 'L' ? 'L' : 'R';
+    const size = mid.size ?? { w: 2, h: 1 };
+    wallMedia.push({
+      mediaId: mid.mediaId || `wm-${sala.roomId}-${gx}-${gy}`,
+      kind: mid.kind ?? 'iframe',
+      roomId: sala.roomId,
+      cell: { x: gx, y: gy },
+      size,
+      url: mid.url,
+      face,
+      gx,
+      gy,
+      dx: mid.dx ?? 0,
+      dy: mid.dy ?? 0,
+      frame: mid.frame ?? 'none',
+      mountAssetId: mid.mountAssetId,
+      nestAssetId: mid.nestAssetId ?? mid.mountAssetId,
+      screenInset: mid.screenInset,
+      screenCorners: mid.screenCorners,
+      warpGrid: mid.warpGrid,
+      blendMode: mid.blendMode,
+      display: mid.display,
+      heightPx: mid.heightPx,
+    });
+    // Garante moldura como WallMount se ainda nao plantada no palco.
+    const mountId = mid.mountAssetId ?? mid.nestAssetId;
+    if (mountId && mid.frame && mid.frame !== 'none') {
+      const jaTem = mounts.some(
+        (m) =>
+          m.assetId === mountId &&
+          m.face === face &&
+          m.gx === gx &&
+          m.gy === gy &&
+          Math.abs(m.dx - (mid.dx ?? 0)) < 0.5 &&
+          Math.abs(m.dy - (mid.dy ?? 0)) < 0.5,
+      );
+      if (!jaTem) {
+        mounts.push({
+          assetId: mountId,
+          roomId: sala.roomId,
+          face,
+          gx,
+          gy,
+          dx: mid.dx ?? 0,
+          dy: mid.dy ?? 0,
+        });
+      }
+    }
+  }
+
+  return { props, mounts, wallMedia };
 }

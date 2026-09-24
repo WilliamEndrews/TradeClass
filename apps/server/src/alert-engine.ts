@@ -15,7 +15,7 @@
  *   - email: delegado para um sender injetado (nodemailer em producao)
  */
 
-import type { AlertConfig, AlertEvent, WorldKpis } from '@microfirma/contracts';
+import type { AlertConfig, AlertEvent, WorldKpis } from '@tradeclass/contracts';
 import { gerarId } from './auth.js';
 import type { AuditTrail } from './audit-trail.js';
 
@@ -194,7 +194,7 @@ export class AlertEngine {
         case 'slack':
           if (config.targetUrl) {
             await this.postJson(config.targetUrl, {
-              text: `:rotating_light: [MicroFirma] ${evento.message}`,
+              text: `:rotating_light: [TradeClass] ${evento.message}`,
               attachments: [{ color: 'danger', fields: Object.entries(evento.context).map(([k, v]) => ({ title: k, value: String(v), short: true })) }],
             });
           }
@@ -206,14 +206,14 @@ export class AlertEngine {
               routing_key: config.targetUrl.includes('integration_key=') ? config.targetUrl.split('integration_key=')[1] : 'unknown',
               event_action: 'trigger',
               dedup_key: evento.alertId,
-              payload: { summary: evento.message, severity: 'error', source: 'microfirma' },
+              payload: { summary: evento.message, severity: 'error', source: 'TradeClass' },
             });
           }
           break;
 
         case 'email':
           if (config.targetEmail && this.enviarEmail) {
-            await this.enviarEmail(config.targetEmail, `[MicroFirma] ${evento.message}`, JSON.stringify(evento, null, 2));
+            await this.enviarEmail(config.targetEmail, `[TradeClass] ${evento.message}`, JSON.stringify(evento, null, 2));
           } else if (config.targetEmail) {
             console.log(`[alert] email para ${config.targetEmail}: ${evento.message}`);
           }

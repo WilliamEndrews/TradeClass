@@ -75,7 +75,7 @@ export const AssetPack = z.object({
   basePath: z.string().min(1),
   /**
    * Largura do tile-base isometrico do pack em pixels (ex.: 128 para packs
-   * Kenney). O renderer usa isto para escalar o sprite ao tile do MicroFirma
+   * Kenney). O renderer usa isto para escalar o sprite ao tile do TradeClass
    * (LARGURA_TILE=128): escala = 128 / tileWidth. Sem isto, sprites sao
    * desenhados em resolucao nativa e ficam desproporcionais ao grid.
    */
@@ -158,7 +158,7 @@ export const OMIES_OFFICE_SET_PACK: AssetPack = {
 };
 
 /**
- * Pack TinyHouse por Pixel_Salvaje - pack COMERCIAL pago, autorizado para uso
+ * Pack TinyTraderLab por Pixel_Salvaje - pack COMERCIAL pago, autorizado para uso
  * no projeto. Tile base isometrico 2:1 de 128px. Contem:
  *  - Pasta Office/ com mobilia de escritorio dedicada (mesas, cadeiras, PCs,
  *    impressora, copiadora, divisoria, porta de vidro, bebedouro, shredder).
@@ -173,12 +173,12 @@ export const OMIES_OFFICE_SET_PACK: AssetPack = {
  *
  * Este pack substitui o Kenney Furniture Kit como fonte primaria de mobilia
  * porque o Kenney e voltado para casa (banheiros, camas, estantes domesticas),
- * enquanto o TinyHouse tem uma pasta Office/ dedicada com itens que um
+ * enquanto o TinyTraderLab tem uma pasta Office/ dedicada com itens que um
  * escritorio real tem (copiadora, divisoria, porta de vidro, shredder, etc.).
  */
 export const TINYHOUSE_PACK: AssetPack = {
   packId: 'tinyhouse-pixel-salvaje',
-  name: 'TinyHouse 0.17',
+  name: 'TinyTraderLab 0.17',
   author: 'Pixel_Salvaje',
   sourceUrl: 'https://pixelsalvaje.itch.io/tinyhouse',
   license: 'commercial-paid',
@@ -189,7 +189,7 @@ export const TINYHOUSE_PACK: AssetPack = {
 /**
  * Klimmos Cozy Isometric Modular Male Character Kit.
  * Personagens (Idle/Walk/Sit), nao mobiliario — sem AssetEntry no catalogo ativo.
- * Runtime: `@microfirma/iso-characters`. Folha 512x320, frame 64x80.
+ * Runtime: `@tradeclass/iso-characters`. Folha 512x320, frame 64x80.
  */
 export const KLIMMOS_ISO_MALE_PACK: AssetPack = {
   packId: 'klimmos-iso-male',
@@ -225,7 +225,7 @@ const PACK_TH = 'tinyhouse-pixel-salvaje';
 const DECOR_KINDS = new Set(['laptop', 'monitor', 'keyboard', 'mouse', 'books', 'radio']);
 const OBRIGATORIOS_VISUAIS = new Set(['office-main-table', 'basic-office-chair']);
 
-/** Entrada TinyHouse 1x1 com proveniencia padrao. */
+/** Entrada TinyTraderLab 1x1 com proveniencia padrao. */
 function th(
   assetId: string,
   kind: AssetEntry['kind'],
@@ -283,20 +283,20 @@ export const PROP_OPCIONAIS: Readonly<{
 /**
  * Catalogo inicial - ADR-0012.
  *
- * REFORMULACAO: TinyHouse (Pixel_Salvaje) substitui Kenney Furniture Kit como
- * fonte primaria de mobilia. O TinyHouse tem uma pasta Office/ dedicada com
+ * REFORMULACAO: TinyTraderLab (Pixel_Salvaje) substitui Kenney Furniture Kit como
+ * fonte primaria de mobilia. O TinyTraderLab tem uma pasta Office/ dedicada com
  * itens de escritorio reais (copiadora, divisoria, porta de vidro, shredder,
  * bebedouro), alem de floor tiles e wall tiles isometricos proprios.
  *
  * O Kenney Furniture Kit fica registrado em KNOWN_PACKS para referencia, mas
- * seus assets nao sao mais mapeados em INITIAL_CATALOG.assets - o TinyHouse
+ * seus assets nao sao mais mapeados em INITIAL_CATALOG.assets - o TinyTraderLab
  * cobre todos os kinds de Prop com qualidade superior e contexto de escritorio.
  *
  * Cobertura por kind (sprite de repouso; spritesheets de animacao NAO entram):
  *  - desk / chair / bookshelf / sofa / cabinet / plant: ver assets abaixo
  *  - printer: Printer_Ani_1 (frame parado)
  *  - water: Water_Dispenser_1
- *  - coffee: Office_Kitchen_Table; copa TinyHouse (mesa, bancada, pia, fogao, microondas)
+ *  - coffee: Office_Kitchen_Table; copa TinyTraderLab (mesa, bancada, pia, fogao, microondas)
  *  - board: Board_Full no chao; AC/relogio/poster/janela no lab como papel wall
  *  - lamp: Lamp_8_B_Tile (projetor como variante)
  *  - rug: Carpet_3_Tile (almofada Pillow_11 como variante)
@@ -311,7 +311,7 @@ export const PROP_OPCIONAIS: Readonly<{
  * printer. O solver so tenta se a celula estiver livre (nao encosta na
  * circulacao da porta). Ver PROP_OBRIGATORIOS / PROP_OPCIONAIS.
  *
- * Piso e paredes (medido 2026-08-16, scripts/iso-validation/medir-tinyhouse.js):
+ * Piso e paredes (medido 2026-08-16, scripts/iso-validation/medir-tinytraderlab.js):
  *  - Floor_128_WoodLight: canvas 128x128, bbox 128x72, ancora de face (64, 68)
  *  - Wall_L / Wall_R: canvas 128x128, bbox 72x115, mesma ancora
  *  - Office_Glass_Door_1: canvas 128x128, bbox 51x122 - blit como TILE, nao objeto
@@ -420,6 +420,10 @@ export const INITIAL_CATALOG: AssetManifest = {
     th('projector-screen', 'board', 'Office/Projector_Screen_Ani/Projector_Screen_Ani_1.png', [
       'furniture', 'board', 'wall', 'meeting', 'variant',
     ]),
+    th('office-tv-off', 'board', 'Office/Tv_Off.png', ['furniture', 'board', 'wall', 'variant']),
+    th('big-tv-off', 'board', 'Televisions_TV/BigTv_Ani/BigTV_3_Off_Tile.png', [
+      'furniture', 'board', 'wall', 'variant',
+    ]),
     th('office-window', 'board', 'Windows/Window_7_A_Tile.png', ['furniture', 'board', 'wall', 'window', 'variant']),
     th('office-partition', 'board', 'Office/Office_Partition.png', ['furniture', 'board', 'variant']),
     th('board-full', 'board', 'Office/Board_Full.png', ['furniture', 'board', 'meeting']),
@@ -482,7 +486,7 @@ export type TileSet = z.infer<typeof TileSet>;
 const DIR_TILES = 'Floor_Wall_Tiles_128';
 const PORTA_VIDRO = 'Doors/Office_Glass_Door_Ani/Office_Glass_Door_1.png';
 
-/** Monta um tileset do TinyHouse a partir dos nomes de variante de piso e parede. */
+/** Monta um tileset do TinyTraderLab a partir dos nomes de variante de piso e parede. */
 export function montarTileSet(tileSetId: string, piso: string, parede: string): TileSet {
   return {
     tileSetId,

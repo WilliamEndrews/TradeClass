@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { AlertEngine } from './alert-engine.js';
 import { AuditTrail } from './audit-trail.js';
-import type { AlertConfig, WorldKpis } from '@microfirma/contracts';
+import type { AlertConfig, WorldKpis } from '@tradeclass/contracts';
 
 const kpisBase: WorldKpis = {
   activeRuns: 1,
@@ -14,6 +14,9 @@ const kpisBase: WorldKpis = {
   errorsLast5Min: 0,
   tokensPerMinute: 100,
   pendingApprovals: 0,
+  pnlSessionUsd: 0,
+  activeSignals: 0,
+  riskScore: 0,
 };
 
 function configAlerta(overrides: Partial<AlertConfig>): AlertConfig {

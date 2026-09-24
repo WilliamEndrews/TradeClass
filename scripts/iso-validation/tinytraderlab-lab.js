@@ -1,12 +1,10 @@
 /**
- * Laboratorio TinyHouse: palco 3x3 + catalogo do arquiteto.
- * Carrega calibracao-tinyhouse.json, catalogo-laboratorio.json e
+ * Laboratorio TinyTraderLab: palco 3x3 + catalogo do arquiteto.
+ * Carrega calibracao-tinytraderlab.json, catalogo-laboratorio.json e
  * a biblia de temas do Construtor (world-engine/src/biblia/).
  */
 import {
   anexoParedeValido,
-  inferirFacingAssento,
-  mesaMaisProximaDoPosto,
   mesclarCombos,
   normalizarPostosTrabalho,
   postoParaGrid,
@@ -14,24 +12,99 @@ import {
   restaurarCoresDoTema,
   validarPalco,
 } from './lab-temas.mjs';
+import {
+  ASSENTO_SLOT_PADRAO,
+  MAX_ASSENTOS_PADRAO,
+  clampMaxAssentos,
+  desenharSetaFacingPosto as desenharSetaFacingDeps,
+  estiloLosangoAssento,
+  girarFacingManual,
+  listarSlotsAssento as listarSlotsAssentoPuros,
+  mesmaSubcelula as mesmaSubcelulaPura,
+  montarEntradaAssento,
+  podeAdicionarSlot,
+  proximoSlotLivre,
+  removerPostoPorSlot,
+  upsertPostoTrabalho,
+} from './lab-assentos.mjs';
+import {
+  ALTURA_TILE,
+  COMPOSE_ORIGEM,
+  LARGURA_TILE,
+  ORIGEM,
+  ORIGEM_COMPOSE,
+  ancoraTelaCelula,
+  blitCatalogo,
+  blitNaVertice,
+  blitNaVerticeEspelhado,
+  blitNaVerticeFatia,
+  blitNoPe,
+  blitObjeto,
+  blitTile,
+  chaveSlot,
+  encaixarPalco,
+  iso,
+  losango,
+  marcarPe,
+  medirBbox,
+  mesmaCelula,
+  mesmoSlot,
+  offsetPisoDoPonto,
+  origemDoItem,
+  peExtremo,
+  perimetroGrade,
+  silhuetaChao,
+  specDoItem,
+  telaParaGrade,
+  thumb,
+  faixaFaceParede,
+  withOrigemAbs,
+  withOrigemOffset,
+} from './lab-desenho-palco.mjs';
+import {
+  ANDARES_MAX,
+  ALTURA_PAREDE_MAX,
+  ALTURA_PAREDE_MIN,
+  ALTURA_PAREDE_PASSO,
+  GRADE_MAX,
+  STORAGE_KEY,
+  ZONAS_TILE,
+  carregarEstado,
+  clampAlturaParede,
+  clampGrade,
+  clampInt,
+  coordsFaixa,
+  estadoDoCatalogo,
+  gravarEstado,
+  inferirGrade,
+  itemEParede,
+  nomeZonaTile,
+  normalizarPaineis,
+  normalizarPolitica,
+  normalizarTema,
+  paineisPadrao,
+  palcoItemNormalizado,
+  politicaPadrao,
+  resolverCores,
+  resumoPolitica,
+  slotTilesPadrao,
+  slugTema,
+  tilesPreviewZona,
+  zonaKindOk,
+} from './lab-temas-ui.mjs';
 
-const LARGURA_TILE = 128;
-const ALTURA_TILE = 64;
-const ORIGEM = { x: 360, y: 90 };
-const ORIGEM_COMPOSE = { x: 360, y: 90 };
-const GRADE_MAX = 8;
-const ANDARES_MAX = 3;
 const BASE = '../../assets-source/tinyhouse-pixel-salvaje/TinyHouse/';
+const BASE_CREATED = '../../assets-source/tradeclass-created/';
 const ANCORA_PISO = { x: 64, y: 68 };
-const URL_CALIBRACAO = '../../apps/demo/src/calibracao-tinyhouse.json';
+const URL_CALIBRACAO = '../../apps/demo/src/calibracao-tinytraderlab.json';
 const URL_CATALOGO = './catalogo-laboratorio.json';
 const URL_TEMAS = '../../packages/world-engine/src/biblia/temas-arquiteto.json';
 const URL_COMBOS = './combinacoes-laboratorio.json';
-/** API do lab-server.mjs — grava a biblia no disco do repo. */
+const URL_CREATED = './created-assets.json';
+/** API do lab-server.mjs â€” grava a biblia no disco do repo. */
 const URL_PERSISTIR_TEMAS = '/api/temas-arquiteto';
 const URL_PERSISTIR_COMBOS = '/api/combinacoes-laboratorio';
-const STORAGE_KEY = 'microfirma-lab-catalogo-v4';
-const COMPOSE_ORIGEM = ORIGEM_COMPOSE;
+const URL_PERSISTIR_CREATED = '/api/created-assets';
 const DIR_TILES = 'Floor_Wall_Tiles_128';
 const PORTA_VIDRO = 'Doors/Office_Glass_Door_Ani/Office_Glass_Door_1.png';
 
@@ -51,54 +124,11 @@ const CALIBRACAO_FALLBACK = {
 
 const cacheImg = new Map();
 
-function iso(gx, gy) {
-  return { x: ((gx - gy) * LARGURA_TILE) / 2, y: ((gx + gy) * ALTURA_TILE) / 2 };
-}
-
-function telaParaGrade(px, py, subdiv) {
-  const x = px - ORIGEM.x;
-  const y = py - ORIGEM.y;
-  const gxF = (x / (LARGURA_TILE / 2) + y / (ALTURA_TILE / 2)) / 2;
-  const gyF = (y / (ALTURA_TILE / 2) - x / (LARGURA_TILE / 2)) / 2;
-  const gx = Math.floor(gxF);
-  const gy = Math.floor(gyF);
-  if (!subdiv) return { gx, gy, qx: 0, qy: 0 };
-  return {
-    gx,
-    gy,
-    qx: gxF - gx >= 0.5 ? 1 : 0,
-    qy: gyF - gy >= 0.5 ? 1 : 0,
-  };
-}
-
-function origemDoItem(p) {
-  const passo = p.passo == null ? 1 : p.passo;
-  const qx = p.qx || 0;
-  const qy = p.qy || 0;
-  return { ox: p.gx + qx * passo, oy: p.gy + qy * passo, passo };
-}
-
-function chaveSlot(p) {
-  return p.gx + ',' + p.gy + ',' + (p.qx || 0) + ',' + (p.qy || 0);
-}
-
-function mesmaCelula(a, b) {
-  return a.gx === b.gx && a.gy === b.gy;
-}
-
-function mesmoSlot(a, b) {
-  return chaveSlot(a) === chaveSlot(b);
-}
-
-function slugTema(nome) {
-  const s = String(nome || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-  return s || 'tema';
-}
-
 function urlPng(fileName) {
+  if (typeof fileName === 'string' && fileName.startsWith('created/')) {
+    const rel = fileName.slice('created/'.length);
+    return BASE_CREATED + rel.split('/').map(encodeURIComponent).join('/');
+  }
   return BASE + fileName.split('/').map(encodeURIComponent).join('/');
 }
 
@@ -126,487 +156,17 @@ function fetchJson(url, fallback) {
     });
 }
 
-function medirBbox(img) {
-  const c = document.createElement('canvas');
-  c.width = img.naturalWidth;
-  c.height = img.naturalHeight;
-  const g = c.getContext('2d');
-  g.drawImage(img, 0, 0);
-  const data = g.getImageData(0, 0, c.width, c.height).data;
-  let minX = c.width;
-  let minY = c.height;
-  let maxX = -1;
-  let maxY = -1;
-  for (let y = 0; y < c.height; y++) {
-    for (let x = 0; x < c.width; x++) {
-      if (data[(y * c.width + x) * 4 + 3] > 8) {
-        if (x < minX) minX = x;
-        if (y < minY) minY = y;
-        if (x > maxX) maxX = x;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
-  if (maxX < 0) return { x: 0, y: 0, w: c.width, h: c.height };
-  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
-}
-
-function silhuetaChao(img) {
-  const c = document.createElement('canvas');
-  c.width = img.naturalWidth;
-  c.height = img.naturalHeight;
-  const g = c.getContext('2d');
-  g.drawImage(img, 0, 0);
-  const data = g.getImageData(0, 0, c.width, c.height).data;
-  const pes = [];
-  for (let x = 0; x < c.width; x++) {
-    let maxY = -1;
-    for (let y = 0; y < c.height; y++) {
-      if (data[(y * c.width + x) * 4 + 3] > 8) maxY = y;
-    }
-    if (maxY >= 0) pes.push({ x, y: maxY });
-  }
-  return pes;
-}
-
-function peExtremo(pes, lado) {
-  if (!pes.length) return { x: 64, y: 36 };
-  return lado === 'dir' ? pes[pes.length - 1] : pes[0];
-}
-
-function blitTile(ctx, img, gx, gy, ancora, tam) {
-  const passo = tam == null ? 1 : tam;
-  const c = iso(gx + passo / 2, gy + passo / 2);
-  const x = ORIGEM.x + c.x - ancora.x;
-  const y = ORIGEM.y + c.y - ancora.y;
-  ctx.drawImage(img, x, y);
-  return { x, y };
-}
-
-function blitNoPe(ctx, img, telaX, telaY, pe) {
-  const x = telaX - pe.x;
-  const y = telaY - pe.y;
-  ctx.drawImage(img, x, y);
-  return { x, y, tela: { x: telaX, y: telaY } };
-}
-
-function blitNaVertice(ctx, img, vx, vy, pe) {
-  const v = iso(vx, vy);
-  return blitNoPe(ctx, img, ORIGEM.x + v.x, ORIGEM.y + v.y, pe);
-}
-
-function blitObjeto(ctx, img, bbox, gx, gy) {
-  const c = iso(gx + 0.5, gy + 0.5);
-  const x = ORIGEM.x + c.x - (bbox.x + bbox.w / 2);
-  const y = ORIGEM.y + c.y - (bbox.y + bbox.h);
-  ctx.drawImage(img, x, y);
-}
-
-function specDoItem(spec, cal) {
-  const mapa = (cal && cal.objetos) || {};
-  return mapa[spec.kind] || mapa[spec.assetId] || null;
-}
-
-function blitCatalogo(ctx, img, bbox, spec, item, cal, diagnostico) {
-  const o = specDoItem(spec, cal);
-  const { ox, oy, passo } = origemDoItem(item);
-  if (o && o.modo === 'canto' && o.pe) {
-    const r = blitNaVertice(ctx, img, ox, oy, o.pe);
-    if (diagnostico) {
-      ctx.strokeStyle = 'rgba(255, 80, 200, 0.9)';
-      ctx.strokeRect(r.x + bbox.x, r.y + bbox.y, bbox.w, bbox.h);
-      marcarPe(ctx, r.tela);
-    }
-    return;
-  }
-  if (o && o.modo === 'centro' && o.ancora) {
-    const r = blitTile(ctx, img, ox, oy, o.ancora, passo);
-    if (diagnostico) {
-      ctx.strokeStyle = 'rgba(255, 80, 200, 0.9)';
-      ctx.strokeRect(r.x + bbox.x, r.y + bbox.y, bbox.w, bbox.h);
-      const c = iso(ox + passo / 2, oy + passo / 2);
-      marcarPe(ctx, { x: ORIGEM.x + c.x, y: ORIGEM.y + c.y });
-    }
-    return;
-  }
-  blitObjeto(ctx, img, bbox, ox, oy);
-}
-
-function losango(ctx, gx, gy, cor, preencher, tam) {
-  const passo = tam == null ? 1 : tam;
-  const pts = [iso(gx, gy), iso(gx + passo, gy), iso(gx + passo, gy + passo), iso(gx, gy + passo)];
-  ctx.beginPath();
-  ctx.moveTo(ORIGEM.x + pts[0].x, ORIGEM.y + pts[0].y);
-  for (let i = 1; i < 4; i++) ctx.lineTo(ORIGEM.x + pts[i].x, ORIGEM.y + pts[i].y);
-  ctx.closePath();
-  if (preencher) {
-    ctx.fillStyle = preencher;
-    ctx.fill();
-  }
-  ctx.strokeStyle = cor;
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
-
-function perimetroGrade(ctx, w, h) {
-  const pts = [iso(0, 0), iso(w, 0), iso(w, h), iso(0, h)];
-  ctx.beginPath();
-  ctx.moveTo(ORIGEM.x + pts[0].x, ORIGEM.y + pts[0].y);
-  for (let i = 1; i < 4; i++) ctx.lineTo(ORIGEM.x + pts[i].x, ORIGEM.y + pts[i].y);
-  ctx.closePath();
-  ctx.strokeStyle = '#f5d76e';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-}
-
-function encaixarPalco(canvas, w, h, andares, subida) {
-  const pts = [iso(0, 0), iso(w, 0), iso(w, h), iso(0, h)];
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const p of pts) {
-    if (p.x < minX) minX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y > maxY) maxY = p.y;
-  }
-  const padX = 56;
-  const padTop = 100 + Math.max(0, (andares || 1) - 1) * (subida || 0);
-  const padBottom = 40;
-  const needW = Math.ceil(maxX - minX + padX * 2);
-  const needH = Math.ceil(maxY - minY + padTop + padBottom);
-  canvas.width = Math.max(720, Math.min(1400, needW));
-  canvas.height = Math.max(520, Math.min(980, needH));
-  ORIGEM.x = Math.round((canvas.width - (minX + maxX)) / 2);
-  ORIGEM.y = Math.round(padTop - minY);
-}
-
-function clampInt(n, lo, hi) {
-  const v = Math.round(Number(n));
-  if (!Number.isFinite(v)) return lo;
-  return Math.max(lo, Math.min(hi, v));
-}
-
-function coordsFaixa(eixo, valor, outroMax) {
-  const out = [];
-  for (let i = 0; i < outroMax; i++) {
-    out.push(eixo === 'gx' ? valor + ',' + i : i + ',' + valor);
-  }
-  return out.join('  ');
-}
-
-function marcarPe(ctx, tela) {
-  ctx.strokeStyle = '#7fff00';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.arc(tela.x + 0.5, tela.y + 0.5, 4, 0, Math.PI * 2);
-  ctx.stroke();
-}
-
-function thumb(img, bbox, w, h) {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  const g = c.getContext('2d');
-  g.imageSmoothingEnabled = false;
-  g.fillStyle = '#222';
-  g.fillRect(0, 0, w, h);
-  if (!img || !bbox) return c;
-  const escala = Math.min(w / bbox.w, h / bbox.h) * 0.9;
-  const dw = bbox.w * escala;
-  const dh = bbox.h * escala;
-  g.drawImage(img, bbox.x, bbox.y, bbox.w, bbox.h, (w - dw) / 2, (h - dh) / 2, dw, dh);
-  return c;
-}
-
-function clampGrade(g) {
-  return {
-    w: clampInt(g && g.w, 1, GRADE_MAX),
-    h: clampInt(g && g.h, 1, GRADE_MAX),
-  };
-}
-
-function inferirGrade(palco) {
-  let maxX = 2;
-  let maxY = 2;
-  for (const p of palco || []) {
-    if (p.gx > maxX) maxX = p.gx;
-    if (p.gy > maxY) maxY = p.gy;
-  }
-  return clampGrade({ w: maxX + 1, h: maxY + 1 });
-}
-
-function paineisPadrao() {
-  return {
-    tilesets: false,
-    piso: false,
-    parede: false,
-    zona: false,
-    temas: false,
-    json: false,
-  };
-}
-
-function normalizarPaineis(bruto) {
-  const base = paineisPadrao();
-  if (!bruto || typeof bruto !== 'object') return base;
-  for (const id of Object.keys(base)) {
-    if (typeof bruto[id] === 'boolean') base[id] = bruto[id];
-  }
-  return base;
-}
-
-function zonaKindOk(id) {
-  return ZONAS_TILE.some((z) => z.id === id) ? id : 'private';
-}
-
-function itemEParede(p) {
-  return !!(p && (p.papel === 'wall' || p.face === 'R' || p.face === 'L'));
-}
-
-function palcoItemNormalizado(p) {
-  if (itemEParede(p)) {
-    return {
-      assetId: p.assetId,
-      papel: 'wall',
-      face: p.face === 'L' ? 'L' : 'R',
-      gx: typeof p.gx === 'number' ? p.gx : 0,
-      gy: typeof p.gy === 'number' ? p.gy : 0,
-      dx: typeof p.dx === 'number' ? p.dx : 0,
-      dy: typeof p.dy === 'number' ? p.dy : 0,
-    };
-  }
-  return { qx: 0, qy: 0, passo: 1, ...p };
-}
-
-function normalizarTema(t) {
-  const palco = (t.palco || []).map(palcoItemNormalizado);
-  return {
-    ...t,
-    palco,
-    grade: t.grade ? clampGrade(t.grade) : inferirGrade(palco),
-    andares: clampInt(t.andares != null ? t.andares : 1, 1, ANDARES_MAX),
-    subidaAndar: typeof t.subidaAndar === 'number' ? t.subidaAndar : null,
-    subdiv: t.subdiv !== false,
-    prioridade: clampInt(t.prioridade != null ? t.prioridade : 5, 1, 9),
-    unicoNaAgencia: !!t.unicoNaAgencia,
-    zonaKind: zonaKindOk(t.zonaKind),
-    calibracao: t.calibracao && typeof t.calibracao === 'object' ? t.calibracao : null,
-    postosTrabalho: normalizarPostosTrabalho(t.postosTrabalho),
-  };
-}
-
-function estadoDoCatalogo(catalogo, temasArquivo) {
-  return {
-    tilesetAtivo: catalogo.tilesetAtivo || 'nordic-calm',
-    pisoLivre: catalogo.pisoLivre || null,
-    paredeLivre: catalogo.paredeLivre || null,
-    usos: Object.fromEntries(catalogo.assets.map((a) => [a.assetId, a.uso])),
-    palco: (catalogo.palcoPadrao || []).map(palcoItemNormalizado),
-    celula: { gx: 1, gy: 1, qx: 0, qy: 0 },
-    diagnostico: false,
-    subdiv: true,
-    modoPlantar: 'piso',
-    paredeSel: null,
-    temas: Array.isArray(temasArquivo) ? temasArquivo.map(normalizarTema) : [],
-    combos: [],
-    combinando: false,
-    composeCamadas: [],
-    grade: clampGrade(catalogo.palcoGrade || { w: 3, h: 3 }),
-    andares: clampInt(catalogo.andares || 1, 1, ANDARES_MAX),
-    subidaAndar: typeof catalogo.subidaAndar === 'number' ? catalogo.subidaAndar : null,
-    politicaTiles: politicaPadrao(),
-    previewZona: null,
-    postosTrabalho: [],
-    paineis: paineisPadrao(),
-  };
-}
-
-function carregarEstado(catalogo, temasArquivo, politicaArquivo) {
-  try {
-    const bruto = localStorage.getItem(STORAGE_KEY);
-    if (!bruto) {
-      const base = estadoDoCatalogo(catalogo, temasArquivo);
-      base.politicaTiles = normalizarPolitica(politicaArquivo, catalogo);
-      return base;
-    }
-    const salvo = JSON.parse(bruto);
-    const base = estadoDoCatalogo(catalogo, temasArquivo);
-    const temasLocais = Array.isArray(salvo.temas) && salvo.temas.length
-      ? salvo.temas.map(normalizarTema)
-      : base.temas;
-    return {
-      ...base,
-      ...salvo,
-      usos: { ...base.usos, ...(salvo.usos || {}) },
-      palco: Array.isArray(salvo.palco) ? salvo.palco.map(palcoItemNormalizado) : base.palco,
-      celula: { gx: 1, gy: 1, qx: 0, qy: 0, ...(salvo.celula || {}) },
-      temas: temasLocais,
-      subdiv: salvo.subdiv !== false,
-      combos: Array.isArray(salvo.combos) ? salvo.combos : base.combos,
-      combinando: false,
-      composeCamadas: Array.isArray(salvo.composeCamadas) ? salvo.composeCamadas : [],
-      modoPlantar: salvo.modoPlantar === 'parede' ? 'parede' : 'piso',
-      paredeSel: null,
-      grade: clampGrade(salvo.grade || base.grade),
-      andares: clampInt(salvo.andares != null ? salvo.andares : base.andares, 1, ANDARES_MAX),
-      subidaAndar: typeof salvo.subidaAndar === 'number' ? salvo.subidaAndar : base.subidaAndar,
-      politicaTiles: normalizarPolitica(salvo.politicaTiles || politicaArquivo, catalogo),
-      previewZona: null,
-      postosTrabalho: Array.isArray(salvo.postosTrabalho) ? normalizarPostosTrabalho(salvo.postosTrabalho) : [],
-      paineis: normalizarPaineis(salvo.paineis),
-    };
-  } catch {
-    const base = estadoDoCatalogo(catalogo, temasArquivo);
-    base.politicaTiles = normalizarPolitica(politicaArquivo, catalogo);
-    return base;
-  }
-}
-
-function gravarEstado(estado) {
-  const slim = {
-    tilesetAtivo: estado.tilesetAtivo,
-    pisoLivre: estado.pisoLivre,
-    paredeLivre: estado.paredeLivre,
-    usos: estado.usos,
-    palco: estado.palco,
-    celula: estado.celula,
-    diagnostico: estado.diagnostico,
-    subdiv: estado.subdiv,
-    modoPlantar: estado.modoPlantar === 'parede' ? 'parede' : 'piso',
-    temas: estado.temas,
-    combos: estado.combos,
-    composeCamadas: estado.composeCamadas,
-    grade: estado.grade,
-    andares: estado.andares,
-    subidaAndar: estado.subidaAndar,
-    politicaTiles: estado.politicaTiles,
-    postosTrabalho: estado.postosTrabalho,
-    paineis: normalizarPaineis(estado.paineis),
-  };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(slim));
-}
-
-function withOrigemOffset(dx, dy, fn) {
-  ORIGEM.x += dx || 0;
-  ORIGEM.y += dy || 0;
-  try {
-    fn();
-  } finally {
-    ORIGEM.x -= dx || 0;
-    ORIGEM.y -= dy || 0;
-  }
-}
-
-function withOrigemAbs(x, y, fn) {
-  const ox = ORIGEM.x;
-  const oy = ORIGEM.y;
-  ORIGEM.x = x;
-  ORIGEM.y = y;
-  try {
-    fn();
-  } finally {
-    ORIGEM.x = ox;
-    ORIGEM.y = oy;
-  }
-}
-
-const ZONAS_TILE = [
-  { id: 'corridor', nome: 'corredor' },
-  { id: 'break', nome: 'copa' },
-  { id: 'private', nome: 'privativo' },
-  { id: 'boss_room', nome: 'Boss Room' },
-  { id: 'open', nome: 'open space' },
-  { id: 'meeting', nome: 'reuniao' },
-  { id: 'reception', nome: 'recepcao' },
-  { id: 'war_room', nome: 'war room' },
-  { id: 'landing', nome: 'Landing' },
-];
-
-function slotTilesPadrao() {
-  return { modo: 'default', pisos: [], paredes: [] };
-}
-
-function politicaPadrao() {
-  const o = {};
-  for (const z of ZONAS_TILE) o[z.id] = slotTilesPadrao();
-  return o;
-}
-
-function normalizarPolitica(bruto, catalogo) {
-  const pisosOk = new Set((catalogo && catalogo.pisos) || []);
-  const paredesOk = new Set((catalogo && catalogo.paredes) || []);
-  const base = politicaPadrao();
-  const src = bruto && typeof bruto === 'object' ? bruto : {};
-  for (const z of ZONAS_TILE) {
-    const s = src[z.id] || {};
-    let modo = s.modo === 'unico' || s.modo === 'opcoes' ? s.modo : 'default';
-    let pisos = (Array.isArray(s.pisos) ? s.pisos : []).filter((n) => !pisosOk.size || pisosOk.has(n));
-    let paredes = (Array.isArray(s.paredes) ? s.paredes : []).filter((n) => !paredesOk.size || paredesOk.has(n));
-    if (modo === 'default') {
-      base[z.id] = slotTilesPadrao();
-    } else if (modo === 'unico') {
-      base[z.id] = {
-        modo: 'unico',
-        pisos: pisos.slice(0, 1),
-        paredes: paredes.slice(0, 1),
-      };
-    } else {
-      base[z.id] = { modo: 'opcoes', pisos: pisos, paredes: paredes };
-    }
-  }
-  return base;
-}
-
-function tilesPreviewZona(estado) {
-  const id = estado.previewZona;
-  if (!id || !estado.politicaTiles) return null;
-  const slot = estado.politicaTiles[id];
-  if (!slot || slot.modo === 'default') return null;
-  return {
-    piso: slot.pisos && slot.pisos[0] ? slot.pisos[0] : null,
-    parede: slot.paredes && slot.paredes[0] ? slot.paredes[0] : null,
-  };
-}
-
-function resolverCores(catalogo, estado) {
-  const ts = catalogo.tilesets.find((t) => t.tileSetId === estado.tilesetAtivo) || catalogo.tilesets[0];
-  const preview = tilesPreviewZona(estado);
-  return {
-    piso: (preview && preview.piso) || estado.pisoLivre || ts.piso,
-    parede: (preview && preview.parede) || estado.paredeLivre || ts.parede,
-    tileSetId: ts.tileSetId,
-    previewZona: estado.previewZona || null,
-  };
-}
-
-function nomeZonaTile(id) {
-  const z = ZONAS_TILE.find((x) => x.id === id);
-  return z ? z.nome : id;
-}
-
-function resumoPolitica(politica) {
-  const bits = [];
-  for (const z of ZONAS_TILE) {
-    const s = politica && politica[z.id];
-    if (!s || s.modo === 'default') continue;
-    const n = (s.pisos || []).length + (s.paredes || []).length;
-    bits.push(z.nome + ' ' + s.modo + (n ? ' (' + (s.pisos || []).join(',') + ')' : ''));
-  }
-  return bits.length ? bits.join('  |  ') : 'todas as zonas no tema do arquiteto';
-}
-
 (async () => {
   const canvas = document.getElementById('palco');
   const ctx = canvas.getContext('2d');
   ctx.imageSmoothingEnabled = false;
 
-  const [cal, catalogo, temasDoc, combosDoc] = await Promise.all([
+  const [cal, catalogo, temasDoc, combosDoc, createdDoc] = await Promise.all([
     fetchJson(URL_CALIBRACAO, CALIBRACAO_FALLBACK),
     fetchJson(URL_CATALOGO),
     fetchJson(URL_TEMAS, { temas: [] }),
     fetchJson(URL_COMBOS, { combinacoes: [] }),
+    fetchJson(URL_CREATED, { assets: [] }),
   ]);
 
   const ancoraPiso = cal.ancoraPiso || ANCORA_PISO;
@@ -618,14 +178,38 @@ function resumoPolitica(politica) {
 
   const estado = carregarEstado(catalogo, temasDoc.temas || [], temasDoc.politicaTiles);
   estado.combos = mesclarCombos(combosDoc.combinacoes || [], estado.combos || []);
+  estado.createdAssets = Array.isArray(createdDoc.assets) ? createdDoc.assets : [];
   let temasOrigem = localStorage.getItem(STORAGE_KEY) ? 'localStorage' : 'disco';
 
-  function todosAssets() {
+  function assetsCatalogo() {
     return catalogo.assets.concat(estado.combos || []);
+  }
+
+  function todosAssets() {
+    return assetsCatalogo().concat(estado.createdAssets || []);
   }
 
   function specPorId(id) {
     return todosAssets().find((a) => a.assetId === id);
+  }
+
+  function abrirPopupInterativo(interativo) {
+    const drawer = document.getElementById('interact-drawer');
+    if (!drawer) return;
+    const titulo = document.getElementById('interact-title');
+    const corpo = document.getElementById('interact-corpo');
+    if (titulo) titulo.textContent = interativo?.titulo || 'Teste de design';
+    if (corpo) corpo.textContent = interativo?.corpo || 'Teste de design';
+    drawer.classList.add('open');
+    drawer.setAttribute('aria-hidden', 'false');
+  }
+
+  function fecharPopupInterativo() {
+    const drawer = document.getElementById('interact-drawer');
+    if (!drawer || !drawer.classList.contains('open')) return false;
+    drawer.classList.remove('open');
+    drawer.setAttribute('aria-hidden', 'true');
+    return true;
   }
 
   async function bboxDe(src) {
@@ -639,6 +223,9 @@ function resumoPolitica(politica) {
   let ultBboxWall = null;
   let paredePecaIx = -1;
   let arrasteParede = null;
+  let arrasteCalib = null;
+  /** Arraste do miolo do nest (move dx/dy no espaco, estilo Word). */
+  let arrasteNest = null;
   let arrastePiso = null;
   let arraste = null;
   let pulouClickPalco = false;
@@ -649,9 +236,13 @@ function resumoPolitica(politica) {
   let marcandoAssento = false;
   /** Hover da subcelula sob o mouse enquanto marca assento (null fora da grade). */
   let assentoHover = null;
+  /** Limite de assentos por tema (configuravel no lab). */
+  let maxAssentos = MAX_ASSENTOS_PADRAO;
+  /** Slot ativo para marcar/editar (seat-0, seat-1, ...). */
+  let assentoSlotAtivo = ASSENTO_SLOT_PADRAO;
   const UNDO_MAX = 60;
-  let historicoUndo = [];
-  let historicoRedo = [];
+  const historicoUndo = [];
+  const historicoRedo = [];
   let undoDoArraste = false;
   let composeSel = -1;
   document.body.classList.add('book-open');
@@ -674,18 +265,61 @@ function resumoPolitica(politica) {
   }
 
   function agentSlotAssento() {
-    const zonaEl = document.getElementById('tema-zona');
-    return zonaEl && zonaEl.value === 'boss_room' ? 'agent-boss' : 'default';
+    return assentoSlotAtivo || 'seat-0';
+  }
+
+  function listarSlotsAssento() {
+    return listarSlotsAssentoPuros(estado.postosTrabalho, assentoSlotAtivo);
+  }
+
+  function pintarSeletorAssentos() {
+    const sel = document.getElementById('assento-slot-ativo');
+    const lim = document.getElementById('assento-max');
+    const contagem = document.getElementById('assento-contagem');
+    if (lim) {
+      lim.value = String(maxAssentos);
+    }
+    if (contagem) {
+      contagem.textContent = `${(estado.postosTrabalho || []).length}/${maxAssentos}`;
+    }
+    if (!sel) return;
+    const slots = listarSlotsAssento();
+    sel.innerHTML = '';
+    for (const s of slots) {
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s;
+      if (s === assentoSlotAtivo) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+
+  function adicionarSlotAssento() {
+    if (!podeAdicionarSlot(estado.postosTrabalho, maxAssentos)) {
+      const status = document.getElementById('tema-persist-status');
+      if (status) {
+        status.dataset.ok = '0';
+        status.textContent = `limite de ${maxAssentos} assentos atingido`;
+      }
+      return;
+    }
+    assentoSlotAtivo = proximoSlotLivre(estado.postosTrabalho);
+    pintarSeletorAssentos();
+    setMarcandoAssento(true);
+  }
+
+  function removerSlotAssentoAtivo() {
+    const slot = agentSlotAssento();
+    estado.postosTrabalho = removerPostoPorSlot(estado.postosTrabalho, slot);
+    const rest = estado.postosTrabalho;
+    assentoSlotAtivo = rest[0]?.agentSlot || ASSENTO_SLOT_PADRAO;
+    gravarEstado(estado);
+    pintarSeletorAssentos();
+    desenharPalco();
   }
 
   function mesmaSubcelula(a, b) {
-    if (!a || !b) return false;
-    return (
-      a.gx === b.gx &&
-      a.gy === b.gy &&
-      (a.qx || 0) === (b.qx || 0) &&
-      (a.qy || 0) === (b.qy || 0)
-    );
+    return mesmaSubcelulaPura(a, b);
   }
 
   function atualizarBotaoAssento() {
@@ -694,9 +328,10 @@ function resumoPolitica(politica) {
     btn.classList.toggle('ativo', marcandoAssento);
     btn.textContent = marcandoAssento ? 'cancelar assento' : 'marcar assento';
     btn.title = marcandoAssento
-      ? 'Sair (Esc). Q/E gira manualmente a orientacao do assento travado.'
-      : 'Clique para travar; a mesa mais proxima define a direcao automaticamente.';
+      ? 'Sair (Esc). Q/E gira o facing do slot ativo. Varios assentos por sala.'
+      : 'Marca o slot ativo (seat-N). Adicione slots para multi-assento.';
     canvas.classList.toggle('marcando-assento', marcandoAssento);
+    pintarSeletorAssentos();
   }
 
   function setMarcandoAssento(ativo) {
@@ -711,42 +346,29 @@ function resumoPolitica(politica) {
     if (!cel) return;
     if (cel.gx < 0 || cel.gy < 0 || cel.gx >= gradeW() || cel.gy >= gradeH()) return;
     const slot = agentSlotAssento();
-    const base = {
-      agentSlot: slot,
-      gx: cel.gx,
-      gy: cel.gy,
-      qx: cel.qx || 0,
-      qy: cel.qy || 0,
-      passo: 0.5,
-    };
     const mesas = estado.palco
       .filter((peca) => specPorId(peca.assetId)?.kind === 'desk')
       .map((peca) => ({ assetId: peca.assetId, gx: peca.gx, gy: peca.gy }));
-    const mesa = mesaMaisProximaDoPosto(base, mesas);
-    const inferido = inferirFacingAssento(base, mesa);
-    const entry = {
-      ...base,
-      ...inferido,
-      ...(mesa ? { deskAssetId: mesa.assetId } : {}),
-    };
-    estado.postosTrabalho = estado.postosTrabalho.filter((p) => p.agentSlot !== slot);
-    estado.postosTrabalho.push(entry);
-    estado.postosTrabalho = normalizarPostosTrabalho(estado.postosTrabalho);
+    const entry = montarEntradaAssento(cel, slot, mesas);
+    const r = upsertPostoTrabalho(estado.postosTrabalho, entry, maxAssentos);
+    if (!r.ok) {
+      const status = document.getElementById('tema-persist-status');
+      if (status) {
+        status.dataset.ok = '0';
+        status.textContent = `limite de ${maxAssentos} assentos - remova um ou aumente o max`;
+      }
+      return;
+    }
+    estado.postosTrabalho = r.postos;
     estado.celula = { gx: cel.gx, gy: cel.gy, qx: cel.qx || 0, qy: cel.qy || 0 };
     gravarEstado(estado);
     atualizarCelulaTxt();
+    pintarSeletorAssentos();
     const status = document.getElementById('tema-persist-status');
     if (status) {
       status.dataset.ok = '1';
       status.textContent =
-        'assento travado em ' +
-        cel.gx +
-        ',' +
-        cel.gy +
-        ' q' +
-        (cel.qx || 0) +
-        (cel.qy || 0) +
-        ' — salve o tema para gravar na biblia';
+        `assento ${slot} em ${cel.gx},${cel.gy} q${cel.qx || 0}${cel.qy || 0} (${estado.postosTrabalho.length}/${maxAssentos}) - salve o tema`;
     }
     desenharPalco();
   }
@@ -758,37 +380,7 @@ function resumoPolitica(politica) {
   }
 
   function desenharSetaFacingPosto(ctx, posto) {
-    const vetores = [
-      { x: 0, y: 1 },
-      { x: -1, y: 0 },
-      { x: 0, y: -1 },
-      { x: 1, y: 0 },
-    ];
-    const v = vetores[posto.facing] || vetores[2];
-    const g = postoParaGrid(posto);
-    const aIso = iso(g.x, g.y);
-    const bIso = iso(g.x + v.x * 0.38, g.y + v.y * 0.38);
-    const ax = ORIGEM.x + aIso.x;
-    const ay = ORIGEM.y + aIso.y;
-    const bx = ORIGEM.x + bIso.x;
-    const by = ORIGEM.y + bIso.y;
-    const ang = Math.atan2(by - ay, bx - ax);
-
-    ctx.save();
-    ctx.strokeStyle = posto.facingOrigem === 'manual' ? '#f5d76e' : '#34d399';
-    ctx.fillStyle = ctx.strokeStyle;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(ax, ay);
-    ctx.lineTo(bx, by);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(bx, by);
-    ctx.lineTo(bx - Math.cos(ang - 0.55) * 7, by - Math.sin(ang - 0.55) * 7);
-    ctx.lineTo(bx - Math.cos(ang + 0.55) * 7, by - Math.sin(ang + 0.55) * 7);
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
+    desenharSetaFacingDeps(ctx, posto, { iso, origem: ORIGEM });
   }
 
   function peDaFace(face) {
@@ -815,27 +407,40 @@ function resumoPolitica(politica) {
   function rectPecaParede(item, bbox) {
     const pe = peDaFace(item.face);
     const v = verticeDaFace(item.face, item.gx, item.gy);
-    return rectFromBlit(posBlitVertice(v.vx, v.vy, pe, item.dx || 0, item.dy || 0), bbox);
+    const o = posBlitVertice(v.vx, v.vy, pe, item.dx || 0, item.dy || 0);
+    // Espelho explicito (Ctrl+E) — nao depende da face.
+    if (item.espelhado) {
+      const telaX = o.x + pe.x;
+      return {
+        x: telaX + pe.x - (bbox.x + bbox.w),
+        y: o.y + bbox.y,
+        w: bbox.w,
+        h: bbox.h,
+      };
+    }
+    return rectFromBlit(o, bbox);
   }
   function rectPecaPiso(item, bbox, spec) {
     const { ox, oy, passo } = origemDoItem(item);
+    const dx = item.dx || 0;
+    const dy = item.dy || 0;
     const o = specDoItem(spec, cal);
     if (o && o.modo === 'canto' && o.pe) {
-      return rectFromBlit(posBlitVertice(ox, oy, o.pe, 0, 0), bbox);
+      return rectFromBlit(posBlitVertice(ox, oy, o.pe, dx, dy), bbox);
     }
     if (o && o.modo === 'centro' && o.ancora) {
       const c = iso(ox + passo / 2, oy + passo / 2);
       return {
-        x: ORIGEM.x + c.x - o.ancora.x + bbox.x,
-        y: ORIGEM.y + c.y - o.ancora.y + bbox.y,
+        x: ORIGEM.x + dx + c.x - o.ancora.x + bbox.x,
+        y: ORIGEM.y + dy + c.y - o.ancora.y + bbox.y,
         w: bbox.w,
         h: bbox.h,
       };
     }
     const c = iso(ox + 0.5, oy + 0.5);
     return {
-      x: ORIGEM.x + c.x - (bbox.x + bbox.w / 2) + bbox.x,
-      y: ORIGEM.y + c.y - (bbox.y + bbox.h) + bbox.y,
+      x: ORIGEM.x + dx + c.x - (bbox.x + bbox.w / 2) + bbox.x,
+      y: ORIGEM.y + dy + c.y - (bbox.y + bbox.h) + bbox.y,
       w: bbox.w,
       h: bbox.h,
     };
@@ -1036,28 +641,24 @@ function resumoPolitica(politica) {
     const spec = specPorId(peca.assetId);
     if (!assetEspelhavel(spec)) return;
     marcarUndo();
+    // 1) Inverte o sprite (flag explicita — drop/arraste nao espelha sozinho).
+    peca.espelhado = !peca.espelhado;
+    // 2) Leva para a parede oposta no mesmo "indice" ao longo da aresta.
     const faceNova = peca.face === 'L' ? 'R' : 'L';
-    const peAntigo = peDaFace(peca.face);
-    const peNovo = peDaFace(faceNova);
-    const dx = peca.dx || 0;
-    // Reflexao horizontal aproximada em torno do pe da face.
-    const dxNovo = Math.round(-(dx + (peAntigo.x - peNovo.x) * 0.15));
     if (faceNova === 'L') {
       peca.face = 'L';
+      peca.gy = clampInt(typeof peca.gx === 'number' ? peca.gx : peca.gy || 0, 0, gradeH() - 1);
       peca.gx = 0;
-      peca.gy = clampInt(peca.gy || 0, 0, gradeH() - 1);
     } else {
       peca.face = 'R';
+      peca.gx = clampInt(typeof peca.gy === 'number' ? peca.gy : peca.gx || 0, 0, gradeW() - 1);
       peca.gy = 0;
-      peca.gx = clampInt(peca.gx || 0, 0, gradeW() - 1);
     }
-    peca.dx = dxNovo;
-    estado.palco[idx] = rebasearAnexoParede(peca, gradeW(), gradeH(), { R: peR, L: peL });
-    estado.paredeSel = {
-      face: estado.palco[idx].face,
-      gx: estado.palco[idx].gx,
-      gy: estado.palco[idx].gy,
-    };
+    // Mantem dy (altura na parede); zera dx para ancorar limpo no pe da face nova.
+    peca.dx = 0;
+    // NAO chama rebasearAnexoParede — ele recalculava a face pela posicao e
+    // desfazia o salto / misturava com o flip automatico.
+    estado.paredeSel = { face: peca.face, gx: peca.gx, gy: peca.gy };
     paredePecaIx = idx;
     gravarEstado(estado);
     pintarListaParede();
@@ -1089,7 +690,7 @@ function resumoPolitica(politica) {
     return { tipo: 'piso', celula: g };
   }
 
-  function plantarNoPonto(spec, px, py) {
+  function plantarNoPonto(spec, px, py, snap) {
     if (!spec) return;
     if (estado.combinando) {
       adicionarAoCompose(spec);
@@ -1112,6 +713,7 @@ function resumoPolitica(politica) {
         gy: face.gy,
         dx: 0,
         dy: dyInicialParede(spec.assetId),
+        espelhado: false,
       });
       paredePecaIx = estado.palco.length - 1;
       if (spec.fileName) bboxDe(spec.fileName).catch(() => undefined);
@@ -1131,6 +733,7 @@ function resumoPolitica(politica) {
         gy: face.gy,
         dx: 0,
         dy: dyInicialParede(spec.assetId),
+        espelhado: false,
       });
       paredePecaIx = estado.palco.length - 1;
       desenharPalco();
@@ -1144,10 +747,23 @@ function resumoPolitica(politica) {
       assetId: spec.assetId,
       gx: sel.gx,
       gy: sel.gy,
-      qx: sel.qx || 0,
-      qy: sel.qy || 0,
-      passo: 0.5,
+      qx: 0,
+      qy: 0,
+      passo: 1,
+      dx: 0,
+      dy: 0,
     };
+    if (spec.papel === 'decor') alvo.papel = 'decor';
+    if (snap) {
+      // Shift: snap legado aos quartis da celula (sem offset livre).
+      alvo.qx = sel.qx || 0;
+      alvo.qy = sel.qy || 0;
+      alvo.passo = 0.5;
+    } else {
+      const off = offsetPisoDoPonto(px, py, sel.gx, sel.gy);
+      alvo.dx = off.dx;
+      alvo.dy = off.dy;
+    }
     estado.palco.push(alvo);
     paredePecaIx = estado.palco.length - 1;
     desenharPalco();
@@ -1283,15 +899,917 @@ function resumoPolitica(politica) {
     if (top) top.classList.toggle('ativo', bookAberto);
   }
 
+  const IFRAME_FRAMES = {
+    none: { assetId: null, inset: { u0: 0, v0: 0, u1: 1, v1: 1 }, span: 2, heightPx: 44, sw: 96, sh: 48 },
+    tv: { assetId: 'office-tv-off', inset: { u0: 0.18, v0: 0.22, u1: 0.82, v1: 0.72 }, span: 1, heightPx: 28, sw: 64, sh: 48 },
+    'big-tv': { assetId: 'big-tv-off', inset: { u0: 0.12, v0: 0.18, u1: 0.88, v1: 0.78 }, span: 2, heightPx: 40, sw: 96, sh: 72 },
+    cork: { assetId: 'corkboard-2', inset: { u0: 0.14, v0: 0.16, u1: 0.86, v1: 0.84 }, span: 1, heightPx: 36, sw: 64, sh: 56 },
+    screen: { assetId: 'projector-screen', inset: { u0: 0.1, v0: 0.12, u1: 0.9, v1: 0.82 }, span: 3, heightPx: 48, sw: 96, sh: 64 },
+    'tv-3x': { assetId: 'created-wall-tv-3x', inset: { u0: 0.08, v0: 0.1, u1: 0.92, v1: 0.88 }, span: 3, heightPx: 100, sw: 192, sh: 100 },
+    'tv-4x': { assetId: 'created-wall-tv-4x', inset: { u0: 0.08, v0: 0.1, u1: 0.92, v1: 0.88 }, span: 4, heightPx: 100, sw: 256, sh: 100 },
+    'tv-war': { assetId: 'created-wall-tv-war', inset: { u0: 0.06, v0: 0.08, u1: 0.94, v1: 0.9 }, span: 6, heightPx: 120, sw: 384, sh: 120 },
+    'cork-wide': { assetId: 'created-cork-wide', inset: { u0: 0.1, v0: 0.12, u1: 0.9, v1: 0.88 }, span: 3, heightPx: 72, sw: 192, sh: 72 },
+    'cork-tall': { assetId: 'created-cork-tall', inset: { u0: 0.12, v0: 0.1, u1: 0.88, v1: 0.9 }, span: 2, heightPx: 110, sw: 128, sh: 110 },
+  };
+
+  function insetParaCantos(inset) {
+    const u0 = Math.min(inset.u0, inset.u1);
+    const u1 = Math.max(inset.u0, inset.u1);
+    const v0 = Math.min(inset.v0, inset.v1);
+    const v1 = Math.max(inset.v0, inset.v1);
+    return {
+      tl: { u: u0, v: v0 },
+      tr: { u: u1, v: v0 },
+      br: { u: u1, v: v1 },
+      bl: { u: u0, v: v1 },
+    };
+  }
+
+  function cantosDaMidia(mid) {
+    if (mid.screenCorners) return mid.screenCorners;
+    const preset = IFRAME_FRAMES[mid.frame] || IFRAME_FRAMES.none;
+    return insetParaCantos(mid.screenInset || preset.inset);
+  }
+
+  function gradeApartirCantosLab(corners, cols = 3, rows = 3) {
+    const points = [];
+    for (let r = 0; r < rows; r++) {
+      const tv = r / (rows - 1);
+      for (let c = 0; c < cols; c++) {
+        const tu = c / (cols - 1);
+        const topU = corners.tl.u + (corners.tr.u - corners.tl.u) * tu;
+        const topV = corners.tl.v + (corners.tr.v - corners.tl.v) * tu;
+        const botU = corners.bl.u + (corners.br.u - corners.bl.u) * tu;
+        const botV = corners.bl.v + (corners.br.v - corners.bl.v) * tu;
+        points.push({ u: topU + (botU - topU) * tv, v: topV + (botV - topV) * tv });
+      }
+    }
+    return { cols, rows, points };
+  }
+
+  /** Ix da midia em calibracao; null = off. */
+  let iframeCalibIx = null;
+  /** Handle ativo: 'tl'|'tr'|'br'|'bl' | 'w:r:c' */
+  let iframeCalibHandle = null;
+  /** Preview raster no palco: mediaId → { kind, source, status } */
+  const nestPreviewCache = new Map();
+  let nestVideoRaf = 0;
+  let nestVideoTabAtiva = false;
+
+  if (!Array.isArray(estado.wallMedia)) estado.wallMedia = [];
+
+  function statusPreviewChip(m) {
+    const st = m._previewStatus || nestPreviewCache.get(m.mediaId)?.status;
+    if (st === 'ok') return '✓';
+    if (st === 'loading') return '…';
+    if (st === 'erro') return '!';
+    return '–';
+  }
+
+  function urlPareceImagemLab(url) {
+    if (!url) return false;
+    if (url.startsWith('data:image/')) return true;
+    if (/\.(png|jpe?g|gif|webp|bmp|svg|avif)(\?|#|$)/i.test(url)) return true;
+    // CDNs / hotlink sem extensao no path (Google Images, etc.)
+    if (
+      /(?:^|[/.])(?:gstatic|googleusercontent|ggpht|twimg|imgur|unsplash|images\.unsplash|cloudinary|imgix|pinimg|fbcdn|cdninstagram|wikimedia|ytimg)\./i.test(
+        url,
+      )
+    ) {
+      return true;
+    }
+    if (/[?&](format|fm|imgfmt)=(jpg|jpeg|png|webp|gif)/i.test(url)) return true;
+    if (/\/(?:image|images|img|photo|photos|media)\//i.test(url) && /^https?:/i.test(url)) return true;
+    return false;
+  }
+
+  function urlPareceVideoLab(url) {
+    if (!url) return false;
+    if (url.startsWith('data:video/')) return true;
+    return /\.(mp4|webm|ogg)(\?|#|$)/i.test(url);
+  }
+
+  function detectarTipoPreview(url, display) {
+    const u = (url || '').trim();
+    if (!u || u === 'about:blank') return 'placeholder';
+    if (/#chart|chart-demo/i.test(u)) return 'chart';
+    if (/#table|table-demo/i.test(u)) return 'table';
+    if (parseYoutubeUrl(u)) return 'youtube';
+    if (display === 'image' || urlPareceImagemLab(u)) return 'image';
+    if (urlPareceVideoLab(u)) return 'video';
+    return 'page';
+  }
+
+  /**
+   * Extrai id + start de youtube.com / youtu.be / shorts / embed.
+   * Ex.: https://www.youtube.com/watch?v=OkNo_N85em0&t=3067s
+   */
+  function parseYoutubeUrl(url) {
+    try {
+      const u = new URL(url.trim());
+      const host = u.hostname.replace(/^www\./, '');
+      if (
+        host !== 'youtube.com' &&
+        host !== 'm.youtube.com' &&
+        host !== 'music.youtube.com' &&
+        host !== 'youtu.be' &&
+        host !== 'youtube-nocookie.com'
+      ) {
+        return null;
+      }
+      let id = null;
+      if (host === 'youtu.be') {
+        id = u.pathname.replace(/^\//, '').split('/')[0] || null;
+      } else if (u.pathname.startsWith('/embed/') || u.pathname.startsWith('/shorts/') || u.pathname.startsWith('/live/')) {
+        id = u.pathname.split('/')[2] || null;
+      } else {
+        id = u.searchParams.get('v');
+      }
+      if (!id || !/^[\w-]{6,32}$/.test(id)) return null;
+
+      let start = 0;
+      const tRaw = u.searchParams.get('t') || u.searchParams.get('start') || '';
+      if (/^\d+$/.test(tRaw)) {
+        start = Number(tRaw);
+      } else if (tRaw) {
+        const m = tRaw.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/i);
+        if (m) {
+          start =
+            (Number(m[1]) || 0) * 3600 + (Number(m[2]) || 0) * 60 + (Number(m[3]) || 0);
+        }
+      }
+      // Hash #t=1m30s
+      const hashT = (u.hash || '').match(/t=([^&]+)/);
+      if (hashT && !start) {
+        const ht = hashT[1];
+        if (/^\d+$/.test(ht)) start = Number(ht);
+        else {
+          const m = ht.match(/(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?/i);
+          if (m) {
+            start =
+              (Number(m[1]) || 0) * 3600 + (Number(m[2]) || 0) * 60 + (Number(m[3]) || 0);
+          }
+        }
+      }
+
+      return {
+        id,
+        start,
+        thumb: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+        thumbMax: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`,
+        embed:
+          `https://www.youtube.com/embed/${id}?` +
+          `start=${start}&autoplay=1&mute=1&rel=0&modestbranding=1&playsinline=1`,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  const NEST_LIVE_W = 320;
+  const NEST_LIVE_H = 180;
+
+  function nestLiveHost() {
+    return document.getElementById('nest-live-overlay');
+  }
+
+  function solveLinear8Lab(A, B) {
+    const n = 8;
+    const M = A.map((row, i) => [...row, B[i]]);
+    for (let col = 0; col < n; col++) {
+      let piv = col;
+      for (let r = col + 1; r < n; r++) {
+        if (Math.abs(M[r][col]) > Math.abs(M[piv][col])) piv = r;
+      }
+      [M[col], M[piv]] = [M[piv], M[col]];
+      const diag = M[col][col];
+      if (Math.abs(diag) < 1e-12) continue;
+      for (let c = col; c <= n; c++) M[col][c] /= diag;
+      for (let r = 0; r < n; r++) {
+        if (r === col) continue;
+        const f = M[r][col];
+        for (let c = col; c <= n; c++) M[r][c] -= f * M[col][c];
+      }
+    }
+    return M.map((row) => row[n]);
+  }
+
+  function homografiaMatrix3dLab(srcW, srcH, dst) {
+    const s = [
+      { x: 0, y: 0 },
+      { x: srcW, y: 0 },
+      { x: srcW, y: srcH },
+      { x: 0, y: srcH },
+    ];
+    const d = [dst.tl, dst.tr, dst.br, dst.bl];
+    const A = [];
+    const B = [];
+    for (let i = 0; i < 4; i++) {
+      const { x, y } = s[i];
+      const { x: u, y: v } = d[i];
+      A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]);
+      B.push(u);
+      A.push([0, 0, 0, x, y, 1, -v * x, -v * y]);
+      B.push(v);
+    }
+    const h8 = solveLinear8Lab(A, B);
+    const a = h8[0];
+    const b = h8[1];
+    const c = h8[2];
+    const d0 = h8[3];
+    const e = h8[4];
+    const f = h8[5];
+    const g = h8[6];
+    const hh = h8[7];
+    const i = 1;
+    return `matrix3d(${a},${d0},0,${g}, ${b},${e},0,${hh}, 0,0,1,0, ${c},${f},0,${i})`;
+  }
+
+  function criarYoutubeIframe(yt) {
+    const el = document.createElement('iframe');
+    el.title = `YouTube ${yt.id}`;
+    el.src = yt.embed;
+    el.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+    el.allowFullscreen = true;
+    el.referrerPolicy = 'strict-origin-when-cross-origin';
+    el.width = String(NEST_LIVE_W);
+    el.height = String(NEST_LIVE_H);
+    el.style.width = `${NEST_LIVE_W}px`;
+    el.style.height = `${NEST_LIVE_H}px`;
+    el.style.pointerEvents = 'auto';
+    return el;
+  }
+
+  function syncNestLiveOverlays() {
+    const host = nestLiveHost();
+    const cv = document.getElementById('palco');
+    if (!host || !cv || cv.hidden) {
+      if (host) host.querySelectorAll('iframe').forEach((el) => { el.style.display = 'none'; });
+      return;
+    }
+    const sx = cv.clientWidth / cv.width;
+    const sy = cv.clientHeight / cv.height;
+    const seen = new Set();
+
+    for (let mi = 0; mi < (estado.wallMedia || []).length; mi++) {
+      const mid = estado.wallMedia[mi];
+      if (!mid?.face) continue;
+      const entry = nestPreviewCache.get(mid.mediaId);
+      if (!entry || entry.kind !== 'youtube' || !entry.iframe) continue;
+      seen.add(mid.mediaId);
+      const el = entry.iframe;
+      if (!el.parentElement) host.appendChild(el);
+
+      const calibrando = mi === iframeCalibIx;
+      if (calibrando) {
+        el.style.display = 'none';
+        continue;
+      }
+      el.style.display = 'block';
+
+      const preset = IFRAME_FRAMES[mid.frame] || IFRAME_FRAMES.none;
+      const pe = peDaFace(mid.face);
+      const v = verticeDaFace(mid.face, mid.gx, mid.gy);
+      const topLeft = posBlitVertice(v.vx, v.vy, pe, mid.dx || 0, mid.dy || 0);
+      let sw;
+      let sh;
+      if (mid.frame && mid.frame !== 'none') {
+        sw = preset.sw;
+        sh = preset.sh;
+      } else {
+        const span = mid.size?.w || preset.span;
+        sw = span * (LARGURA_TILE / 2);
+        sh = mid.heightPx || preset.heightPx;
+      }
+      const corners = cantosDaMidia(mid);
+      const pt = (p) => ({
+        x: (topLeft.x + p.u * sw) * sx,
+        y: (topLeft.y + p.v * sh) * sy,
+      });
+      const cssQ = {
+        tl: pt(corners.tl),
+        tr: pt(corners.tr),
+        br: pt(corners.br),
+        bl: pt(corners.bl),
+      };
+      el.style.transform = homografiaMatrix3dLab(NEST_LIVE_W, NEST_LIVE_H, cssQ);
+      el.dataset.mediaId = mid.mediaId;
+    }
+
+    host.querySelectorAll('iframe').forEach((el) => {
+      const id = el.dataset.mediaId;
+      if (id && !seen.has(id)) el.remove();
+    });
+  }
+
+  /** Carrega imagem para blit no Lab. Prefere sem CORS (tainted ok para preview). */
+  async function carregarImagemLab(url) {
+    const load = (useCors) =>
+      new Promise((resolve, reject) => {
+        const img = new Image();
+        if (useCors) img.crossOrigin = 'anonymous';
+        img.decoding = 'async';
+        img.onload = () => {
+          if (!img.naturalWidth) reject(new Error('empty'));
+          else resolve(img);
+        };
+        img.onerror = () => reject(new Error('img'));
+        img.src = url;
+      });
+
+    // 1) Sem CORS — funciona com gstatic/hotlink e ainda desenha no canvas.
+    try {
+      return await load(false);
+    } catch {
+      /* try next */
+    }
+    // 2) Com CORS (CDN que permite).
+    try {
+      return await load(true);
+    } catch {
+      /* try next */
+    }
+    // 3) fetch → blob (mesma origem / proxies permissivos).
+    const res = await fetch(url, { mode: 'cors' });
+    if (!res.ok) throw new Error('fetch');
+    const blob = await res.blob();
+    if (!blob.type.startsWith('image/') && blob.type !== 'application/octet-stream') {
+      throw new Error('not-image');
+    }
+    const objUrl = URL.createObjectURL(blob);
+    try {
+      const img = await new Promise((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = () => reject(new Error('blob'));
+        im.src = objUrl;
+      });
+      return img;
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
+    }
+  }
+
+  function criarCanvasDemoChart() {
+    const c = document.createElement('canvas');
+    c.width = 320;
+    c.height = 180;
+    const ctx = c.getContext('2d');
+    const g = ctx.createLinearGradient(0, 0, 320, 180);
+    g.addColorStop(0, '#061018');
+    g.addColorStop(1, '#0d2233');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 320, 180);
+    const hs = [60, 80, 100, 70, 110, 85, 95];
+    ctx.fillStyle = '#3d8bfd';
+    hs.forEach((h, i) => {
+      const x = 24 + i * 40;
+      ctx.fillRect(x, 160 - h, 28, h);
+    });
+    ctx.fillStyle = '#7dd3fc';
+    ctx.font = '14px monospace';
+    ctx.fillText('EURUSD · M5 demo', 16, 28);
+    return c;
+  }
+
+  function criarCanvasDemoTable() {
+    const c = document.createElement('canvas');
+    c.width = 320;
+    c.height = 180;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#0a1210';
+    ctx.fillRect(0, 0, 320, 180);
+    ctx.strokeStyle = '#2a3a34';
+    ctx.fillStyle = '#9ae6b4';
+    ctx.font = '12px monospace';
+    const rows = [
+      ['Symbol', 'Bid', 'Ask'],
+      ['EURUSD', '1.0842', '1.0844'],
+      ['XAUUSD', '2341', '2342'],
+      ['BTC', '64210', '64240'],
+    ];
+    rows.forEach((r, i) => {
+      const y = 28 + i * 36;
+      ctx.strokeRect(12, y - 16, 296, 32);
+      ctx.fillText(r[0], 20, y);
+      ctx.fillText(r[1], 120, y);
+      ctx.fillText(r[2], 220, y);
+    });
+    return c;
+  }
+
+  function criarCanvasPlaceholder(url, erro) {
+    const c = document.createElement('canvas');
+    c.width = 320;
+    c.height = 180;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = erro ? '#2a1010' : '#0a1620';
+    ctx.fillRect(0, 0, 320, 180);
+    ctx.fillStyle = erro ? '#f87171' : '#7dd3fc';
+    ctx.font = '13px monospace';
+    ctx.fillText(erro ? 'PREVIEW ERRO' : 'SCREEN ON', 16, 40);
+    ctx.fillStyle = '#5a7a6a';
+    ctx.font = '11px monospace';
+    let host = url || '';
+    try {
+      host = new URL(url, 'https://local.test').hostname || url.slice(0, 40);
+    } catch {
+      host = String(url).slice(0, 40);
+    }
+    ctx.fillText(host, 16, 70);
+    ctx.fillText(erro ? 'CORS / URL invalida' : 'Cole URL .png/.jpg ou #chart', 16, 100);
+    return c;
+  }
+
+  function sourcePronto(entry) {
+    if (!entry || !entry.source) return false;
+    if (entry.kind === 'image' || entry.kind === 'youtube') {
+      const s = entry.source;
+      if (s instanceof HTMLCanvasElement) return true;
+      return s.complete && s.naturalWidth > 0;
+    }
+    if (entry.kind === 'video') return entry.source.readyState >= 2;
+    return true; // canvas chart/table/placeholder
+  }
+
+  function blitNestTriangulo(ctx, img, iw, ih, u0, v0, u1, v1, u2, v2, p0, p1, p2) {
+    const x0 = u0 * iw;
+    const y0 = v0 * ih;
+    const x1 = u1 * iw;
+    const y1 = v1 * ih;
+    const x2 = u2 * iw;
+    const y2 = v2 * ih;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.closePath();
+    ctx.clip();
+    const denom = x0 * (y1 - y2) + x1 * (y2 - y0) + x2 * (y0 - y1);
+    if (Math.abs(denom) < 1e-6) {
+      ctx.restore();
+      return;
+    }
+    const m11 = (p0.x * (y1 - y2) + p1.x * (y2 - y0) + p2.x * (y0 - y1)) / denom;
+    const m12 = (p0.x * (x2 - x1) + p1.x * (x0 - x2) + p2.x * (x1 - x0)) / denom;
+    const m13 =
+      (p0.x * (x1 * y2 - x2 * y1) + p1.x * (x2 * y0 - x0 * y2) + p2.x * (x0 * y1 - x1 * y0)) / denom;
+    const m21 = (p0.y * (y1 - y2) + p1.y * (y2 - y0) + p2.y * (y0 - y1)) / denom;
+    const m22 = (p0.y * (x2 - x1) + p1.y * (x0 - x2) + p2.y * (x1 - x0)) / denom;
+    const m23 =
+      (p0.y * (x1 * y2 - x2 * y1) + p1.y * (x2 * y0 - x0 * y2) + p2.y * (x0 * y1 - x1 * y0)) / denom;
+    ctx.transform(m11, m21, m12, m22, m13, m23);
+    ctx.imageSmoothingEnabled = true;
+    if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, 0, 0);
+    ctx.restore();
+  }
+
+  function blitNestWarp(ctx, source, cornersUv, topLeft, sw, sh, warpGrid, blendMode) {
+    let img = source;
+    let iw;
+    let ih;
+    if (source instanceof HTMLVideoElement) {
+      iw = source.videoWidth || 320;
+      ih = source.videoHeight || 180;
+      img = source;
+    } else if (source instanceof HTMLCanvasElement) {
+      iw = source.width;
+      ih = source.height;
+      img = source;
+    } else {
+      iw = source.naturalWidth || source.width;
+      ih = source.naturalHeight || source.height;
+    }
+    if (!iw || !ih) return;
+
+    const uvPt = (p) => ({ x: topLeft.x + p.u * sw, y: topLeft.y + p.v * sh });
+    // Mesh mais densa = borda mais limpa quando o nest e pequeno.
+    const grid = warpGrid || gradeApartirCantosLab(cornersUv, 4, 4);
+    const { cols, rows, points } = grid;
+    if (!points || points.length < cols * rows) return;
+
+    const prev = ctx.globalCompositeOperation;
+    const prevSmooth = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = true;
+    if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+    // Default opaco/nitido (nao holograma). screen soh se escolhido.
+    if (blendMode === 'screen') ctx.globalCompositeOperation = 'screen';
+    else if (blendMode === 'linear-dodge') ctx.globalCompositeOperation = 'lighter';
+    else ctx.globalCompositeOperation = 'source-over';
+
+    for (let r = 0; r < rows - 1; r++) {
+      for (let c = 0; c < cols - 1; c++) {
+        const p00 = uvPt(points[r * cols + c]);
+        const p10 = uvPt(points[r * cols + (c + 1)]);
+        const p01 = uvPt(points[(r + 1) * cols + c]);
+        const p11 = uvPt(points[(r + 1) * cols + (c + 1)]);
+        const u0 = c / (cols - 1);
+        const u1 = (c + 1) / (cols - 1);
+        const v0 = r / (rows - 1);
+        const v1 = (r + 1) / (rows - 1);
+        blitNestTriangulo(ctx, img, iw, ih, u0, v0, u1, v0, u0, v1, p00, p10, p01);
+        blitNestTriangulo(ctx, img, iw, ih, u1, v0, u1, v1, u0, v1, p10, p11, p01);
+      }
+    }
+    ctx.globalCompositeOperation = prev;
+    ctx.imageSmoothingEnabled = prevSmooth;
+  }
+
+  function limparPreviewMidia(mediaId) {
+    const old = nestPreviewCache.get(mediaId);
+    if (old?.kind === 'video' && old.source) {
+      try {
+        old.source.pause();
+        old.source.removeAttribute('src');
+        old.source.load();
+      } catch {
+        /* ignore */
+      }
+    }
+    if (old?.iframe) {
+      try {
+        old.iframe.remove();
+      } catch {
+        /* ignore */
+      }
+    }
+    nestPreviewCache.delete(mediaId);
+  }
+
+  function temVideoPreviewAtivo() {
+    for (const e of nestPreviewCache.values()) {
+      if (e.kind === 'video' && e.status === 'ok') return true;
+    }
+    return false;
+  }
+
+  function pararNestVideoRaf() {
+    if (nestVideoRaf) {
+      cancelAnimationFrame(nestVideoRaf);
+      nestVideoRaf = 0;
+    }
+  }
+
+  function garantirNestVideoRaf() {
+    if (!nestVideoTabAtiva || !temVideoPreviewAtivo()) {
+      pararNestVideoRaf();
+      return;
+    }
+    if (nestVideoRaf) return;
+    const tick = () => {
+      nestVideoRaf = 0;
+      if (!nestVideoTabAtiva || !temVideoPreviewAtivo()) return;
+      desenharPalco();
+      nestVideoRaf = requestAnimationFrame(tick);
+    };
+    nestVideoRaf = requestAnimationFrame(tick);
+  }
+
+  async function aplicarPreviewNest(ix, opts = {}) {
+    const mid = estado.wallMedia[ix];
+    if (!mid) return;
+    const urlInput = document.querySelector(`[data-iframe-url="${ix}"]`);
+    if (urlInput && typeof urlInput.value === 'string') {
+      mid.url = urlInput.value.trim();
+    }
+    const url = (mid.url || '').trim();
+    limparPreviewMidia(mid.mediaId);
+    mid._previewStatus = 'loading';
+    if (!opts.silentList) atualizarListaIframe();
+
+    const tipo = detectarTipoPreview(url, mid.display);
+    const blendSel = document.getElementById('iframe-blend')?.value;
+    if (blendSel === 'normal' || blendSel === 'screen' || blendSel === 'linear-dodge') {
+      mid.blendMode = blendSel;
+    } else if (!mid.blendMode || mid.blendMode === 'screen') {
+      // Migrar default antigo (screen/holograma) → opaco nitido.
+      mid.blendMode = 'normal';
+    }
+    const setOk = (kind, source, extra = {}) => {
+      nestPreviewCache.set(mid.mediaId, { kind, source, status: 'ok', url, ...extra });
+      mid._previewStatus = 'ok';
+      mid.previewApplied = true;
+      // Aplicar esconde barras/handles; chip do nest reabre calibracao.
+      if (iframeCalibIx === ix) iframeCalibIx = null;
+      if (!opts.silentList) atualizarListaIframe();
+      desenharPalco();
+      garantirNestVideoRaf();
+    };
+    const setErro = (msg) => {
+      const ph = criarCanvasPlaceholder(url, true);
+      nestPreviewCache.set(mid.mediaId, { kind: 'placeholder', source: ph, status: 'erro', url });
+      mid._previewStatus = 'erro';
+      if (!opts.silentList) atualizarListaIframe();
+      desenharPalco();
+      const hint = document.getElementById('iframe-hint');
+      if (hint) hint.textContent = msg || 'Falha ao carregar preview (CORS/rede).';
+    };
+
+    try {
+      if (tipo === 'chart') {
+        setOk('chart', criarCanvasDemoChart());
+        return;
+      }
+      if (tipo === 'table') {
+        setOk('table', criarCanvasDemoTable());
+        return;
+      }
+      if (tipo === 'youtube') {
+        const yt = parseYoutubeUrl(url);
+        if (!yt) {
+          setErro('URL YouTube invalida.');
+          return;
+        }
+        let thumb;
+        try {
+          thumb = await carregarImagemLab(yt.thumbMax);
+        } catch {
+          try {
+            thumb = await carregarImagemLab(yt.thumb);
+          } catch {
+            thumb = criarCanvasPlaceholder(url, false);
+          }
+        }
+        const iframe = criarYoutubeIframe(yt);
+        iframe.dataset.mediaId = mid.mediaId;
+        const host = nestLiveHost();
+        if (host) host.appendChild(iframe);
+        setOk('youtube', thumb, { iframe, yt });
+        const hint = document.getElementById('iframe-hint');
+        if (hint) {
+          hint.textContent = `YouTube ${yt.id}` + (yt.start ? ` @ ${yt.start}s` : '') + ' — player ao vivo no nest.';
+        }
+        return;
+      }
+      if (tipo === 'image') {
+        try {
+          const img = await carregarImagemLab(url);
+          setOk('image', img);
+        } catch {
+          setErro(
+            'Imagem nao carregou (CORS ou URL invalida). Use data:image/…, arquivo local servido, ou #chart.',
+          );
+        }
+        return;
+      }
+      if (tipo === 'page' || tipo === 'placeholder') {
+        setOk('placeholder', criarCanvasPlaceholder(url, false));
+        return;
+      }
+      if (tipo === 'video') {
+        const vid = document.createElement('video');
+        vid.muted = true;
+        vid.loop = true;
+        vid.playsInline = true;
+        vid.preload = 'auto';
+        await new Promise((resolve, reject) => {
+          vid.onloadeddata = () => resolve();
+          vid.onerror = () => reject(new Error('video'));
+          vid.src = url;
+        });
+        try {
+          await vid.play();
+        } catch {
+          /* autoplay */
+        }
+        setOk('video', vid);
+        return;
+      }
+      setOk('placeholder', criarCanvasPlaceholder(url, false));
+    } catch {
+      setErro('Nao foi possivel carregar a URL (tente data: / YouTube / #chart).');
+    }
+  }
+
+  function salvarUrlNest(ix) {
+    const mid = estado.wallMedia[ix];
+    if (!mid) return;
+    const urlInput = document.querySelector(`[data-iframe-url="${ix}"]`);
+    const url = urlInput ? urlInput.value.trim() : mid.url;
+    marcarUndo();
+    mid.url = url;
+    gravarEstado(estado);
+    const hint = document.getElementById('iframe-hint');
+    if (hint) hint.textContent = 'URL salva. Clique Aplicar para renderizar no canvas.';
+    atualizarListaIframe();
+  }
+
+  function autoAplicarPreviewsNest() {
+    const lista = estado.wallMedia || [];
+    lista.forEach((m, i) => {
+      const url = (m.url || '').trim();
+      if (!url || url === 'about:blank') return;
+      const tipo = detectarTipoPreview(url, m.display);
+      const deve =
+        m.previewApplied ||
+        tipo === 'image' ||
+        tipo === 'video' ||
+        tipo === 'youtube' ||
+        tipo === 'chart' ||
+        tipo === 'table';
+      if (!deve) return;
+      void aplicarPreviewNest(i, { silentList: true }).then(() => {
+        atualizarListaIframe();
+        garantirNestVideoRaf();
+      });
+    });
+  }
+
+  function atualizarListaIframe() {
+    const ul = document.getElementById('iframe-lista');
+    if (!ul) return;
+    const lista = estado.wallMedia || [];
+    if (!lista.length) {
+      ul.innerHTML = '<li class="nota">Nenhuma midia no palco.</li>';
+      return;
+    }
+    ul.innerHTML = lista
+      .map((m, i) => {
+        const st = statusPreviewChip(m);
+        const urlEsc = String(m.url || '')
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/</g, '&lt;');
+        return (
+          `<li class="iframe-lista-item">` +
+          `<div class="iframe-lista-top">` +
+          `<button type="button" data-iframe-ix="${i}" class="chip-filter${iframeCalibIx === i ? ' ativo' : ''}">` +
+          `${st} ${m.frame || 'none'} · ${m.display || 'auto'} · ${m.face} ${m.gx},${m.gy}` +
+          `</button>` +
+          `<button type="button" data-iframe-url-save="${i}" title="Salvar URL">URL</button>` +
+          `<button type="button" data-iframe-apply="${i}" title="Aplicar no canvas">Aplicar</button>` +
+          `<button type="button" data-iframe-rm="${i}">x</button>` +
+          `</div>` +
+          `<input type="url" data-iframe-url="${i}" class="iframe-url-row" value="${urlEsc}" placeholder="https://… · data:image/… · #chart · #table" />` +
+          `</li>`
+        );
+      })
+      .join('');
+    ul.querySelectorAll('[data-iframe-ix]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const ix = Number(btn.getAttribute('data-iframe-ix'));
+        // Clique no chip: reabre barras/handles de calibracao desse nest.
+        iframeCalibIx = iframeCalibIx === ix ? null : ix;
+        atualizarListaIframe();
+        desenharPalco();
+      });
+    });
+    ul.querySelectorAll('[data-iframe-url-save]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        salvarUrlNest(Number(btn.getAttribute('data-iframe-url-save')));
+      });
+    });
+    ul.querySelectorAll('[data-iframe-apply]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const ix = Number(btn.getAttribute('data-iframe-apply'));
+        marcarUndo();
+        void aplicarPreviewNest(ix).then(() => {
+          gravarEstado(estado);
+        });
+      });
+    });
+    ul.querySelectorAll('[data-iframe-rm]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const ix = Number(btn.getAttribute('data-iframe-rm'));
+        marcarUndo();
+        const mid = estado.wallMedia[ix];
+        if (mid) limparPreviewMidia(mid.mediaId);
+        estado.wallMedia.splice(ix, 1);
+        if (iframeCalibIx === ix) iframeCalibIx = null;
+        else if (iframeCalibIx != null && iframeCalibIx > ix) iframeCalibIx -= 1;
+        if (mid && mid.mountAssetId) {
+          const mi = estado.palco.findIndex(
+            (p) =>
+              itemEParede(p) &&
+              p.assetId === mid.mountAssetId &&
+              p.face === mid.face &&
+              p.gx === mid.gx &&
+              p.gy === mid.gy,
+          );
+          if (mi >= 0) estado.palco.splice(mi, 1);
+        }
+        atualizarListaIframe();
+        desenharPalco();
+        gravarEstado(estado);
+        garantirNestVideoRaf();
+      });
+    });
+  }
+
+  function plantarIframeNaParede() {
+    const face = estado.paredeSel || { face: 'R', gx: estado.celula?.gx || 0, gy: 0 };
+    if (!face) {
+      const hint = document.getElementById('iframe-hint');
+      if (hint) hint.textContent = 'Clique numa face de parede no palco antes de plantar.';
+      return;
+    }
+    const frame = document.getElementById('iframe-frame')?.value || 'none';
+    const url = document.getElementById('iframe-url')?.value?.trim() || 'about:blank';
+    const span = clampInt(document.getElementById('iframe-span')?.value, 1, 16) || 2;
+    const heightPx = clampInt(document.getElementById('iframe-height')?.value, 16, 480) || 44;
+    const display = document.getElementById('iframe-display')?.value || 'auto';
+    const blendMode = document.getElementById('iframe-blend')?.value || 'normal';
+    const preset = IFRAME_FRAMES[frame] || IFRAME_FRAMES.none;
+    marcarUndo();
+    const mediaId = `wm-iframe-${Date.now().toString(36)}`;
+    const corners = insetParaCantos(preset.inset);
+    const entry = {
+      mediaId,
+      kind: 'iframe',
+      url,
+      frame,
+      mountAssetId: preset.assetId || undefined,
+      nestAssetId: preset.assetId || undefined,
+      face: face.face,
+      gx: face.gx,
+      gy: face.gy,
+      dx: 0,
+      dy: dyInicialParede(preset.assetId || 'office-tv-off'),
+      size: { w: frame === 'none' ? span : preset.span, h: 1 },
+      heightPx: frame === 'none' ? heightPx : preset.heightPx,
+      screenInset: { ...preset.inset },
+      screenCorners: corners,
+      display,
+      blendMode,
+    };
+    if (preset.assetId) {
+      estado.palco.push({
+        assetId: preset.assetId,
+        papel: 'wall',
+        face: face.face,
+        gx: face.gx,
+        gy: face.gy,
+        dx: entry.dx,
+        dy: entry.dy,
+        espelhado: false,
+      });
+      paredePecaIx = estado.palco.length - 1;
+    }
+    estado.wallMedia.push(entry);
+    iframeCalibIx = estado.wallMedia.length - 1;
+    estado.modoPlantar = 'parede';
+    estado.paredeSel = face;
+    atualizarListaIframe();
+    desenharPalco();
+    gravarEstado(estado);
+    if (urlPareceImagemLab(url) || /#chart|#table/i.test(url) || parseYoutubeUrl(url)) {
+      void aplicarPreviewNest(iframeCalibIx);
+    }
+  }
+
+  function exportarPresetIframe() {
+    const mid = iframeCalibIx != null ? estado.wallMedia[iframeCalibIx] : null;
+    if (!mid) {
+      const hint = document.getElementById('iframe-hint');
+      if (hint) hint.textContent = 'Selecione uma midia na lista para exportar.';
+      return;
+    }
+    const preset = IFRAME_FRAMES[mid.frame] || IFRAME_FRAMES.none;
+    const assetId = mid.nestAssetId || mid.mountAssetId || preset.assetId || 'custom';
+    const corners = cantosDaMidia(mid);
+    const warp = mid.warpGrid ? `,\n  warpGrid: ${JSON.stringify(mid.warpGrid)}` : '';
+    const snippet = `'${assetId}': {\n  assetId: '${assetId}',\n  spriteW: ${preset.sw},\n  spriteH: ${preset.sh},\n  corners: ${JSON.stringify(corners)}${warp},\n},`;
+    void navigator.clipboard?.writeText(snippet);
+    const hint = document.getElementById('iframe-hint');
+    if (hint) hint.textContent = 'Preset copiado para a area de transferencia (cole em SCREEN_NEST_PRESETS).';
+    console.log(snippet);
+  }
+
+  function toggleWarpIframe() {
+    const mid = iframeCalibIx != null ? estado.wallMedia[iframeCalibIx] : null;
+    if (!mid) return;
+    marcarUndo();
+    if (mid.warpGrid) {
+      delete mid.warpGrid;
+    } else {
+      mid.warpGrid = gradeApartirCantosLab(cantosDaMidia(mid), 3, 3);
+    }
+    desenharPalco();
+    gravarEstado(estado);
+  }
+
   function setBookTab(tab) {
-    const tabs = ['assets', 'ambiente', 'temas'];
+    const tabs = ['assets', 'create', 'iframe', 'ambiente', 'temas'];
     const id = tabs.includes(tab) ? tab : 'assets';
     document.querySelectorAll('[data-book-tab]').forEach((b) => {
       b.classList.toggle('ativo', b.dataset.bookTab === id);
     });
     document.getElementById('pane-assets').hidden = id !== 'assets';
+    const paneCreate = document.getElementById('pane-create');
+    if (paneCreate) paneCreate.hidden = id !== 'create';
+    const paneIframe = document.getElementById('pane-iframe');
+    if (paneIframe) paneIframe.hidden = id !== 'iframe';
     document.getElementById('pane-ambiente').hidden = id !== 'ambiente';
     document.getElementById('pane-temas').hidden = id !== 'temas';
+    nestVideoTabAtiva = id === 'iframe';
+    if (id === 'iframe') {
+      atualizarListaIframe();
+      garantirNestVideoRaf();
+    } else {
+      pararNestVideoRaf();
+    }
   }
 
   function setModoLab(modo) {
@@ -1381,16 +1899,16 @@ function resumoPolitica(politica) {
         throw new Error(body.erro || 'HTTP ' + res.status);
       }
       setStatus(
-        'disco · ' + (body.temas != null ? body.temas + ' temas' : 'ok') +
-          (motivo ? ' · ' + motivo : ''),
+        'disco Â· ' + (body.temas != null ? body.temas + ' temas' : 'ok') +
+          (motivo ? ' Â· ' + motivo : ''),
         true,
       );
       const combos = await persistirCombosNoDisco(motivo);
       if (combos.ok && combos.combinacoes != null) {
         setStatus(
-          'disco · ' + (body.temas != null ? body.temas + ' temas' : 'ok') +
-            ' · ' + combos.combinacoes + ' combos' +
-            (motivo ? ' · ' + motivo : ''),
+          'disco Â· ' + (body.temas != null ? body.temas + ' temas' : 'ok') +
+            ' Â· ' + combos.combinacoes + ' combos' +
+            (motivo ? ' Â· ' + motivo : ''),
           true,
         );
       }
@@ -1399,7 +1917,7 @@ function resumoPolitica(politica) {
     } catch (err) {
       console.warn('[lab] persistencia no disco falhou:', err);
       setStatus(
-        'disco offline — rode pnpm lab:iso (lab-server). localStorage ok.',
+        'disco offline â€” rode pnpm lab:iso (lab-server). localStorage ok.',
         false,
       );
       return false;
@@ -1437,10 +1955,10 @@ function resumoPolitica(politica) {
         ? 'hover ' + h.gx + ',' + h.gy + ' q' + (h.qx || 0) + (h.qy || 0)
         : 'passe o mouse sobre um quarto do piso';
       const travadoTxt = posto
-        ? ' · travado ' + posto.gx + ',' + posto.gy + ' q' + (posto.qx || 0) + (posto.qy || 0)
-        : ' · nenhum assento travado';
+        ? ' Â· travado ' + posto.gx + ',' + posto.gy + ' q' + (posto.qx || 0) + (posto.qy || 0)
+        : ' Â· nenhum assento travado';
       el.textContent =
-        'marcar assento: clique esquerdo para travar, outra celula troca · Esc cancela modo · salve o tema depois. ' +
+        'marcar assento: clique esquerdo para travar, outra celula troca Â· Esc cancela modo Â· salve o tema depois. ' +
         hoverTxt +
         travadoTxt;
       pintarListaParede();
@@ -1457,7 +1975,7 @@ function resumoPolitica(politica) {
         });
         el.textContent =
           'face ' + sel.face + ' @ ' + sel.gx + ',' + sel.gy +
-          (pecas.length ? ' — ' + pecas.join(', ') : ' — vazia. Clique um card para plantar, arraste para alinhar.');
+          (pecas.length ? ' â€” ' + pecas.join(', ') : ' â€” vazia. Clique um card para plantar, arraste para alinhar.');
       }
       pintarListaParede();
       return;
@@ -1466,7 +1984,7 @@ function resumoPolitica(politica) {
       .filter((p) => !itemEParede(p) && p.gx === estado.celula.gx && p.gy === estado.celula.gy)
       .map((p) => (specPorId(p.assetId) ? specPorId(p.assetId).nome : p.assetId));
     el.textContent = 'celula selecionada: ' + estado.celula.gx + ',' + estado.celula.gy +
-      (ocupado.length ? ' — ' + ocupado.join(', ') : ' — vazia. Clique um card para plantar.');
+      (ocupado.length ? ' â€” ' + ocupado.join(', ') : ' â€” vazia. Clique um card para plantar.');
     pintarListaParede();
   }
 
@@ -1507,10 +2025,14 @@ function resumoPolitica(politica) {
     const txtG = document.getElementById('txt-grade');
     const txtA = document.getElementById('txt-andares');
     const txtS = document.getElementById('txt-subida');
+    const txtH = document.getElementById('txt-altura-parede');
     const hint = document.getElementById('grade-hint');
     const wrapS = document.getElementById('wrap-subida');
     if (txtG) txtG.textContent = w + ' × ' + h;
     if (txtA) txtA.textContent = String(estado.andares);
+    const altura = clampAlturaParede(estado.alturaParede != null ? estado.alturaParede : 1);
+    estado.alturaParede = altura;
+    if (txtH) txtH.textContent = altura + '×';
     const gxPlus = document.getElementById('btn-gx-plus');
     const gxMinus = document.getElementById('btn-gx-minus');
     const gyPlus = document.getElementById('btn-gy-plus');
@@ -1535,11 +2057,15 @@ function resumoPolitica(politica) {
     const aMinus = document.getElementById('btn-andar-minus');
     if (aPlus) aPlus.disabled = estado.andares >= ANDARES_MAX;
     if (aMinus) aMinus.disabled = estado.andares <= 1;
+    const hPlus = document.getElementById('btn-altura-parede-plus');
+    const hMinus = document.getElementById('btn-altura-parede-minus');
+    if (hPlus) hPlus.disabled = altura >= ALTURA_PAREDE_MAX - 1e-9;
+    if (hMinus) hMinus.disabled = altura <= ALTURA_PAREDE_MIN + 1e-9;
     if (wrapS) wrapS.hidden = estado.andares < 2;
     if (txtS) txtS.textContent = estado.andares < 2 ? '—' : String(subidaEfetiva(null)) + 'px';
     if (hint) {
-      hint.textContent = w >= GRADE_MAX
-        ? 'Palco no maximo ' + GRADE_MAX + 'x' + GRADE_MAX + '. Paredes NW acompanham. Andar extra empilha a mesma malha.'
+      hint.textContent = w >= GRADE_MAX && h >= GRADE_MAX
+        ? 'Palco no maximo ' + GRADE_MAX + '×' + GRADE_MAX + '. Paredes NW acompanham. Altura da parede ate ' + ALTURA_PAREDE_MAX + '×.'
         : '+gx adiciona ' + coordsFaixa('gx', w, h) + '. +gy adiciona ' + coordsFaixa('gy', h, w) +
           '. Paredes NW acompanham. Andar extra empilha com subida = pe.y − bbox.y da Wall_R.';
     }
@@ -1558,6 +2084,12 @@ function resumoPolitica(politica) {
   function alterarSubida(d) {
     const atual = subidaEfetiva(null);
     estado.subidaAndar = clampInt(atual + d, 16, 160);
+    pintarBarraGrade();
+    desenharPalco();
+  }
+  function alterarAlturaParede(d) {
+    const atual = clampAlturaParede(estado.alturaParede != null ? estado.alturaParede : 1);
+    estado.alturaParede = clampAlturaParede(atual + d * ALTURA_PAREDE_PASSO);
     pintarBarraGrade();
     desenharPalco();
   }
@@ -1589,16 +2121,26 @@ function resumoPolitica(politica) {
     const v = verticeDaFace(item.face, item.gx, item.gy);
     const dx = item.dx || 0;
     const dy = item.dy || 0;
+    // Espelho so com flag explicita (Ctrl+E / botao). Drop na face L nao inverte sozinho.
+    const espelhar = !!item.espelhado;
     async function blitUma(s, odx, ody) {
       if (!s || s.camadas || !s.fileName) return;
       try {
         const img = await carregar(s.fileName);
         const bbox = await bboxDe(s.fileName);
         withOrigemOffset(odx, ody, () => {
-          const o = blitNaVertice(ctx, img, v.vx, v.vy, pe);
+          const o = espelhar
+            ? blitNaVerticeEspelhado(ctx, img, v.vx, v.vy, pe)
+            : blitNaVertice(ctx, img, v.vx, v.vy, pe);
           if (diagnostico) {
             ctx.strokeStyle = 'rgba(255, 80, 200, 0.9)';
-            ctx.strokeRect(o.x + bbox.x, o.y + bbox.y, bbox.w, bbox.h);
+            if (espelhar) {
+              const telaX = o.tela.x;
+              const rx = telaX + pe.x - (bbox.x + bbox.w);
+              ctx.strokeRect(rx, o.y + bbox.y, bbox.w, bbox.h);
+            } else {
+              ctx.strokeRect(o.x + bbox.x, o.y + bbox.y, bbox.w, bbox.h);
+            }
             marcarPe(ctx, o.tela);
           }
         });
@@ -1654,24 +2196,50 @@ function resumoPolitica(politica) {
     const nAndares = estado.andares;
     subidaMedida = Math.max(8, peR.y - bboxR.y);
     const subida = subidaEfetiva(bboxR);
-    encaixarPalco(canvas, w, h, nAndares, subida);
+    const niveisPalco = clampAlturaParede(estado.alturaParede != null ? estado.alturaParede : 1);
+    const faixaR = faixaFaceParede(wallR, bboxR, peR.y);
+    encaixarPalco(canvas, w, h, nAndares, subida, estado.alturaParede, faixaR.passo);
     ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const celulas = celulasDoPalco();
     const gxPorta = Math.floor((w - 1) / 2);
+    // Altura da parede = niveis inteiros empilhados 1:1, fatiados sem emenda:
+    // capo (topo iso + sua sombra) so no nivel mais alto; espessura (base) so
+    // no nivel do chao; niveis repetem so a face limpa [limpo, pe.y].
+    const niveisParede = niveisPalco;
+    const faixaL = faixaFaceParede(wallL, bboxL, peL.y);
+
+    function blitParedeEmpilhada(img, pe, faixa, vx, vy, bbox) {
+      for (let nv = 0; nv < niveisParede; nv++) {
+        const ultimo = nv === niveisParede - 1;
+        withOrigemOffset(0, -nv * faixa.passo, () => {
+          let o;
+          if (niveisParede === 1) {
+            o = blitNaVertice(ctx, img, vx, vy, pe);
+          } else if (nv === 0) {
+            // base: face limpa + espessura, sem capo nem sombra do capo
+            o = blitNaVerticeFatia(ctx, img, vx, vy, pe, faixa.limpo, img.naturalHeight);
+          } else if (ultimo) {
+            // topo: capo + sombra + face, sem espessura
+            o = blitNaVerticeFatia(ctx, img, vx, vy, pe, 0, pe.y + 1);
+          } else {
+            // meio: so a face limpa
+            o = blitNaVerticeFatia(ctx, img, vx, vy, pe, faixa.limpo, pe.y + 1);
+          }
+          if (estado.diagnostico && nv === 0 && o) {
+            ctx.strokeStyle = 'rgba(255, 80, 200, 0.9)';
+            ctx.strokeRect(o.x + bbox.x, o.y + bbox.y, bbox.w, bbox.h);
+            marcarPe(ctx, o.tela);
+          }
+        });
+      }
+    }
 
     function blitEstrutura(andar) {
       withOrigemOffset(0, -andar * subida, () => {
         for (const c of celulas) blitTile(ctx, piso, c.gx, c.gy, ancoraPiso);
-        for (let gx = 0; gx < w; gx++) {
-          const o = blitNaVertice(ctx, wallR, gx, 0, peR);
-          if (estado.diagnostico) {
-            ctx.strokeStyle = 'rgba(255, 80, 200, 0.9)';
-            ctx.strokeRect(o.x + bboxR.x, o.y + bboxR.y, bboxR.w, bboxR.h);
-            marcarPe(ctx, o.tela);
-          }
-        }
+        for (let gx = 0; gx < w; gx++) blitParedeEmpilhada(wallR, peR, faixaR, gx, 0, bboxR);
         if (andar === 0) {
           const vMeio = iso(gxPorta, 0);
           const oPorta = blitNoPe(
@@ -1687,14 +2255,7 @@ function resumoPolitica(politica) {
             marcarPe(ctx, oPorta.tela);
           }
         }
-        for (let gy = 0; gy < h; gy++) {
-          const o = blitNaVertice(ctx, wallL, 0, gy, peL);
-          if (estado.diagnostico) {
-            ctx.strokeStyle = 'rgba(255, 80, 200, 0.9)';
-            ctx.strokeRect(o.x + bboxL.x, o.y + bboxL.y, bboxL.w, bboxL.h);
-            marcarPe(ctx, o.tela);
-          }
-        }
+        for (let gy = 0; gy < h; gy++) blitParedeEmpilhada(wallL, peL, faixaL, 0, gy, bboxL);
       });
     }
 
@@ -1714,13 +2275,128 @@ function resumoPolitica(politica) {
       await blitPecaParede(ctx, item, spec, estado.diagnostico);
     }
 
+    // Ghosts das areas de tela (quad UV) + handles de calibracao.
+    for (let mi = 0; mi < (estado.wallMedia || []).length; mi++) {
+      const mid = estado.wallMedia[mi];
+      if (!mid.face) continue;
+      const preset = IFRAME_FRAMES[mid.frame] || IFRAME_FRAMES.none;
+      const pe = peDaFace(mid.face);
+      const v = verticeDaFace(mid.face, mid.gx, mid.gy);
+      const topLeft = posBlitVertice(v.vx, v.vy, pe, mid.dx || 0, mid.dy || 0);
+      let sw;
+      let sh;
+      if (mid.frame && mid.frame !== 'none') {
+        sw = preset.sw;
+        sh = preset.sh;
+      } else {
+        const span = mid.size?.w || preset.span;
+        sw = span * (LARGURA_TILE / 2);
+        sh = mid.heightPx || preset.heightPx;
+      }
+      const corners = cantosDaMidia(mid);
+      const pt = (p) => ({ x: topLeft.x + p.u * sw, y: topLeft.y + p.v * sh });
+      const tl = pt(corners.tl);
+      const tr = pt(corners.tr);
+      const br = pt(corners.br);
+      const bl = pt(corners.bl);
+      const preview = nestPreviewCache.get(mid.mediaId);
+      const temPreview =
+        preview && sourcePronto(preview) && (preview.status === 'ok' || preview.status === 'erro');
+      if (temPreview) {
+        blitNestWarp(ctx, preview.source, corners, topLeft, sw, sh, mid.warpGrid, mid.blendMode);
+      }
+      const calibrando = mi === iframeCalibIx;
+      // Sem calibracao ativa: so o conteudo (sem barras/bolinhas).
+      if (!calibrando) {
+        if (!temPreview) {
+          ctx.save();
+          ctx.strokeStyle = '#7dd3fc';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 3]);
+          ctx.beginPath();
+          ctx.moveTo(tl.x, tl.y);
+          ctx.lineTo(tr.x, tr.y);
+          ctx.lineTo(br.x, br.y);
+          ctx.lineTo(bl.x, bl.y);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(125, 211, 252, 0.15)';
+          ctx.fill();
+          ctx.restore();
+        }
+        continue;
+      }
+      ctx.save();
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 3]);
+      ctx.beginPath();
+      ctx.moveTo(tl.x, tl.y);
+      ctx.lineTo(tr.x, tr.y);
+      ctx.lineTo(br.x, br.y);
+      ctx.lineTo(bl.x, bl.y);
+      ctx.closePath();
+      ctx.stroke();
+      if (!temPreview) {
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.18)';
+        ctx.fill();
+      }
+      if (calibrando) {
+        const handles = [
+          ['tl', tl],
+          ['tr', tr],
+          ['br', br],
+          ['bl', bl],
+        ];
+        if (mid.warpGrid && mid.warpGrid.points) {
+          const { cols, rows, points } = mid.warpGrid;
+          for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+              const p = points[r * cols + c];
+              if (!p) continue;
+              handles.push([`w:${r}:${c}`, pt(p)]);
+            }
+          }
+        }
+        for (const [id, hp] of handles) {
+          ctx.fillStyle = id.startsWith('w:') ? '#a78bfa' : '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(hp.x, hp.y, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#0c1210';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([]);
+          ctx.stroke();
+        }
+        // Grip central (mover no espaco, estilo Word).
+        const cx = (tl.x + tr.x + br.x + bl.x) / 4;
+        const cy = (tl.y + tr.y + br.y + bl.y) / 4;
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#fbbf24';
+        ctx.fillStyle = 'rgba(251, 191, 36, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - 5, cy);
+        ctx.lineTo(cx + 5, cy);
+        ctx.moveTo(cx, cy - 5);
+        ctx.lineTo(cx, cy + 5);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     const itens = estado.palco
-      .map((p) => ({ ...p, spec: specPorId(p.assetId) }))
+      .map((p, ix) => ({ ...p, spec: specPorId(p.assetId), _ix: ix }))
       .filter((p) => !itemEParede(p) && p.spec && p.gx >= 0 && p.gy >= 0 && p.gx < w && p.gy < h);
+    // Empate de depth: indice no palco (igual ao `order` do Painter global).
     itens.sort((a, b) => {
       const da = a.gx + a.gy + (a.spec.papel === 'decor' ? 0.5 : 0);
       const db = b.gx + b.gy + (b.spec.papel === 'decor' ? 0.5 : 0);
-      return da - db;
+      return da - db || a._ix - b._ix;
     });
     for (const item of itens) {
       if (eu !== geraPalco) return;
@@ -1757,20 +2433,12 @@ function resumoPolitica(politica) {
                 (p.qx || 0) === qx &&
                 (p.qy || 0) === qy,
             );
-            let stroke = marcandoAssento
-              ? 'rgba(52, 211, 153, 0.45)'
-              : 'rgba(80, 160, 255, 0.55)';
-            let fill = null;
-            if (postoTravado) {
-              stroke = '#34d399';
-              fill = 'rgba(52, 211, 153, 0.28)';
-            } else if (hover) {
-              stroke = '#f5d76e';
-              fill = 'rgba(245, 215, 110, 0.32)';
-            } else if (sel) {
-              stroke = '#7ec8ff';
-              fill = 'rgba(80, 160, 255, 0.14)';
-            }
+            const { stroke, fill } = estiloLosangoAssento({
+              marcandoAssento,
+              hover,
+              sel,
+              postoTravado,
+            });
             losango(ctx, c.gx + qx * 0.5, c.gy + qy * 0.5, stroke, fill, 0.5);
           }
         }
@@ -1818,7 +2486,7 @@ function resumoPolitica(politica) {
       'TEMA ' + cores.tileSetId + '  piso ' + cores.piso + '  parede ' + cores.parede + '\n' +
       'PALCO  ' + w + ' x ' + h + '  |  andares ' + nAndares +
       '  |  subida ' + subida + 'px' +
-      (estado.subidaAndar == null && cal.subidaAndar == null ? ' (PNG Wall_R pe.y − bbox.y)' : ' (override lab/JSON)') + '\n' +
+      (estado.subidaAndar == null && cal.subidaAndar == null ? ' (PNG Wall_R pe.y âˆ’ bbox.y)' : ' (override lab/JSON)') + '\n' +
       'POLITICA  ' + resumoPolitica(estado.politicaTiles) +
       (cores.previewZona ? '  |  palco mostra ' + nomeZonaTile(cores.previewZona) : '') + '\n' +
       'MESA ancora 64,68 (centro da face). BEBEDOURO pe 64,63 no vertice NW.' + '\n' +
@@ -1827,6 +2495,7 @@ function resumoPolitica(politica) {
     atualizarJsonOut();
     pintarTemas();
     pintarBarraGrade();
+    syncNestLiveOverlays();
   }
 
   function pintarTemas() {
@@ -1941,7 +2610,7 @@ function resumoPolitica(politica) {
           (slot.pisos[0] || '(tema)') + '  parede ' + (slot.paredes[0] || '(tema)');
       } else {
         hint.textContent = nomeZonaTile(id) + ': opcoes. Clique para marcar. Pisos [' +
-          (slot.pisos.join(', ') || '—') + ']  paredes [' + (slot.paredes.join(', ') || '—') + ']';
+          (slot.pisos.join(', ') || 'â€”') + ']  paredes [' + (slot.paredes.join(', ') || 'â€”') + ']';
       }
     }
     const boxP = document.getElementById('swatches-zona-piso');
@@ -2040,50 +2709,71 @@ function resumoPolitica(politica) {
     }
   }
 
-  async function montarCards() {
-    const root = document.getElementById('cards');
-    if (!root) return;
-    root.innerHTML = '';
-    const q = (document.getElementById('filtro')?.value || '').trim().toLowerCase();
-    const kindSel = document.getElementById('filtro-kind')?.value || '';
-    const usoSel = document.getElementById('filtro-uso')?.value || '';
-    const soEsp = !!document.getElementById('filtro-espelhavel')?.checked;
-    const kinds = new Set();
-    for (const a of todosAssets()) {
-      if (a.kind) kinds.add(a.kind);
-      const blob = (a.nome + ' ' + a.kind + ' ' + a.assetId + ' ' + a.papel + (a.camadas ? ' combo' : '')).toLowerCase();
-      if (q && !blob.includes(q)) continue;
-      if (filtroPapel && a.papel !== filtroPapel) continue;
-      if (kindSel && a.kind !== kindSel) continue;
-      const uso = estado.usos[a.assetId] || a.uso;
-      if (usoSel && uso !== usoSel) continue;
-      if (soEsp && !assetEspelhavel(a)) continue;
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'card' + (uso === 'off' ? ' uso-off' : '') + (a.camadas ? ' combo' : '') + (a.papel === 'wall' ? ' card-wall' : '');
-      btn.setAttribute('role', 'listitem');
-      btn.dataset.id = a.assetId;
-      if (assetEspelhavel(a)) {
-        const badge = document.createElement('span');
-        badge.className = 'badge';
-        badge.textContent = 'espelho';
-        btn.appendChild(badge);
+  function anexarInteracoesCard(btn, a) {
+    btn.addEventListener('pointerdown', (ev) => {
+      if (ev.target.closest('.usos')) return;
+      if (ev.button != null && ev.button !== 0) return;
+      arrasteCatalogo = {
+        spec: a,
+        x0: ev.clientX,
+        y0: ev.clientY,
+        moved: false,
+        ghost: null,
+      };
+      btn.classList.add('dragging');
+      btn.setPointerCapture?.(ev.pointerId);
+      ev.preventDefault();
+    });
+    btn.addEventListener('click', (ev) => {
+      if (ev.target.closest('.usos')) return;
+      if (arrasteCatalogo && arrasteCatalogo.moved) return;
+      if (estado.combinando) adicionarAoCompose(a);
+      else {
+        if (estado.paredeSel && a.papel === 'wall') {
+          estado.modoPlantar = 'parede';
+          plantar(a);
+        } else if (a.papel !== 'wall') {
+          estado.modoPlantar = 'piso';
+          plantar(a);
+        } else {
+          const face = estado.paredeSel || { face: 'R', gx: Math.floor(gradeW() / 2), gy: 0 };
+          estado.paredeSel = face;
+          estado.modoPlantar = 'parede';
+          plantar(a);
+        }
       }
-      const cv = document.createElement('canvas');
-      cv.width = 140;
-      cv.height = 72;
-      cv.setAttribute('aria-hidden', 'true');
-      btn.appendChild(cv);
-      const nome = document.createElement('span');
-      nome.className = 'nome';
-      nome.textContent = a.nome;
-      btn.appendChild(nome);
-      const kind = document.createElement('span');
-      kind.className = 'kind';
-      kind.textContent = a.camadas
-        ? a.kind + ' · ' + a.papel + ' · combo'
-        : a.kind + ' · ' + a.papel;
-      btn.appendChild(kind);
+    });
+  }
+
+  function montarCardAsset(a, { mostrarUso = true } = {}) {
+    const uso = estado.usos[a.assetId] || a.uso;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'card' + (uso === 'off' ? ' uso-off' : '') + (a.camadas ? ' combo' : '') + (a.papel === 'wall' ? ' card-wall' : '') + (a.origem === 'create' ? ' card-create' : '');
+    btn.setAttribute('role', 'listitem');
+    btn.dataset.id = a.assetId;
+    if (assetEspelhavel(a)) {
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.textContent = 'espelho';
+      btn.appendChild(badge);
+    }
+    const cv = document.createElement('canvas');
+    cv.width = 140;
+    cv.height = 72;
+    cv.setAttribute('aria-hidden', 'true');
+    btn.appendChild(cv);
+    const nome = document.createElement('span');
+    nome.className = 'nome';
+    nome.textContent = a.nome;
+    btn.appendChild(nome);
+    const kind = document.createElement('span');
+    kind.className = 'kind';
+    kind.textContent = a.camadas
+      ? a.kind + ' · ' + a.papel + ' · combo'
+      : a.kind + ' · ' + a.papel + (a.origem === 'create' ? ' · create' : '');
+    btn.appendChild(kind);
+    if (mostrarUso) {
       const usos = document.createElement('div');
       usos.className = 'usos';
       for (const u of ['obrigatorio', 'aleatorio', 'off']) {
@@ -2106,58 +2796,47 @@ function resumoPolitica(politica) {
         usos.appendChild(lab);
       }
       btn.appendChild(usos);
-      btn.addEventListener('pointerdown', (ev) => {
-        if (ev.target.closest('.usos')) return;
-        if (ev.button != null && ev.button !== 0) return;
-        arrasteCatalogo = {
-          spec: a,
-          x0: ev.clientX,
-          y0: ev.clientY,
-          moved: false,
-          ghost: null,
-        };
-        btn.classList.add('dragging');
-        btn.setPointerCapture?.(ev.pointerId);
-        ev.preventDefault();
+    }
+    anexarInteracoesCard(btn, a);
+    if (a.camadas) {
+      preencherThumbCombo(cv, a);
+    } else {
+      carregar(a.fileName).then((img) => {
+        const b = medirBbox(img);
+        bboxPorSrc.set(a.fileName, b);
+        const t = thumb(img, b, 140, 72);
+        cv.getContext('2d').drawImage(t, 0, 0);
+      }).catch(() => {
+        const g = cv.getContext('2d');
+        g.fillStyle = '#422';
+        g.fillRect(0, 0, 140, 72);
+        g.fillStyle = '#faa';
+        g.font = '11px sans-serif';
+        g.fillText('PNG ausente', 8, 40);
       });
-      btn.addEventListener('click', (ev) => {
-        if (ev.target.closest('.usos')) return;
-        if (arrasteCatalogo && arrasteCatalogo.moved) return;
-        if (estado.combinando) adicionarAoCompose(a);
-        else {
-          // Clique simples: planta na celula/face atual (legado) ou centro do palco.
-          if (estado.paredeSel && a.papel === 'wall') {
-            estado.modoPlantar = 'parede';
-            plantar(a);
-          } else if (a.papel !== 'wall') {
-            estado.modoPlantar = 'piso';
-            plantar(a);
-          } else {
-            const face = estado.paredeSel || { face: 'R', gx: Math.floor(gradeW() / 2), gy: 0 };
-            estado.paredeSel = face;
-            estado.modoPlantar = 'parede';
-            plantar(a);
-          }
-        }
-      });
-      root.appendChild(btn);
-      if (a.camadas) {
-        preencherThumbCombo(cv, a);
-      } else {
-        carregar(a.fileName).then((img) => {
-          const b = medirBbox(img);
-          bboxPorSrc.set(a.fileName, b);
-          const t = thumb(img, b, 140, 72);
-          cv.getContext('2d').drawImage(t, 0, 0);
-        }).catch(() => {
-          const g = cv.getContext('2d');
-          g.fillStyle = '#422';
-          g.fillRect(0, 0, 140, 72);
-          g.fillStyle = '#faa';
-          g.font = '11px sans-serif';
-          g.fillText('PNG ausente', 8, 40);
-        });
-      }
+    }
+    return btn;
+  }
+
+  async function montarCards() {
+    const root = document.getElementById('cards');
+    if (!root) return;
+    root.innerHTML = '';
+    const q = (document.getElementById('filtro')?.value || '').trim().toLowerCase();
+    const kindSel = document.getElementById('filtro-kind')?.value || '';
+    const usoSel = document.getElementById('filtro-uso')?.value || '';
+    const soEsp = !!document.getElementById('filtro-espelhavel')?.checked;
+    const kinds = new Set();
+    for (const a of assetsCatalogo()) {
+      if (a.kind) kinds.add(a.kind);
+      const blob = (a.nome + ' ' + a.kind + ' ' + a.assetId + ' ' + a.papel + (a.camadas ? ' combo' : '')).toLowerCase();
+      if (q && !blob.includes(q)) continue;
+      if (filtroPapel && a.papel !== filtroPapel) continue;
+      if (kindSel && a.kind !== kindSel) continue;
+      const uso = estado.usos[a.assetId] || a.uso;
+      if (usoSel && uso !== usoSel) continue;
+      if (soEsp && !assetEspelhavel(a)) continue;
+      root.appendChild(montarCardAsset(a));
     }
     const selKind = document.getElementById('filtro-kind');
     if (selKind && selKind.options.length <= 1) {
@@ -2167,6 +2846,23 @@ function resumoPolitica(politica) {
         opt.textContent = k;
         selKind.appendChild(opt);
       });
+    }
+  }
+
+  async function montarCardsCreate() {
+    const root = document.getElementById('cards-create');
+    if (!root) return;
+    root.innerHTML = '';
+    const lista = estado.createdAssets || [];
+    if (!lista.length) {
+      const vazio = document.createElement('p');
+      vazio.className = 'hint-combo';
+      vazio.textContent = 'Nenhum asset gerado ainda. Rode o script gerar-created-assets.mjs.';
+      root.appendChild(vazio);
+      return;
+    }
+    for (const a of lista) {
+      root.appendChild(montarCardAsset(a, { mostrarUso: true }));
     }
   }
 
@@ -2194,7 +2890,13 @@ function resumoPolitica(politica) {
       nome.textContent = s ? s.nome : p.assetId;
       const meta = document.createElement('span');
       meta.className = 'meta-chip';
-      meta.textContent = p.face + ' dx ' + (p.dx || 0) + ' dy ' + (p.dy || 0);
+      meta.textContent =
+        p.face +
+        (p.espelhado ? ' ✦' : '') +
+        ' dx ' +
+        (p.dx || 0) +
+        ' dy ' +
+        (p.dy || 0);
       const rm = document.createElement('button');
       rm.type = 'button';
       rm.textContent = 'remover';
@@ -2208,7 +2910,7 @@ function resumoPolitica(politica) {
         const esp = document.createElement('button');
         esp.type = 'button';
         esp.textContent = 'espelhar';
-        esp.title = 'Trocar face L ↔ R';
+        esp.title = 'Espelhar sprite e trocar face R↔L (Ctrl+E)';
         esp.addEventListener('click', (ev) => {
           ev.stopPropagation();
           espelharFacePeca(i);
@@ -2271,6 +2973,7 @@ function resumoPolitica(politica) {
         gy: face.gy,
         dx: 0,
         dy: dyInicialParede(spec.assetId),
+        espelhado: false,
       });
       paredePecaIx = estado.palco.length - 1;
       if (spec.fileName) bboxDe(spec.fileName).catch(() => undefined);
@@ -2280,15 +2983,17 @@ function resumoPolitica(politica) {
     }
     const sel = estado.celula;
     if (sel.gx < 0 || sel.gx >= gradeW() || sel.gy < 0 || sel.gy >= gradeH()) return;
-    const passo = 0.5;
     const alvo = {
       assetId: spec.assetId,
       gx: sel.gx,
       gy: sel.gy,
-      qx: sel.qx || 0,
-      qy: sel.qy || 0,
-      passo,
+      qx: 0,
+      qy: 0,
+      passo: 1,
+      dx: 0,
+      dy: 0,
     };
+    if (spec.papel === 'decor') alvo.papel = 'decor';
     marcarUndo();
     estado.palco.push(alvo);
     paredePecaIx = estado.palco.length - 1;
@@ -2331,7 +3036,7 @@ function resumoPolitica(politica) {
       v.missingAssetIds.length +
       ' peca(s) sem asset no catalogo/combos: ' +
       v.missingAssetIds.join(', ') +
-      ' — recarregue combos ou reset JSON do repo.';
+      ' â€” recarregue combos ou reset JSON do repo.';
   }
 
   function aplicarTema(tema) {
@@ -2351,9 +3056,15 @@ function resumoPolitica(politica) {
     estado.grade = t.grade;
     estado.andares = t.andares;
     estado.subidaAndar = t.subidaAndar;
+    estado.alturaParede = clampAlturaParede(t.alturaParede != null ? t.alturaParede : 1);
     estado.subdiv = true;
     estado.palco = t.palco.map((p) => ({ ...p }));
     estado.postosTrabalho = (t.postosTrabalho || []).slice();
+    estado.wallMedia = (t.wallMedia || []).slice();
+    assentoSlotAtivo = (estado.postosTrabalho[0] && estado.postosTrabalho[0].agentSlot) || 'seat-0';
+    pintarSeletorAssentos();
+
+    [...nestPreviewCache.keys()].forEach((id) => limparPreviewMidia(id));
 
     if (estado.celula.gx >= estado.grade.w) estado.celula.gx = Math.max(0, estado.grade.w - 1);
     if (estado.celula.gy >= estado.grade.h) estado.celula.gy = Math.max(0, estado.grade.h - 1);
@@ -2373,6 +3084,8 @@ function resumoPolitica(politica) {
     if (subdivEl) subdivEl.checked = true;
 
     atualizarAvisoPalco(estado.palco);
+    atualizarListaIframe();
+    autoAplicarPreviewsNest();
 
     desenharPalco();
   }
@@ -2414,6 +3127,7 @@ function resumoPolitica(politica) {
       grade: { w: estado.grade.w, h: estado.grade.h },
       andares: estado.andares,
       subidaAndar: estado.subidaAndar,
+      alturaParede: clampAlturaParede(estado.alturaParede != null ? estado.alturaParede : 1),
       subdiv: estado.subdiv !== false,
       prioridade: form.prioridade,
       unicoNaAgencia: form.unicoNaAgencia,
@@ -2422,6 +3136,7 @@ function resumoPolitica(politica) {
       parede: cores.parede,
       calibracao: snapshotCalibracao(),
       postosTrabalho: normalizarPostosTrabalho(estado.postosTrabalho),
+      wallMedia: (estado.wallMedia || []).slice(),
     });
   }
 
@@ -2445,7 +3160,7 @@ function resumoPolitica(politica) {
       if (!grupo.length) continue;
       const cab = document.createElement('div');
       cab.className = 'tema-grupo';
-      cab.textContent = z.nome + ' · ' + z.id;
+      cab.textContent = z.nome + ' Â· ' + z.id;
       root.appendChild(cab);
       grupo.sort((a, b) => (b.prioridade || 0) - (a.prioridade || 0) || a.nome.localeCompare(b.nome));
       for (const tema of grupo) {
@@ -2456,13 +3171,13 @@ function resumoPolitica(politica) {
         const lab = document.createElement('span');
         lab.textContent =
           tema.nome +
-          ' · ' + z.nome +
-          ' · ' + g.w + 'x' + g.h +
-          ' · P' + (tema.prioridade || 5) +
-          (tema.unicoNaAgencia ? ' · unico' : '') +
-          ' · ' + (tema.palco || []).length + ' pecas' +
-          ' · ' + (tema.piso || tema.tilesetAtivo) +
-          (temasOrigem === 'localStorage' ? ' · rascunho local' : '');
+          ' Â· ' + z.nome +
+          ' Â· ' + g.w + 'x' + g.h +
+          ' Â· P' + (tema.prioridade || 5) +
+          (tema.unicoNaAgencia ? ' Â· unico' : '') +
+          ' Â· ' + (tema.palco || []).length + ' pecas' +
+          ' Â· ' + (tema.piso || tema.tilesetAtivo) +
+          (temasOrigem === 'localStorage' ? ' Â· rascunho local' : '');
         const carregarBtn = document.createElement('button');
         carregarBtn.type = 'button';
         carregarBtn.textContent = 'carregar';
@@ -2914,11 +3629,122 @@ function resumoPolitica(politica) {
     };
   }
 
+  function geomMidiaCalib(mid) {
+    const preset = IFRAME_FRAMES[mid.frame] || IFRAME_FRAMES.none;
+    const pe = peDaFace(mid.face);
+    const v = verticeDaFace(mid.face, mid.gx, mid.gy);
+    const topLeft = posBlitVertice(v.vx, v.vy, pe, mid.dx || 0, mid.dy || 0);
+    let sw;
+    let sh;
+    if (mid.frame && mid.frame !== 'none') {
+      sw = preset.sw;
+      sh = preset.sh;
+    } else {
+      const span = mid.size?.w || preset.span;
+      sw = span * (LARGURA_TILE / 2);
+      sh = mid.heightPx || preset.heightPx;
+    }
+    return { topLeft, sw, sh };
+  }
+
+  function cantosCenaDaMidia(mid) {
+    const { topLeft, sw, sh } = geomMidiaCalib(mid);
+    const corners = cantosDaMidia(mid);
+    const pt = (p) => ({ x: topLeft.x + p.u * sw, y: topLeft.y + p.v * sh });
+    return {
+      tl: pt(corners.tl),
+      tr: pt(corners.tr),
+      br: pt(corners.br),
+      bl: pt(corners.bl),
+      topLeft,
+      sw,
+      sh,
+      corners,
+    };
+  }
+
+  function pontoEmPoligonoLab(p, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i].x;
+      const yi = poly[i].y;
+      const xj = poly[j].x;
+      const yj = poly[j].y;
+      const intersect = yi > p.y !== yj > p.y && p.x < ((xj - xi) * (p.y - yi)) / (yj - yi + 1e-12) + xi;
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  }
+
+  function hitHandleCalib(pt) {
+    if (iframeCalibIx == null) return null;
+    const mid = estado.wallMedia[iframeCalibIx];
+    if (!mid || !mid.face) return null;
+    const { topLeft, sw, sh, corners } = cantosCenaDaMidia(mid);
+    if (!mid.screenCorners) mid.screenCorners = { ...corners };
+    const candidates = [
+      ['tl', corners.tl],
+      ['tr', corners.tr],
+      ['br', corners.br],
+      ['bl', corners.bl],
+    ];
+    if (mid.warpGrid && mid.warpGrid.points) {
+      const { cols, rows, points } = mid.warpGrid;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const p = points[r * cols + c];
+          if (p) candidates.push([`w:${r}:${c}`, p]);
+        }
+      }
+    }
+    for (const [id, uv] of candidates) {
+      const hx = topLeft.x + uv.u * sw;
+      const hy = topLeft.y + uv.v * sh;
+      if (Math.hypot(pt.x - hx, pt.y - hy) <= 10) return { id, mid };
+    }
+    return null;
+  }
+
+  /** Miolo do nest (nao nas alcas) — move no espaco como objeto Word. */
+  function hitNestBody(pt) {
+    const lista = estado.wallMedia || [];
+    const ordem = [];
+    if (iframeCalibIx != null && lista[iframeCalibIx]) ordem.push(iframeCalibIx);
+    for (let i = lista.length - 1; i >= 0; i--) {
+      if (i !== iframeCalibIx) ordem.push(i);
+    }
+    for (const ix of ordem) {
+      const mid = lista[ix];
+      if (!mid || !mid.face) continue;
+      const q = cantosCenaDaMidia(mid);
+      const poly = [q.tl, q.tr, q.br, q.bl];
+      if (!pontoEmPoligonoLab(pt, poly)) continue;
+      // Perto de alca do item selecionado: nao e body.
+      if (ix === iframeCalibIx && hitHandleCalib(pt)) continue;
+      return { ix, mid };
+    }
+    return null;
+  }
+
+  function syncMountComMidia(mid) {
+    if (!mid.mountAssetId) return;
+    const peca = estado.palco.find(
+      (p) =>
+        itemEParede(p) &&
+        p.assetId === mid.mountAssetId &&
+        p.face === mid.face &&
+        p.gx === mid.gx &&
+        p.gy === mid.gy,
+    );
+    if (peca) {
+      peca.dx = mid.dx || 0;
+      peca.dy = mid.dy || 0;
+    }
+  }
+
   canvas.addEventListener('pointerdown', (ev) => {
     if (estado.combinando) return;
     if (marcandoAssento) {
-      // No modo assento o clique no chao (e sobre pecas) trava a subcelula;
-      // nao inicia arraste de pecas.
       const pt = pontoDoCanvas(canvas, ev);
       const cel = celulaAssentoSobPonto(pt.x, pt.y);
       if (cel) {
@@ -2929,8 +3755,51 @@ function resumoPolitica(politica) {
       return;
     }
     const pt = pontoDoCanvas(canvas, ev);
+    const hitCal = hitHandleCalib(pt);
+    if (hitCal) {
+      arrasteCalib = { id: hitCal.id, ix: iframeCalibIx };
+      arrasteNest = null;
+      arrasteParede = null;
+      arrastePiso = null;
+      canvas.classList.add('arrastando');
+      ev.preventDefault();
+      return;
+    }
+    const hitBody = hitNestBody(pt);
+    if (hitBody) {
+      iframeCalibIx = hitBody.ix;
+      atualizarListaIframe();
+      arrasteNest = {
+        ix: hitBody.ix,
+        x0: pt.x,
+        y0: pt.y,
+        dx0: hitBody.mid.dx || 0,
+        dy0: hitBody.mid.dy || 0,
+      };
+      arrasteCalib = null;
+      arrasteParede = null;
+      arrastePiso = null;
+      canvas.classList.add('arrastando');
+      canvas.style.cursor = 'move';
+      desenharPalco();
+      ev.preventDefault();
+      return;
+    }
     const ix = pecaPalcoSobPonto(pt.x, pt.y);
     if (ix < 0) return;
+    // Alt+clique em peca interativa: nao inicia arraste (popup no click).
+    if (ev.altKey) {
+      const specHit = specPorId(estado.palco[ix].assetId);
+      if (specHit?.interativo?.acao === 'popup') {
+        paredePecaIx = ix;
+        pulouClickPalco = false;
+        pintarListaParede();
+        pintarCamadasLocais();
+        desenharPalco();
+        ev.preventDefault();
+        return;
+      }
+    }
     const peca = estado.palco[ix];
     paredePecaIx = ix;
     if (itemEParede(peca)) {
@@ -2948,10 +3817,10 @@ function resumoPolitica(politica) {
         idx: ix,
         x0: pt.x,
         y0: pt.y,
+        dx0: peca.dx || 0,
+        dy0: peca.dy || 0,
         gx0: peca.gx,
         gy0: peca.gy,
-        qx0: peca.qx || 0,
-        qy0: peca.qy || 0,
       };
       arrasteParede = null;
     }
@@ -2962,13 +3831,29 @@ function resumoPolitica(politica) {
     ev.preventDefault();
   });
   canvas.addEventListener('pointermove', (ev) => {
-    if (!marcandoAssento || arrastePiso || arrasteParede || arrasteCatalogo) return;
+    if (arrastePiso || arrasteParede || arrasteCatalogo || arrasteCalib || arrasteNest) return;
+    if (marcandoAssento) {
+      const pt = pontoDoCanvas(canvas, ev);
+      const cel = celulaAssentoSobPonto(pt.x, pt.y);
+      if (mesmaSubcelula(cel, assentoHover)) return;
+      assentoHover = cel;
+      atualizarCelulaTxt();
+      desenharPalco();
+      return;
+    }
+    // Cursor Word-like sobre o nest; pointer se Alt+hover em peca interativa.
     const pt = pontoDoCanvas(canvas, ev);
-    const cel = celulaAssentoSobPonto(pt.x, pt.y);
-    if (mesmaSubcelula(cel, assentoHover)) return;
-    assentoHover = cel;
-    atualizarCelulaTxt();
-    desenharPalco();
+    if (hitHandleCalib(pt)) {
+      canvas.style.cursor = 'nwse-resize';
+    } else if (hitNestBody(pt)) {
+      canvas.style.cursor = 'move';
+    } else if (ev.altKey) {
+      const ix = pecaPalcoSobPonto(pt.x, pt.y);
+      const spec = ix >= 0 ? specPorId(estado.palco[ix].assetId) : null;
+      canvas.style.cursor = spec?.interativo?.acao === 'popup' ? 'pointer' : '';
+    } else {
+      canvas.style.cursor = '';
+    }
   });
   canvas.addEventListener('pointerleave', () => {
     if (!marcandoAssento || !assentoHover) return;
@@ -3008,6 +3893,56 @@ function resumoPolitica(politica) {
       }
       return;
     }
+    if (arrasteCalib) {
+      const mid = estado.wallMedia[arrasteCalib.ix];
+      if (!mid) return;
+      const pt = pontoDoCanvas(canvas, ev);
+      const { topLeft, sw, sh } = geomMidiaCalib(mid);
+      if (!undoDoArraste) {
+        marcarUndo();
+        undoDoArraste = true;
+      }
+      // UV livre relativo ao sprite (−4..5): pode estourar o bezel / preencher tela maior.
+      const UV_MIN = -4;
+      const UV_MAX = 5;
+      const u = Math.min(UV_MAX, Math.max(UV_MIN, (pt.x - topLeft.x) / sw));
+      const v = Math.min(UV_MAX, Math.max(UV_MIN, (pt.y - topLeft.y) / sh));
+      if (!mid.screenCorners) mid.screenCorners = cantosDaMidia(mid);
+      if (arrasteCalib.id.startsWith('w:') && mid.warpGrid) {
+        const parts = arrasteCalib.id.split(':');
+        const r = Number(parts[1]);
+        const c = Number(parts[2]);
+        const ix = r * mid.warpGrid.cols + c;
+        if (mid.warpGrid.points[ix]) mid.warpGrid.points[ix] = { u, v };
+      } else if (mid.screenCorners[arrasteCalib.id]) {
+        mid.screenCorners[arrasteCalib.id] = { u, v };
+        const sc = mid.screenCorners;
+        mid.screenInset = {
+          u0: Math.min(sc.tl.u, sc.bl.u),
+          v0: Math.min(sc.tl.v, sc.tr.v),
+          u1: Math.max(sc.tr.u, sc.br.u),
+          v1: Math.max(sc.bl.v, sc.br.v),
+        };
+      }
+      pulouClickPalco = true;
+      desenharPalco();
+      return;
+    }
+    if (arrasteNest) {
+      const mid = estado.wallMedia[arrasteNest.ix];
+      if (!mid) return;
+      const pt = pontoDoCanvas(canvas, ev);
+      if (!undoDoArraste) {
+        marcarUndo();
+        undoDoArraste = true;
+      }
+      mid.dx = Math.round(arrasteNest.dx0 + (pt.x - arrasteNest.x0));
+      mid.dy = Math.round(arrasteNest.dy0 + (pt.y - arrasteNest.y0));
+      syncMountComMidia(mid);
+      pulouClickPalco = true;
+      desenharPalco();
+      return;
+    }
     if (arrasteParede) {
       const peca = estado.palco[arrasteParede.idx];
       if (!peca || !itemEParede(peca)) return;
@@ -3018,6 +3953,18 @@ function resumoPolitica(politica) {
       }
       peca.dx = Math.round(arrasteParede.dx0 + (pt.x - arrasteParede.x0));
       peca.dy = Math.round(arrasteParede.dy0 + (pt.y - arrasteParede.y0));
+      // Mantem iframes ligados a esta moldura sincronizados.
+      for (const mid of estado.wallMedia || []) {
+        if (
+          mid.mountAssetId === peca.assetId &&
+          mid.face === peca.face &&
+          mid.gx === peca.gx &&
+          mid.gy === peca.gy
+        ) {
+          mid.dx = peca.dx;
+          mid.dy = peca.dy;
+        }
+      }
       pulouClickPalco = true;
       desenharPalco();
       return;
@@ -3026,18 +3973,42 @@ function resumoPolitica(politica) {
       const peca = estado.palco[arrastePiso.idx];
       if (!peca || itemEParede(peca)) return;
       const pt = pontoDoCanvas(canvas, ev);
-      const g = telaParaGrade(pt.x, pt.y, true);
-      if (g.gx >= 0 && g.gx < gradeW() && g.gy >= 0 && g.gy < gradeH()) {
-        if (!undoDoArraste) {
-          marcarUndo();
-          undoDoArraste = true;
+      if (!undoDoArraste) {
+        marcarUndo();
+        undoDoArraste = true;
+      }
+      if (ev.shiftKey) {
+        // Shift: snap legado aos quartis.
+        const g = telaParaGrade(pt.x, pt.y, true);
+        if (g.gx >= 0 && g.gx < gradeW() && g.gy >= 0 && g.gy < gradeH()) {
+          peca.gx = g.gx;
+          peca.gy = g.gy;
+          peca.qx = g.qx || 0;
+          peca.qy = g.qy || 0;
+          peca.passo = 0.5;
+          peca.dx = 0;
+          peca.dy = 0;
+          estado.celula = { gx: g.gx, gy: g.gy, qx: g.qx || 0, qy: g.qy || 0 };
+          pulouClickPalco = true;
+          desenharPalco();
         }
+        return;
+      }
+      // Livre: pe acompanha o ponteiro relativo ao grab; rebaseia gx/gy.
+      const a0 = ancoraTelaCelula(arrastePiso.gx0, arrastePiso.gy0);
+      const footX = a0.x + arrastePiso.dx0 + (pt.x - arrastePiso.x0);
+      const footY = a0.y + arrastePiso.dy0 + (pt.y - arrastePiso.y0);
+      const g = telaParaGrade(footX, footY, false);
+      if (g.gx >= 0 && g.gx < gradeW() && g.gy >= 0 && g.gy < gradeH()) {
+        const off = offsetPisoDoPonto(footX, footY, g.gx, g.gy);
         peca.gx = g.gx;
         peca.gy = g.gy;
-        peca.qx = g.qx || 0;
-        peca.qy = g.qy || 0;
-        peca.passo = 0.5;
-        estado.celula = { gx: g.gx, gy: g.gy, qx: g.qx || 0, qy: g.qy || 0 };
+        peca.qx = 0;
+        peca.qy = 0;
+        peca.passo = 1;
+        peca.dx = off.dx;
+        peca.dy = off.dy;
+        estado.celula = { gx: g.gx, gy: g.gy, qx: 0, qy: 0 };
         pulouClickPalco = true;
         desenharPalco();
       }
@@ -3062,7 +4033,7 @@ function resumoPolitica(politica) {
             const px = (ev.clientX - r.left) * (alvo.width / r.width);
             const py = (ev.clientY - r.top) * (alvo.height / r.height);
             if (estado.combinando) adicionarAoCompose(drag.spec);
-            else plantarNoPonto(drag.spec, px, py);
+            else plantarNoPonto(drag.spec, px, py, ev.shiftKey);
             gravarEstado(estado);
             pintarListaParede();
             pintarCamadasLocais();
@@ -3103,6 +4074,24 @@ function resumoPolitica(politica) {
       desenharPalco();
       return;
     }
+    if (arrasteCalib) {
+      arrasteCalib = null;
+      undoDoArraste = false;
+      canvas.classList.remove('arrastando');
+      canvas.style.cursor = '';
+      gravarEstado(estado);
+      desenharPalco();
+      return;
+    }
+    if (arrasteNest) {
+      arrasteNest = null;
+      undoDoArraste = false;
+      canvas.classList.remove('arrastando');
+      canvas.style.cursor = '';
+      gravarEstado(estado);
+      desenharPalco();
+      return;
+    }
     if (arrastePiso) {
       arrastePiso = null;
       undoDoArraste = false;
@@ -3128,6 +4117,15 @@ function resumoPolitica(politica) {
     }
     const pt = pontoDoCanvas(canvas, ev);
     const ix = pecaPalcoSobPonto(pt.x, pt.y);
+    // Alt+clique: abre popup em pecas com interativo.acao === 'popup'.
+    if (ev.altKey && ix >= 0) {
+      const spec = specPorId(estado.palco[ix].assetId);
+      if (spec?.interativo?.acao === 'popup') {
+        abrirPopupInterativo(spec.interativo);
+        ev.preventDefault();
+        return;
+      }
+    }
     if (ix >= 0) {
       const peca = estado.palco[ix];
       paredePecaIx = ix;
@@ -3147,8 +4145,8 @@ function resumoPolitica(politica) {
       desenharPalco();
       return;
     }
-    // Clique no chao vazio: limpa selecao. Nao captura celula/face —
-    // isso atrapalhava o DnD e forçava overlays mentais de grade.
+    // Clique no chao vazio: limpa selecao. Nao captura celula/face â€”
+    // isso atrapalhava o DnD e forÃ§ava overlays mentais de grade.
     paredePecaIx = -1;
     if (!estado.diagnostico) estado.paredeSel = null;
     atualizarCelulaTxt();
@@ -3168,6 +4166,8 @@ function resumoPolitica(politica) {
   bind('btn-andar-minus', () => alterarAndares(-1));
   bind('btn-subida-plus', () => alterarSubida(1));
   bind('btn-subida-minus', () => alterarSubida(-1));
+  bind('btn-altura-parede-plus', () => alterarAlturaParede(1));
+  bind('btn-altura-parede-minus', () => alterarAlturaParede(-1));
   pintarBarraGrade();
   const chkDiag = document.getElementById('chk-diag');
   if (chkDiag) {
@@ -3226,6 +4226,10 @@ function resumoPolitica(politica) {
     estado.politicaTiles = normalizarPolitica(temasDoc.politicaTiles, catalogo);
     estado.previewZona = null;
     estado.postosTrabalho = [];
+    estado.wallMedia = [];
+    assentoSlotAtivo = 'seat-0';
+    maxAssentos = 6;
+    pintarSeletorAssentos();
     temasOrigem = 'disco';
     estado.paineis = paineisPadrao();
     document.getElementById('chk-diag').checked = false;
@@ -3291,13 +4295,13 @@ function resumoPolitica(politica) {
         atualizarJsonOut();
         const statusEl = document.getElementById('tema-persist-status');
         if (statusEl) {
-          statusEl.textContent = 'recarregado do disco · ' + estado.temas.length + ' temas';
+          statusEl.textContent = 'recarregado do disco Â· ' + estado.temas.length + ' temas';
           statusEl.dataset.ok = '1';
         }
       } catch (err) {
         const statusEl = document.getElementById('tema-persist-status');
         if (statusEl) {
-          statusEl.textContent = 'falha ao recarregar — rode pnpm lab:iso';
+          statusEl.textContent = 'falha ao recarregar â€” rode pnpm lab:iso';
           statusEl.dataset.ok = '0';
         }
         console.warn('[lab] recarregar do disco:', err);
@@ -3311,19 +4315,46 @@ function resumoPolitica(politica) {
       setMarcandoAssento(!marcandoAssento);
     });
   }
+  const selAssento = document.getElementById('assento-slot-ativo');
+  if (selAssento) {
+    pintarSeletorAssentos();
+    selAssento.addEventListener('change', () => {
+      assentoSlotAtivo = selAssento.value || ASSENTO_SLOT_PADRAO;
+      desenharPalco();
+    });
+  }
+  document.getElementById('btn-assento-add')?.addEventListener('click', adicionarSlotAssento);
+  document.getElementById('btn-assento-del')?.addEventListener('click', removerSlotAssentoAtivo);
+  const inputMaxAssentos = document.getElementById('assento-max');
+  if (inputMaxAssentos) {
+    inputMaxAssentos.addEventListener('change', () => {
+      maxAssentos = clampMaxAssentos(inputMaxAssentos.value, MAX_ASSENTOS_PADRAO);
+      inputMaxAssentos.value = String(maxAssentos);
+      const postos = estado.postosTrabalho || [];
+      if (postos.length > maxAssentos) {
+        estado.postosTrabalho = normalizarPostosTrabalho(postos.slice(0, maxAssentos));
+        if (!estado.postosTrabalho.some((p) => p.agentSlot === assentoSlotAtivo)) {
+          assentoSlotAtivo = estado.postosTrabalho[0]?.agentSlot || 'seat-0';
+        }
+        gravarEstado(estado);
+        desenharPalco();
+      }
+      pintarSeletorAssentos();
+    });
+  }
   window.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape' && marcandoAssento) {
       setMarcandoAssento(false);
       ev.preventDefault();
       return;
     }
-    if (marcandoAssento && (ev.key === 'q' || ev.key === 'Q' || ev.key === 'e' || ev.key === 'E')) {
+    if (marcandoAssento && !ev.ctrlKey && !ev.metaKey && (ev.key === 'q' || ev.key === 'Q' || ev.key === 'e' || ev.key === 'E')) {
       const slot = agentSlotAssento();
       const posto = estado.postosTrabalho.find((p) => p.agentSlot === slot);
       if (!posto) return;
       const giro = ev.key === 'q' || ev.key === 'Q' ? -1 : 1;
-      posto.facing = (posto.facing + giro + 4) % 4;
-      posto.facingOrigem = 'manual';
+      const girado = girarFacingManual(posto, giro);
+      Object.assign(posto, girado);
       estado.postosTrabalho = normalizarPostosTrabalho(estado.postosTrabalho);
       gravarEstado(estado);
       atualizarCelulaTxt();
@@ -3408,6 +4439,16 @@ function resumoPolitica(politica) {
       if (ev.target === helpDrawer) helpDrawer.classList.remove('open');
     });
   }
+  const interactDrawer = document.getElementById('interact-drawer');
+  const btnInteractClose = document.getElementById('btn-interact-close');
+  if (btnInteractClose) {
+    btnInteractClose.addEventListener('click', () => fecharPopupInterativo());
+  }
+  if (interactDrawer) {
+    interactDrawer.addEventListener('click', (ev) => {
+      if (ev.target === interactDrawer) fecharPopupInterativo();
+    });
+  }
   setBookTab('assets');
   setBookOpen(true);
   setCombinando(false);
@@ -3453,8 +4494,35 @@ function resumoPolitica(politica) {
       refazer();
       return;
     }
-    // Escape limpa selecao (modo assento tem o outro listener).
+    // Ctrl/Cmd + E: espelha anexo de parede selecionado (badge espelho).
+    // Inverte o sprite e leva para a outra face (R↔L) para encaixar na parede oposta.
+    if (cmd && (ev.key === 'e' || ev.key === 'E')) {
+      let ix = paredePecaIx;
+      if (ix < 0 && estado.paredeSel) {
+        ix = estado.palco.findIndex(
+          (p) =>
+            itemEParede(p) &&
+            p.face === estado.paredeSel.face &&
+            p.gx === estado.paredeSel.gx &&
+            p.gy === estado.paredeSel.gy,
+        );
+      }
+      if (ix >= 0) {
+        const peca = estado.palco[ix];
+        const spec = peca ? specPorId(peca.assetId) : null;
+        if (assetEspelhavel(spec)) {
+          espelharFacePeca(ix);
+          ev.preventDefault();
+        }
+      }
+      return;
+    }
+    // Escape: fecha popup interativo, depois limpa selecao (modo assento tem o outro listener).
     if (ev.key === 'Escape' && !marcandoAssento) {
+      if (fecharPopupInterativo()) {
+        ev.preventDefault();
+        return;
+      }
       if (limparSelecaoEditor()) ev.preventDefault();
       return;
     }
@@ -3463,6 +4531,14 @@ function resumoPolitica(politica) {
       // Delete, Backspace, Ctrl+Del / Cmd+Del: remove o selecionado.
       if (estado.combinando) removerCamada();
       else removerPecaPalco();
+      ev.preventDefault();
+      return;
+    }
+    // Ctrl/Cmd + ↑/↓: sobe/desce camada (palco e Combinar).
+    if (cmd && (ev.key === 'ArrowUp' || ev.key === 'ArrowDown')) {
+      const dir = ev.key === 'ArrowUp' ? 1 : -1;
+      if (estado.combinando) moverCamada(dir);
+      else if (paredePecaIx >= 0) moverPecaPalco(paredePecaIx, dir);
       ev.preventDefault();
       return;
     }
@@ -3534,7 +4610,40 @@ function resumoPolitica(politica) {
   }
   pintarPolitica();
   await montarCards();
+  await montarCardsCreate();
   pintarListaTemas();
+  atualizarListaIframe();
+  autoAplicarPreviewsNest();
+  const btnIframePlantar = document.getElementById('btn-iframe-plantar');
+  if (btnIframePlantar) btnIframePlantar.addEventListener('click', () => plantarIframeNaParede());
+  const btnIframeCalib = document.getElementById('btn-iframe-calib');
+  if (btnIframeCalib) {
+    btnIframeCalib.addEventListener('click', () => {
+      if (iframeCalibIx == null && (estado.wallMedia || []).length) iframeCalibIx = 0;
+      const hint = document.getElementById('iframe-hint');
+      if (hint) {
+        hint.textContent = iframeCalibIx == null
+          ? 'Plante uma midia antes de calibrar.'
+          : 'Miolo = arrastar no espaço · cantos amarelos = UV · roxos = warp.';
+      }
+      atualizarListaIframe();
+      desenharPalco();
+    });
+  }
+  const btnIframeWarp = document.getElementById('btn-iframe-warp');
+  if (btnIframeWarp) btnIframeWarp.addEventListener('click', () => toggleWarpIframe());
+  const btnIframeExport = document.getElementById('btn-iframe-export');
+  if (btnIframeExport) btnIframeExport.addEventListener('click', () => exportarPresetIframe());
+  const selFrame = document.getElementById('iframe-frame');
+  if (selFrame) {
+    selFrame.addEventListener('change', () => {
+      const p = IFRAME_FRAMES[selFrame.value] || IFRAME_FRAMES.none;
+      const spanEl = document.getElementById('iframe-span');
+      const hEl = document.getElementById('iframe-height');
+      if (spanEl) spanEl.value = String(p.span);
+      if (hEl) hEl.value = String(p.heightPx);
+    });
+  }
   await desenharPalco();
   atualizarAvisoPalco(estado.palco);
 })().catch((err) => {

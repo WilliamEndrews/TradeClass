@@ -34,4 +34,4 @@ jobs:
         run: pnpm test
 
       - name: Build server
-        run: pnpm --filter @microfirma/server build
+        run: pnpm --filter @tradeclass/server build

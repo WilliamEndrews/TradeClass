@@ -24,7 +24,7 @@
  * `alocarFaixa`), sem o codigo precisar saber o que esta do outro lado.
  */
 
-import type { Cell, OfficeLayout, Prop, Room } from '@microfirma/contracts';
+import type { Cell, OfficeLayout, Prop, Room } from '@tradeclass/contracts';
 
 export interface NavGrid {
   width: number;

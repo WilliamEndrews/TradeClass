@@ -1,4 +1,4 @@
-/** Constantes e geometria isometrica 2:1 — espelho do tinyhouse-lab. */
+/** Constantes e geometria isometrica 2:1 — espelho do TinyTraderLab-lab. */
 
 export const LARGURA_TILE = 128;
 export const ALTURA_TILE = 64;

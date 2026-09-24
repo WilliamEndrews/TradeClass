@@ -26,14 +26,15 @@ import type {
   ServerMessage,
   WorldDelta,
   WorldSnapshot,
-} from '@microfirma/contracts';
+} from '@tradeclass/contracts';
 import {
   WorldEngine,
   validarLayout,
   type Violacao,
-} from '@microfirma/world-engine';
-import { SyntheticStream, type SyntheticOptions } from '@microfirma/synthetic';
-import { montarMundoIso, resolverColisaoLab } from '@microfirma/iso-office';
+} from '@tradeclass/world-engine';
+import { SyntheticStream, type SyntheticOptions } from '@tradeclass/synthetic';
+import { montarMundoIso, resolverColisaoLab } from '@tradeclass/iso-office';
+import { anexarWallMediaDemo } from './wall-media-demo';
 
 /** Passo de simulacao: 10 Hz. Mesmo valor no navegador e no servidor. */
 export const PASSO_MS = 100;
@@ -133,7 +134,7 @@ export function criarFonteLocal(seed: number, agentes?: number): WorldSource {
   }
   const stream = new SyntheticStream(opts);
   const mundo = montarMundoIso(seed, stream.agents);
-  const layout = mundo.layout;
+  const layout = anexarWallMediaDemo(mundo.layout);
   const violacoes = validarLayout(layout);
   const engine = new WorldEngine({
     layout,
@@ -313,7 +314,7 @@ export async function criarFonteRemota(url: string, timeoutMs = 5000): Promise<W
 
   const handshake = await conectar();
 
-  const layout = handshake.snapshot.layout;
+  const layout = anexarWallMediaDemo(handshake.snapshot.layout);
   // O servidor ja valida o layout antes de servir (e se recusa a subir com um
   // invalido). Revalidar aqui e barato e protege contra versao divergente.
   const violacoes = validarLayout(layout);
@@ -323,7 +324,7 @@ export async function criarFonteRemota(url: string, timeoutMs = 5000): Promise<W
       `seed ${handshake.welcome.seed}, protocolo ${handshake.welcome.protocolVersion}`,
   );
 
-  const snapshotInicial = handshake.snapshot;
+  const snapshotInicial: WorldSnapshot = { ...handshake.snapshot, layout };
   const bemVindo = handshake.welcome;
 
   return {

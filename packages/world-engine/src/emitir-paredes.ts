@@ -1,4 +1,4 @@
-import type { Cell, Room, WallFace } from '@microfirma/contracts';
+import type { Cell, Room, WallFace } from '@tradeclass/contracts';
 import { faceTocaCorredor } from './face-corredor.js';
 
 /**

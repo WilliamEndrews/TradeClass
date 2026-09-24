@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { TenantRegistry } from './tenant-registry.js';
 import { AuditTrail } from './audit-trail.js';
 import { AlertEngine } from './alert-engine.js';
-import { LIMITES_POR_PLANO } from '@microfirma/contracts';
+import { LIMITES_POR_PLANO } from '@tradeclass/contracts';
 
 describe('TenantRegistry', () => {
   function setup() {

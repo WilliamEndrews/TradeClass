@@ -1,12 +1,12 @@
 /**
- * Servidor do laboratorio TinyHouse + API de persistencia dos temas.
+ * Servidor do laboratorio TinyTraderLab + API de persistencia dos temas.
  *
  * Substitui `python -m http.server` para poder gravar
  * packages/world-engine/src/biblia/temas-arquiteto.json no disco
  * quando o lab salva/apaga um tema.
  *
  * Uso (raiz do repo): node scripts/iso-validation/lab-server.mjs
- * Lab: http://127.0.0.1:3333/scripts/iso-validation/tinyhouse.html
+ * Lab: http://127.0.0.1:3333/scripts/iso-validation/tinytraderlab.html
  */
 
 import http from 'node:http';
@@ -29,6 +29,7 @@ const BIBLIA_PATH = path.join(
 );
 const MIRROR_PATH = path.join(__dirname, 'temas-arquiteto.json');
 const COMBOS_PATH = path.join(__dirname, 'combinacoes-laboratorio.json');
+const CREATED_PATH = path.join(__dirname, 'created-assets.json');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -99,6 +100,16 @@ function validarPayloadCombos(doc) {
   return null;
 }
 
+function validarPayloadCreated(doc) {
+  if (!doc || typeof doc !== 'object' || Array.isArray(doc)) {
+    return 'JSON raiz invalido';
+  }
+  if (!Array.isArray(doc.assets)) {
+    return 'campo assets (array) obrigatorio';
+  }
+  return null;
+}
+
 function gravarCombos(doc) {
   const hoje = new Date().toISOString().slice(0, 10);
   const out = {
@@ -113,6 +124,22 @@ function gravarCombos(doc) {
   const txt = `${JSON.stringify(out, null, 2)}\n`;
   fs.writeFileSync(COMBOS_PATH, txt, 'utf8');
   return { bytes: Buffer.byteLength(txt, 'utf8'), combinacoes: out.combinacoes.length };
+}
+
+function gravarCreated(doc) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const out = {
+    versao: typeof doc.versao === 'string' ? doc.versao : '1.0',
+    data: hoje,
+    notas:
+      typeof doc.notas === 'string' && doc.notas.trim()
+        ? doc.notas
+        : 'Assets gerados proceduralmente (aba Create). fileName com prefixo created/ aponta para assets-source/tradeclass-created/.',
+    assets: doc.assets,
+  };
+  const txt = `${JSON.stringify(out, null, 2)}\n`;
+  fs.writeFileSync(CREATED_PATH, txt, 'utf8');
+  return { bytes: Buffer.byteLength(txt, 'utf8'), assets: out.assets.length };
 }
 
 function gravarTemas(doc) {
@@ -214,6 +241,41 @@ async function handleApi(req, res, pathname) {
     return true;
   }
 
+  if (pathname === '/api/created-assets' && req.method === 'GET') {
+    try {
+      const raw = fs.readFileSync(CREATED_PATH, 'utf8');
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(raw);
+    } catch (err) {
+      sendJson(res, 404, { ok: false, erro: String(err.message || err) });
+    }
+    return true;
+  }
+
+  if (pathname === '/api/created-assets' && req.method === 'POST') {
+    try {
+      const raw = await readBody(req);
+      const doc = JSON.parse(raw);
+      const erro = validarPayloadCreated(doc);
+      if (erro) {
+        sendJson(res, 400, { ok: false, erro });
+        return true;
+      }
+      const info = gravarCreated(doc);
+      sendJson(res, 200, {
+        ok: true,
+        ...info,
+        created: path.relative(REPO_ROOT, CREATED_PATH).replace(/\\/g, '/'),
+      });
+    } catch (err) {
+      sendJson(res, 500, { ok: false, erro: String(err.message || err) });
+    }
+    return true;
+  }
+
   if (pathname === '/api/health' && req.method === 'GET') {
     sendJson(res, 200, { ok: true, persistencia: true });
     return true;
@@ -223,7 +285,7 @@ async function handleApi(req, res, pathname) {
 }
 
 function serveStatic(req, res, pathname) {
-  const filePath = safeJoin(REPO_ROOT, pathname === '/' ? '/scripts/iso-validation/tinyhouse.html' : pathname);
+  const filePath = safeJoin(REPO_ROOT, pathname === '/' ? '/scripts/iso-validation/tinytraderlab.html' : pathname);
   if (!filePath) {
     res.writeHead(403).end('forbidden');
     return;
@@ -235,7 +297,7 @@ function serveStatic(req, res, pathname) {
     }
     const ext = path.extname(filePath).toLowerCase();
     const type = MIME[ext] || 'application/octet-stream';
-    res.writeHead(200, { 'Content-Type': type });
+    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store' });
     fs.createReadStream(filePath).pipe(res);
   });
 }
@@ -257,7 +319,8 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`[lab] http://${HOST}:${PORT}/scripts/iso-validation/tinyhouse.html`);
+  console.log(`[lab] http://${HOST}:${PORT}/scripts/iso-validation/tinytraderlab.html`);
   console.log(`[lab] persistencia POST /api/temas-arquiteto -> ${path.relative(REPO_ROOT, BIBLIA_PATH)}`);
   console.log(`[lab] persistencia POST /api/combinacoes-laboratorio -> ${path.relative(REPO_ROOT, COMBOS_PATH)}`);
+  console.log(`[lab] persistencia POST /api/created-assets -> ${path.relative(REPO_ROOT, CREATED_PATH)}`);
 });

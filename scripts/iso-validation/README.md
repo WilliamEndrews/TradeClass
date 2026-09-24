@@ -1,4 +1,4 @@
-# Laboratorio TinyHouse
+# Laboratorio TinyTraderLab
 
 Passo oficial de ajuste visual do escritorio E biblia do arquiteto:
 sprites catalogados, intencao obrigatorio/aleatorio/off, paletas de piso
@@ -13,7 +13,7 @@ Na raiz do repo:
 pnpm lab:iso
 ```
 
-Depois abra http://127.0.0.1:3333/scripts/iso-validation/tinyhouse.html
+Depois abra http://127.0.0.1:3333/scripts/iso-validation/tinytraderlab.html
 (F5 se o cache grudar).
 
 `lab:iso` sobe o **lab-server** (Node), nao mais o `python -m http.server`.
@@ -26,7 +26,7 @@ O **Debugpreview** le `catalogo-laboratorio.json` **e** `combinacoes-laboratorio
 (mesma regra do lab: `specPorId` = assets + combos).
 
 O servidor precisa ser a raiz do repo: o HTML busca os PNGs em
-`assets-source/`, a calibracao em `apps/demo/src/calibracao-tinyhouse.json`
+`assets-source/`, a calibracao em `apps/demo/src/calibracao-tinytraderlab.json`
 e o catalogo em `scripts/iso-validation/catalogo-laboratorio.json`.
 Temas do Construtor: `packages/world-engine/src/biblia/temas-arquiteto.json`.
 Combos: `scripts/iso-validation/combinacoes-laboratorio.json`.
@@ -35,7 +35,7 @@ Combos: `scripts/iso-validation/combinacoes-laboratorio.json`.
 
 - **Construtor** (`solveLayout`) le esta biblia e emite grade, `walls`,
   `tileSetId`, `Prop.assetId` e `WallMount`. Nao calcula pe/ancora.
-- **Lab + `calibracao-tinyhouse.json`**: pe no vertice, folga da porta,
+- **Lab + `calibracao-tinytraderlab.json`**: pe no vertice, folga da porta,
   spec de mesa/bebedouro. `projecao.ts` deriva ancora (`ancoraDePe`).
 - **Renderer**: so blita o `OfficeLayout`. Se o pe mudar, F5 no lab e na demo;
   nao chute ancora no renderer.
@@ -78,8 +78,8 @@ cresce a sala inteira:
   `peWallR.y - bbox.y` (altura da parede acima do pe). Com 2+ andares,
   **subida ±** faz o olhometro; o valor entra no JSON do laboratorio
   (`subidaAndar`). Para gravar na demo, cole em
-  `calibracao-tinyhouse.json`.
-- O canvas recentra sozinho. Maximo 8x8 e 3 andares. Ainda NAO alimenta
+  `calibracao-tinytraderlab.json`.
+- O canvas recentra sozinho. Maximo 24x24 e 3 andares. Ainda NAO alimenta
   o world-engine.
 
 ## Palco gamificado (caderninho + DnD)
@@ -87,34 +87,51 @@ cresce a sala inteira:
 UI atual do laboratorio (2026-09):
 
 1. Modos **Palco Principal** | **Combinar assets** (um canvas por vez).
-2. **Caderninho** lateral: abas Assets / Ambiente / Temas. Filtros
-   `todos` | `piso` | `parede` | `decor`. Arraste um card para o palco
-   (ou clique para plantar na celula/face atual).
+2. **Caderninho** lateral: abas Assets / **Create** / Ambiente / Temas.
+   Filtros em Assets: `todos` | `piso` | `parede` | `decor`. Arraste um
+   card para o palco (ou clique para plantar na celula/face atual).
+   A aba **Create** lista so assets gerados proceduralmente
+   (`created-assets.json` + `assets-source/tradeclass-created/`); eles
+   plantam no palco mas nao aparecem na aba Assets. Gere/atualize com
+   `node scripts/iso-validation/gerar-created-assets.mjs`.
+   Inclui mesas centro (plastico/metal), mesas alternativa/principal
+   embranquecidas (com/sem gaveta lisa), tapete, cameras e paineis de
+   parede XL (TV/cortica com `span` × `heightPx`).
 3. Hit-test automatico: perto da parede NW ancora como anexo; no centro
-   ancora no piso (quarteis internos, sem UI de subdivisao). Clique no
-   chao vazio **nao** captura grade — so pecas sao selecionaveis.
-4. **Piso, parede e decor empilham** no mesmo slot (um asset novo nao
+   o piso usa posicionamento livre (`gx`/`gy` + checkpoint `dx`/`dy`).
+   Segure **Shift** ao soltar/arrastar para snap nos quartis (legado).
+   Clique no chao vazio **nao** captura grade — so pecas sao selecionaveis.
+4. **Canvas vivo (MVP):** pecas Create com `interativo.acao === "popup"`
+   abrem overlay grande (`#interact-drawer`). Hoje: **Alt+clique** na
+   **Mesa centro metal** → “Teste de design”. Esc / X / backdrop fecham.
+   Clique simples continua so editando (selecao/arraste).
+5. **Piso, parede e decor empilham** no mesmo slot (um asset novo nao
    substitui o anterior). Arraste a peca selecionada para reposicionar.
    **Combos** plantados (borda verde no catalogo) selecionam, arrastam e
    apagam (Del / chip remover) como assets simples.
-5. **Atalhos do canvas**
+6. **Atalhos do canvas**
    - **Ctrl+Z** / **Ctrl+Y** (ou Ctrl+Shift+Z) desfaz/refaz.
    - **Delete** ou **Ctrl+Del** (Mac: Cmd+Del) remove a peca/camada
      selecionada. Backspace tambem.
-   - **Esc** limpa a selecao (no modo assento, Esc cancela o modo).
+   - **Esc** fecha popup interativo (se aberto) ou limpa a selecao
+     (no modo assento, Esc cancela o modo).
    - **[** / **]** (ou PageDown / PageUp) muda z-order entre vizinhos
      (palco e Combinar).
+   - **Ctrl+↑ / Ctrl+↓** (Mac: Cmd): sobe/desce a camada do asset
+     selecionado (palco e Combinar).
    - **Setas** em anexo de parede: ajustam `dx`/`dy` em 1 px.
-6. Chip da peca selecionada (camadas locais) tem botao **remover** (piso e
+   - **Ctrl+E**: espelha anexo de parede elegivel (`espelhado`).
+7. Chip da peca selecionada (camadas locais) tem botao **remover** (piso e
    parede). Chips da lista de parede tambem.
-7. Diagnostico (grade azul / ancoras) fica **desligado** por padrao;
+8. Diagnostico (grade azul / ancoras) fica **desligado** por padrao;
    ligue so quando precisar medir.
-8. Persistencia: `localStorage` + `lab-server` (temas/combos no disco).
-   **resetar JSON do repo** volta ao arquivo.
+9. Persistencia: `localStorage` + `lab-server` (temas/combos/created no disco).
+   **resetar JSON do repo** volta ao arquivo. Created: `POST /api/created-assets`.
 
 Ideias futuras (nao neste ciclo): Ctrl+D duplicar, lista unificada
-piso+parede, multi-select, toggle de snap na grade.
-
+piso+parede, multi-select, toggle persistente de snap na grade (hoje
+o snap e via Shift durante o arraste/drop), modo Play dedicado no lugar
+do Alt+clique.
 ## Plantar na parede (face + drag)
 
 As paredes NW ja existem: `Wall_R` em `gy=0` (todo `gx`), `Wall_L` em `gx=0`
@@ -201,7 +218,7 @@ a malha 0.5 e um passo a parte (invariantes de navgrid).
   diamante de chao do sprite - prega no vertice NW da celula (`iso(gx, gy)`),
   o mesmo esquadro amarelo das paredes. Plantar na celula 0,0 para conferir.
 
-Numeros em `apps/demo/src/calibracao-tinyhouse.json` (`objetos.desk` /
+Numeros em `apps/demo/src/calibracao-tinytraderlab.json` (`objetos.desk` /
 `objetos.water`). A demo (`sprite-factory.ts`) le esses valores. Olhometro
 aqui, F5, depois a demo.
 
@@ -209,7 +226,7 @@ aqui, F5, depois a demo.
 
 1. Ligue **diagnostico** (amarelo = perimetro 3x3, magenta = bbox da parede).
 2. Se o pe ou a folga da porta mudar, grave os numeros em
-   `apps/demo/src/calibracao-tinyhouse.json`.
+   `apps/demo/src/calibracao-tinytraderlab.json`.
 3. Recarregue o laboratorio (ele le o JSON) e a demo em `?agents=1` / `?agents=7`.
 4. Nao chute ancora em `projecao.ts`: ela deriva do JSON (`ancoraDePe`).
 
@@ -221,10 +238,10 @@ aqui, F5, depois a demo.
 
 ## Outros arquivos nesta pasta
 
-- `tinyhouse-lab.js` - palco expansivel, catalogo, paletas, temas, combinador, modo parede.
-- `catalogo-laboratorio.json` - biblia visual (espelha INITIAL_CATALOG v2.4; copa TinyHouse).
+- `TinyTraderLab-lab.js` - palco expansivel, catalogo, paletas, temas, combinador, modo parede.
+- `catalogo-laboratorio.json` - biblia visual (espelha INITIAL_CATALOG v2.4; copa TinyTraderLab).
 - `combinacoes-laboratorio.json` - combos drag-drop (assetId + dx/dy por camada).
 - `temas-arquiteto.json` - copia local; a biblia viva e
   `packages/world-engine/src/biblia/temas-arquiteto.json`.
-- `medir-tinyhouse.js` - bbox/IHDR dos PNGs (numeros brutos, nao ancora).
+- `medir-TinyTraderLab.js` - bbox/IHDR dos PNGs (numeros brutos, nao ancora).
 - `index.html` - harness legado do Furniture Kit Kenney (projecao 44x22).

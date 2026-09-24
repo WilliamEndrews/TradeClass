@@ -3,7 +3,7 @@
  * Nao usa solveLayout / emitirParedes / colarProto — o blit do lab fica intacto.
  */
 
-import { createRng, gradeDoProto } from '@microfirma/world-engine';
+import { createRng, gradeDoProto } from '@tradeclass/world-engine';
 import {
   assinaturaTemas,
   seedDaGeracao,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Room } from '@microfirma/contracts';
+import type { Room } from '@tradeclass/contracts';
 import { faceTocaCorredor } from './face-corredor';
 
 const corredorY = 4;

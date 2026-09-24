@@ -9,14 +9,14 @@
  * cena estatica fica num canvas separado e os atores sao blitted por cima.
  */
 
-import type { Activity, ActorState, Cell } from '@microfirma/contracts';
+import type { Activity, ActorState, Cell } from '@tradeclass/contracts';
 import {
   createRng,
   facingDeDelta,
   findPath,
   isWalkable,
   type NavGrid,
-} from '@microfirma/world-engine';
+} from '@tradeclass/world-engine';
 import {
   celulasDePasseio,
   celulasWalkableNaSala,

@@ -3,14 +3,14 @@
  * pathfinding pelas portas, baloes de fala. Ao terminar, reinicia a historia.
  */
 
-import type { Activity, ActorState, Cell } from '@microfirma/contracts';
+import type { Activity, ActorState, Cell } from '@tradeclass/contracts';
 import {
   createRng,
   facingDeDelta,
   findPath,
   isWalkable,
   type NavGrid,
-} from '@microfirma/world-engine';
+} from '@tradeclass/world-engine';
 import type { AgenteEspacial, CenarioEspacial } from '../espaco-agencia';
 import type { DebugSim } from '../simulacao-agentes';
 import type { AcaoBatida, Batida, Historia, PapelHistoria } from './historias';

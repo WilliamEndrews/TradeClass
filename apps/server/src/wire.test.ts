@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest';
 import {
   parseClientCommand,
   PROTOCOL_VERSION,
-} from '@microfirma/contracts';
+} from '@tradeclass/contracts';
 
 describe('parseClientCommand', () => {
   it('aceita resolve_approval valido', () => {

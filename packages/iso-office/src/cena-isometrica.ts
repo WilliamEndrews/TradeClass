@@ -12,7 +12,7 @@
  * anexos L viram um sprite unico, sem clip — o tile vizinho nao apaga o anexo.
  */
 
-import { gradeDoProto } from '@microfirma/world-engine';
+import { gradeDoProto } from '@tradeclass/world-engine';
 import type { AgenciaMontada } from './montar-agencia';
 import { bboxDe, carregar, type Bbox } from './proto-blit/assets';
 import { blitCatalogo, blitNaVertice, blitTile } from './proto-blit/blit';
@@ -203,8 +203,9 @@ function addAssetCommands(
       spec: child.spec,
       item,
       cal,
-      dx: child.dx,
-      dy: child.dy,
+      // Paridade com anexos de parede: checkpoint do item + offset da camada.
+      dx: (item.dx ?? 0) + child.dx,
+      dy: (item.dy ?? 0) + child.dy,
     });
   }
 }

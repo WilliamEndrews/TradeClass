@@ -25,8 +25,8 @@ const require = createRequire(import.meta.url);
 const WebSocket = require(join(dirname(fileURLToPath(import.meta.url)), '../apps/server/node_modules/ws'));
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const BASE = process.env.MICROFIRMA_BASE_URL ?? 'http://127.0.0.1:8787';
-const ONBOARDING_KEY = process.env.MICROFIRMA_ONBOARDING_KEY ?? 'microfirma-dev-onboarding';
+const BASE = process.env.TRADECLASS_BASE_URL ?? 'http://127.0.0.1:8787';
+const ONBOARDING_KEY = process.env.TRADECLASS_ONBOARDING_KEY ?? 'TradeClass-dev-onboarding';
 const AGENT_IDS = ['agent_triador_01', 'agent_analista_02', 'agent_gerente_03'];
 const OUT_JSON = join(ROOT, 'scripts/fixtures/.telemetria-medida.json');
 
@@ -108,8 +108,8 @@ async function criarTenant() {
   const env = [
     '# Gerado por scripts/medir-telemetria-e2e.mjs - tenant com OTLP ligado',
     `# Tenant: ${meta.tenantId}`,
-    `VITE_MICROFIRMA_WS=ws://127.0.0.1:8787/mundo?token=${meta.token}`,
-    `VITE_MICROFIRMA_TOKEN=${meta.token}`,
+    `VITE_TRADECLASS_WS=ws://127.0.0.1:8787/mundo?token=${meta.token}`,
+    `VITE_TRADECLASS_TOKEN=${meta.token}`,
   ].join('\n');
   writeFileSync(join(ROOT, 'apps/demo/.env.local'), env, 'utf8');
   return meta;

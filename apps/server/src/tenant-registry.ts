@@ -15,9 +15,9 @@
  * injeta o AlertEngine no laco de tick de cada sessao.
  */
 
-import type { Tenant, Plano, AlertConfig, SessionLogHeader } from '@microfirma/contracts';
-import { LIMITES_POR_PLANO } from '@microfirma/contracts';
-import { OtlpIngestor, type Violacao } from '@microfirma/world-engine';
+import type { Tenant, Plano, AlertConfig, SessionLogHeader } from '@tradeclass/contracts';
+import { LIMITES_POR_PLANO } from '@tradeclass/contracts';
+import { OtlpIngestor, type Violacao } from '@tradeclass/world-engine';
 import { OfficeSession, type FonteEventos } from './office-session.js';
 import { AuditTrail } from './audit-trail.js';
 import { AlertEngine } from './alert-engine.js';

@@ -1,5 +1,5 @@
 {
-  "name": "@microfirma/landing",
+  "name": "@tradeclass/landing",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,9 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@microfirma/contracts": "workspace:*",
-    "@microfirma/iso-office": "workspace:*",
-    "@microfirma/world-engine": "workspace:*",
+    "@tradeclass/contracts": "workspace:*",
+    "@tradeclass/iso-office": "workspace:*",
+    "@tradeclass/world-engine": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

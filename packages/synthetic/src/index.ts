@@ -1,10 +1,10 @@
 /**
- * @microfirma/synthetic - GERADOR DE TELEMETRIA SINTETICA
+ * @tradeclass/synthetic - GERADOR DE TELEMETRIA SINTETICA
  *
  * Por que este pacote existe antes de qualquer integracao real (Fase 0)?
  *
  * Porque o maior risco do projeto NAO e tecnico, e de percepcao: um CTO que
- * ache que isto e "um brinquedo" nunca vai colocar a MicroFirma na frente do
+ * ache que isto e "um brinquedo" nunca vai colocar a TradeClass na frente do
  * board. Esse risco se mata com uma demonstracao convincente - e uma demo nao
  * precisa de cliente, precisa de dados plausiveis.
  *
@@ -18,8 +18,8 @@
  * fronteira entre ingest e simulacao esta no lugar certo.
  */
 
-import type { AgentDescriptor, AgentRole, DomainEvent } from '@microfirma/contracts';
-import { avatarSeedDe, createRng, type Rng } from '@microfirma/world-engine';
+import type { AgentDescriptor, AgentRole, DomainEvent } from '@tradeclass/contracts';
+import { avatarSeedDe, createRng, type Rng } from '@tradeclass/world-engine';
 
 /** Perfil de comportamento de um agente sintetico. */
 interface PerfilAgente {
@@ -341,3 +341,11 @@ export function colaboracaoDoElenco(): Array<{ a: string; b: string; interaction
     { a: 'agent-triagem', b: 'agent-codigo', interactions: 25 },
   ];
 }
+
+export {
+  gerarDeskBindingsDaPlanta,
+  elencoMockFxHub,
+  elencoMockMetalsFloor,
+  elencoMockMacroDesk,
+  type PlantaDeskSpec,
+} from './agent-desk-mocks.js';

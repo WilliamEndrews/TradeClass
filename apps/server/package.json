@@ -1,5 +1,5 @@
 {
-  "name": "@microfirma/server",
+  "name": "@tradeclass/server",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,10 +11,10 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1105.0",
-    "@microfirma/contracts": "workspace:*",
-    "@microfirma/iso-office": "workspace:*",
-    "@microfirma/synthetic": "workspace:*",
-    "@microfirma/world-engine": "workspace:*",
+    "@tradeclass/contracts": "workspace:*",
+    "@tradeclass/iso-office": "workspace:*",
+    "@tradeclass/synthetic": "workspace:*",
+    "@tradeclass/world-engine": "workspace:*",
     "jose": "^6.2.8",
     "ws": "^8.18.0"
   },

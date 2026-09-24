@@ -3,29 +3,42 @@
  *
  * Nao desenha heat/fila/lixo/luz/fumaca (cortados neste ciclo).
  * A fronteira e a mesma do renderer antigo: recebe layout + quadros e pinta.
+ * Pick de desk/board/wallMedia alimenta o painel (ADR-0009).
  */
 
-import type { ActorState, OfficeLayout, WorldDelta, WorldSnapshot } from '@microfirma/contracts';
-import { PersonagemKit } from '@microfirma/iso-characters';
+import type { ActorState, OfficeLayout, WorldDelta, WorldSnapshot } from '@tradeclass/contracts';
+import { PersonagemKit } from '@tradeclass/iso-characters';
 import {
   OclusaoCorredor,
   agenciaDeLayout,
+  ALTURA_TILE,
   construirEspacoAgencia,
   desenharAgencia,
   desenharAtores,
   elencoIdsDoLayout,
   iso,
+  LARGURA_TILE,
+  pontoEmPoligono,
   prepararCenaIso,
   projetarAtorSentado,
+  quadComoPoligono,
+  quadrilateroTelaWallMedia,
+  retanguloTelaWallMedia,
   type AgenteEspacial,
   type CenaIsoPreparada,
-} from '@microfirma/iso-office';
+} from '@tradeclass/iso-office';
+import { CALIBRACAO_PADRAO } from '@tradeclass/world-engine';
+import { blitCandles, gerarSerieOHLCV } from './ohlcv-mock';
+import type { SelecaoAlvo } from './selection';
+import type { ViewTransform } from './wall-media-overlay';
 
 export interface RendererHandle {
   push(frame: WorldSnapshot | WorldDelta): void;
-  select(agentId: string | null): void;
+  select(alvo: SelecaoAlvo | string | null): void;
   focusAgent(agentId: string | null): void;
   resetCamera(): void;
+  onPick(cb: (alvo: SelecaoAlvo | null) => void): void;
+  getViewTransform(): ViewTransform;
   destroy(): void;
 }
 
@@ -34,6 +47,24 @@ interface Camera {
   panX: number;
   panY: number;
   seguirAgente: string | null;
+}
+
+function normalizarSelecao(alvo: SelecaoAlvo | string | null): SelecaoAlvo | null {
+  if (!alvo) return null;
+  if (typeof alvo === 'string') return { kind: 'agent', id: alvo };
+  return alvo;
+}
+
+function telaParaGrade(
+  sx: number,
+  sy: number,
+  origem: { x: number; y: number },
+): { gx: number; gy: number } {
+  const x = sx - origem.x;
+  const y = sy - origem.y;
+  const gxF = (x / (LARGURA_TILE / 2) + y / (ALTURA_TILE / 2)) / 2;
+  const gyF = (y / (ALTURA_TILE / 2) - x / (LARGURA_TILE / 2)) / 2;
+  return { gx: Math.floor(gxF), gy: Math.floor(gyF) };
 }
 
 export async function criarRenderer(
@@ -57,7 +88,52 @@ export async function criarRenderer(
   estatico.height = cena.height;
   const ectx = estatico.getContext('2d');
   if (!ectx) throw new Error('Canvas 2D indisponivel para a camada estatica.');
-  await desenharAgencia(ectx, agencia, cena, { fill: '#f4f1ea' });
+  await desenharAgencia(ectx, agencia, cena, { fill: '#0c1210' });
+
+  // Preview offscreen de WallMedia — charts blit; iframes = placeholder escuro no quad.
+  const peCal = { peWallR: CALIBRACAO_PADRAO.peWallR, peWallL: CALIBRACAO_PADRAO.peWallL };
+  for (const wm of layout.wallMedia ?? []) {
+    if (wm.kind === 'iframe' && wm.face) {
+      const q = quadrilateroTelaWallMedia(wm, 0, 0, peCal);
+      if (q) {
+        ectx.fillStyle = '#050a0e';
+        ectx.beginPath();
+        ectx.moveTo(cena.origem.x + q.tl.x, cena.origem.y + q.tl.y);
+        ectx.lineTo(cena.origem.x + q.tr.x, cena.origem.y + q.tr.y);
+        ectx.lineTo(cena.origem.x + q.br.x, cena.origem.y + q.br.y);
+        ectx.lineTo(cena.origem.x + q.bl.x, cena.origem.y + q.bl.y);
+        ectx.closePath();
+        ectx.fill();
+      } else {
+        const r = retanguloTelaWallMedia(wm, 0, 0, peCal);
+        if (r) {
+          ectx.fillStyle = '#0a1014';
+          ectx.fillRect(cena.origem.x + r.x, cena.origem.y + r.y, r.w, r.h);
+        }
+      }
+      continue;
+    }
+    const p = iso(wm.cell.x + 0.5, wm.cell.y + 0.5);
+    const cx = cena.origem.x + p.x;
+    const cy = cena.origem.y + p.y - 40;
+    const tw = (wm.size?.w ?? 2) * 48;
+    const th = 28;
+    if (wm.kind === 'chart' && wm.seriesId) {
+      const off = document.createElement('canvas');
+      off.width = tw;
+      off.height = th;
+      const octx = off.getContext('2d');
+      if (octx) {
+        blitCandles(octx, gerarSerieOHLCV(wm.seriesId, 32), tw, th);
+        ectx.drawImage(off, cx - tw / 2, cy - th);
+      }
+    } else {
+      ectx.fillStyle = wm.kind === 'banner' ? '#1a2822' : '#18221e';
+      ectx.fillRect(cx - tw / 2, cy - th, tw, th);
+      ectx.strokeStyle = '#c4a35a';
+      ectx.strokeRect(cx - tw / 2, cy - th, tw, th);
+    }
+  }
 
   const oclusao = await OclusaoCorredor.preparar(cena, layout.corridors);
   const personagens = await PersonagemKit.carregar({ agentIdsExtras: donos });
@@ -77,7 +153,8 @@ export async function criarRenderer(
   let deslocY = 0;
   let dpr = 1;
   let quadro: WorldSnapshot | WorldDelta | null = null;
-  let selecionado: string | null = null;
+  let selecionado: SelecaoAlvo | null = null;
+  let pickCb: ((alvo: SelecaoAlvo | null) => void) | null = null;
   let tMs = 0;
   let ultimoMs = performance.now();
   let vivo = true;
@@ -87,6 +164,7 @@ export async function criarRenderer(
   let dragStartY = 0;
   let dragPanStartX = 0;
   let dragPanStartY = 0;
+  let moveu = false;
 
   const ajustar = (): void => {
     dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -102,6 +180,72 @@ export async function criarRenderer(
   ajustar();
   const observador = new ResizeObserver(ajustar);
   observador.observe(palco);
+
+  const cssParaCena = (clientX: number, clientY: number): { x: number; y: number } => {
+    const rect = canvas.getBoundingClientRect();
+    const cx = clientX - rect.left;
+    const cy = clientY - rect.top;
+    const ea = escalaBase * camera.zoom;
+    return {
+      x: (cx - deslocX - camera.panX) / ea,
+      y: (cy - deslocY - camera.panY) / ea,
+    };
+  };
+
+  const pickEm = (clientX: number, clientY: number): SelecaoAlvo | null => {
+    const cenaPt = cssParaCena(clientX, clientY);
+    const grade = telaParaGrade(cenaPt.x, cenaPt.y, cena.origem);
+
+    if (quadro) {
+      for (const a of quadro.actors) {
+        const p = iso(a.x + 0.5, a.y + 0.5);
+        const ax = cena.origem.x + p.x;
+        const ay = cena.origem.y + p.y;
+        if (Math.hypot(ax - cenaPt.x, ay - cenaPt.y) < 28) {
+          return { kind: 'agent', id: a.agentId };
+        }
+      }
+    }
+
+    for (const wm of layout.wallMedia ?? []) {
+      if (wm.kind === 'iframe' && wm.face) {
+        const q = quadrilateroTelaWallMedia(wm, 0, 0, peCal);
+        if (q) {
+          const poly = quadComoPoligono(q).map((p) => ({
+            x: cena.origem.x + p.x,
+            y: cena.origem.y + p.y,
+          }));
+          if (pontoEmPoligono(cenaPt, poly)) {
+            return { kind: 'wallMedia', id: wm.mediaId };
+          }
+          continue;
+        }
+      }
+      const sw = wm.size?.w ?? 2;
+      const sh = wm.size?.h ?? 1;
+      if (
+        grade.gx >= wm.cell.x && grade.gx < wm.cell.x + sw
+        && grade.gy >= wm.cell.y && grade.gy < wm.cell.y + sh
+      ) {
+        return { kind: 'wallMedia', id: wm.mediaId };
+      }
+    }
+
+    for (const prop of layout.props) {
+      if (prop.kind !== 'desk' && prop.kind !== 'board') continue;
+      const fw = prop.footprint?.w ?? 1;
+      const fh = prop.footprint?.h ?? 1;
+      if (
+        grade.gx >= prop.cell.x && grade.gx < prop.cell.x + fw
+        && grade.gy >= prop.cell.y && grade.gy < prop.cell.y + fh
+      ) {
+        return prop.kind === 'desk'
+          ? { kind: 'desk', id: prop.propId }
+          : { kind: 'board', id: prop.propId };
+      }
+    }
+    return null;
+  };
 
   const onWheel = (e: WheelEvent): void => {
     e.preventDefault();
@@ -121,6 +265,7 @@ export async function criarRenderer(
 
   const onPointerDown = (e: PointerEvent): void => {
     arrastando = true;
+    moveu = false;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
     dragPanStartX = camera.panX;
@@ -130,14 +275,21 @@ export async function criarRenderer(
 
   const onPointerMove = (e: PointerEvent): void => {
     if (!arrastando) return;
-    camera.panX = dragPanStartX + (e.clientX - dragStartX);
-    camera.panY = dragPanStartY + (e.clientY - dragStartY);
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    if (Math.hypot(dx, dy) > 5) moveu = true;
+    camera.panX = dragPanStartX + dx;
+    camera.panY = dragPanStartY + dy;
     camera.seguirAgente = null;
   };
 
   const onPointerUp = (e: PointerEvent): void => {
     arrastando = false;
     canvas.releasePointerCapture(e.pointerId);
+    if (moveu) return;
+    const alvo = pickEm(e.clientX, e.clientY);
+    selecionado = alvo;
+    pickCb?.(alvo);
   };
 
   const onDoubleClick = (): void => {
@@ -160,7 +312,7 @@ export async function criarRenderer(
     ultimoMs = agora;
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.fillStyle = '#f4f1ea';
+    ctx.fillStyle = '#0c1210';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const escalaEfetiva = escalaBase * camera.zoom;
@@ -204,13 +356,14 @@ export async function criarRenderer(
       });
       desenharAtores(ctx, cena.origem, atores, tMs, personagens, oclusao);
 
-      if (selecionado) {
-        const ator = atores.find((a) => a.agentId === selecionado);
+      if (selecionado?.kind === 'agent') {
+        const idSel = selecionado.id;
+        const ator = atores.find((a) => a.agentId === idSel);
         if (ator) {
           const p = iso(ator.x + 0.5, ator.y + 0.5);
           const cx = cena.origem.x + p.x;
           const cy = cena.origem.y + p.y;
-          ctx.strokeStyle = 'rgba(40, 90, 180, 0.7)';
+          ctx.strokeStyle = 'rgba(196, 163, 90, 0.85)';
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.ellipse(cx, cy + 4, 18, 8, 0, 0, Math.PI * 2);
@@ -228,8 +381,8 @@ export async function criarRenderer(
       quadro = f;
       garantirAtores(f);
     },
-    select: (id) => {
-      selecionado = id;
+    select: (alvo) => {
+      selecionado = normalizarSelecao(alvo);
     },
     focusAgent: (id) => {
       camera.seguirAgente = id;
@@ -240,6 +393,20 @@ export async function criarRenderer(
       camera.panY = 0;
       camera.seguirAgente = null;
       ajustar();
+    },
+    onPick: (cb) => {
+      pickCb = cb;
+    },
+    getViewTransform: () => {
+      const ea = escalaBase * camera.zoom;
+      return {
+        origemCena: { ...cena.origem },
+        escala: ea,
+        cenaParaCss: (x, y) => ({
+          x: deslocX + camera.panX + x * ea,
+          y: deslocY + camera.panY + y * ea,
+        }),
+      };
     },
     destroy: () => {
       vivo = false;

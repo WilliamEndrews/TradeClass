@@ -1,7 +1,7 @@
 /**
  * CONTRATO 1 - EVENTOS DE DOMINIO
  *
- * Esta e a linguagem unica do sistema. Tudo que entra na MicroFirma (spans OTel
+ * Esta e a linguagem unica do sistema. Tudo que entra na TradeClass (spans OTel
  * GenAI, eventos do SDK, webhooks) e traduzido para UM destes eventos antes de
  * tocar qualquer outra camada. Nada a jusante conhece OpenTelemetry.
  *
@@ -121,7 +121,7 @@ export const ErrorRaised = EventBase.extend({
 /**
  * O agente parou e precisa de um humano (human-in-the-loop).
  * Visualmente: o agente vai ate a porta do usuario e espera. Esta e a feature
- * que transforma a MicroFirma de visualizacao em ferramenta operacional.
+ * que transforma a TradeClass de visualizacao em ferramenta operacional.
  */
 export const ApprovalRequested = EventBase.extend({
   type: z.literal('approval.requested'),

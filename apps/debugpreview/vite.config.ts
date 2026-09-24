@@ -9,8 +9,8 @@ export default defineConfig({
   publicDir,
   resolve: {
     alias: {
-      '@microfirma/contracts': resolve(__dirname, '../../packages/contracts/src/index.ts'),
-      '@microfirma/world-engine': resolve(__dirname, '../../packages/world-engine/src/index.ts'),
+      '@tradeclass/contracts': resolve(__dirname, '../../packages/contracts/src/index.ts'),
+      '@tradeclass/world-engine': resolve(__dirname, '../../packages/world-engine/src/index.ts'),
     },
   },
   server: { port: 5175, open: false },

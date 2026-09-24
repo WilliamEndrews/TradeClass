@@ -1,4 +1,4 @@
-import { createRng } from '@microfirma/world-engine';
+import { createRng } from '@tradeclass/world-engine';
 import { HISTORIAS, type Historia } from './historias';
 
 /** Sorteio uniforme e deterministico entre as historias do catalogo. */

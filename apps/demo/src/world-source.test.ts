@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { SyntheticStream } from '@microfirma/synthetic';
-import { montarMundoIso } from '@microfirma/iso-office';
+import { SyntheticStream } from '@tradeclass/synthetic';
+import { montarMundoIso } from '@tradeclass/iso-office';
 
 describe('world-source planta iso', () => {
   it('elenco sintetico padrao: 1 Boss + privativos + copa, mesa por agente', () => {
     const stream = new SyntheticStream({ seed: 20260802, comRoteiro: true });
     const mundo = montarMundoIso(20260802, stream.agents);
-    const clientes = stream.agents.filter((a) => !a.agentId.startsWith('microfirma-'));
+    const clientes = stream.agents.filter((a) => !a.agentId.startsWith('TradeClass-'));
     expect(clientes.length).toBeGreaterThanOrEqual(3);
     expect(mundo.layout.rooms.filter((r) => r.kind === 'boss_room')).toHaveLength(1);
     expect(mundo.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(clientes.length - 1);

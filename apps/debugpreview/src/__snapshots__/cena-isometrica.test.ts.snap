@@ -3,7 +3,7 @@
 exports[`cena isometrica global > mantem snapshot estrutural para uma seed fixa 1`] = `
 {
   "comandosPorTipo": {
-    "catalog": 167,
+    "catalog": 170,
     "label": 4,
     "threshold": 2,
     "tile": 77,

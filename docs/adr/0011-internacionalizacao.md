@@ -6,7 +6,7 @@
 
 ## Contexto
 
-A MicroFirma precisa ser demonstrada para audiencias internacionais. A
+A TradeClass precisa ser demonstrada para audiencias internacionais. A
 observabilidade de sistemas agenticos e um mercado global; manter a interface em
 portugues limita apresentacoes a investidores e compradores nao brasileiros. O
 escopo e traduzir o que o usuario LE na demo, nao o codigo, identificadores nem

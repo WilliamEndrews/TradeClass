@@ -8,16 +8,16 @@ import { MetricsRegistry } from './metrics.js';
 describe('MetricsRegistry', () => {
   it('expor metricas em formato Prometheus', () => {
     const m = new MetricsRegistry();
-    m.inc('microfirma_requests_total', { method: 'GET', route: '/health' }, 1, 'Requisicoes');
-    m.inc('microfirma_requests_total', { method: 'GET', route: '/health' }, 1);
-    m.set('microfirma_active_tenants', {}, 3, 'Ativos');
+    m.inc('TRADECLASS_requests_total', { method: 'GET', route: '/health' }, 1, 'Requisicoes');
+    m.inc('TRADECLASS_requests_total', { method: 'GET', route: '/health' }, 1);
+    m.set('TRADECLASS_active_tenants', {}, 3, 'Ativos');
 
     const texto = m.expose();
 
-    expect(texto).toContain('# HELP microfirma_requests_total Requisicoes');
-    expect(texto).toContain('# TYPE microfirma_requests_total counter');
-    expect(texto).toContain('microfirma_requests_total{method="GET",route="/health"} 2');
-    expect(texto).toContain('microfirma_active_tenants{} 3');
+    expect(texto).toContain('# HELP TRADECLASS_requests_total Requisicoes');
+    expect(texto).toContain('# TYPE TRADECLASS_requests_total counter');
+    expect(texto).toContain('TRADECLASS_requests_total{method="GET",route="/health"} 2');
+    expect(texto).toContain('TRADECLASS_active_tenants{} 3');
   });
 
   it('escapa aspas em labels', () => {

@@ -17,7 +17,7 @@
  */
 
 import { Application, Container, Graphics } from 'pixi.js';
-import type { OfficeLayout, WorldDelta, WorldSnapshot } from '@microfirma/contracts';
+import type { OfficeLayout, WorldDelta, WorldSnapshot } from '@tradeclass/contracts';
 
 const LARGURA_TILE = 44;
 const ALTURA_TILE = 22;

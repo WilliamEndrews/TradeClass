@@ -11,7 +11,7 @@
  * de escritorios com seeds diferentes e exigimos zero violacoes.
  */
 
-import type { Cell, OfficeLayout, Rect } from '@microfirma/contracts';
+import type { Cell, OfficeLayout, Rect } from '@tradeclass/contracts';
 import { buildNavGrid, footprintCells, isWalkable, reachableFrom } from './navgrid.js';
 
 export interface Violacao {

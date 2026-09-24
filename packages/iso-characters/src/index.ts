@@ -1,8 +1,8 @@
 /**
- * @microfirma/iso-characters
+ * @tradeclass/iso-characters
  *
  * Runtime do Klimmos Cozy Iso Modular Male Kit: compose modular + blit
- * Idle/Walk/Sit para atores do MicroFirma.
+ * Idle/Walk/Sit para atores do tradeclass.
  */
 
 export {

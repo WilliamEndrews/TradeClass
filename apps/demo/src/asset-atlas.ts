@@ -1,7 +1,7 @@
 /**
  * ATLAS DE ASSETS PRE-RENDERIZADOS - ADR-0012
  *
- * Carrega do pack TinyHouse:
+ * Carrega do pack TinyTraderLab:
  *  - mobilia e decor (`INITIAL_CATALOG.assets`), indexados por kind semantico;
  *  - tiles de piso/parede/porta (`TILESETS`), indexados por papel de tile;
  *  - `Glass_Wall` como extra (`glassWall()`), nao como 5o papel de tileset.
@@ -9,7 +9,7 @@
  * ---------------------------------------------------------------------------
  * ESCALA: UM FATOR GLOBAL, NUNCA POR-ASSET
  * ---------------------------------------------------------------------------
- * O TinyHouse publica canvases de 8/16/32/64/128px. Esses tiers sao BOUNDING
+ * O TinyTraderLab publica canvases de 8/16/32/64/128px. Esses tiers sao BOUNDING
  * BOXES, nao escalas - o artista desenhou tudo no mesmo pixel-scale. Logo
  * existe um unico `ESCALA_ASSET` (ver projecao.ts) aplicado a todos.
  *
@@ -23,7 +23,7 @@
  *  - `tile`   - blita o canvas 128x128 inteiro com a ancora do papel
  *               (`ancoraDoPapel` em projecao.ts) no centro da celula. Piso
  *               ancora na face (64, 68); paredes/porta usam pe-no-vertice
- *               gravado em calibracao-tinyhouse.json (laboratorio iso).
+ *               gravado em calibracao-tinytraderlab.json (laboratorio iso).
  *  - `objeto` - usa a caixa alfa do sprite e alinha seu centro-inferior ao
  *               centro da celula. Funciona para qualquer tamanho de canvas,
  *               que e o que mobilia e decor precisam.
@@ -32,7 +32,7 @@
  * posicao que o modo `tile` depende. A caixa alfa e guardada como metadado.
  */
 
-import { INITIAL_CATALOG, resolverTileSet, type TileKind, type TileSet } from '@microfirma/contracts';
+import { INITIAL_CATALOG, resolverTileSet, type TileKind, type TileSet } from '@tradeclass/contracts';
 import type { DecorKind, PropKind } from './sprite-factory';
 import { ESCALA_ASSET } from './projecao';
 

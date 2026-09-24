@@ -2,7 +2,7 @@
  * Activity do mundo -> animacao Klimmos.
  */
 
-import type { Activity, ActorPose } from '@microfirma/contracts';
+import type { Activity, ActorPose } from '@tradeclass/contracts';
 import type { AnimacaoKlimmos } from './folha.js';
 
 export function atividadeParaAnim(

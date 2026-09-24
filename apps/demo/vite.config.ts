@@ -14,11 +14,11 @@ export default defineConfig({
   publicDir,
   resolve: {
     alias: {
-      '@microfirma/contracts': resolve(__dirname, '../../packages/contracts/src/index.ts'),
-      '@microfirma/world-engine': resolve(__dirname, '../../packages/world-engine/src/index.ts'),
-      '@microfirma/synthetic': resolve(__dirname, '../../packages/synthetic/src/index.ts'),
-      '@microfirma/iso-characters': resolve(__dirname, '../../packages/iso-characters/src/index.ts'),
-      '@microfirma/iso-office': resolve(__dirname, '../../packages/iso-office/src/index.ts'),
+      '@tradeclass/contracts': resolve(__dirname, '../../packages/contracts/src/index.ts'),
+      '@tradeclass/world-engine': resolve(__dirname, '../../packages/world-engine/src/index.ts'),
+      '@tradeclass/synthetic': resolve(__dirname, '../../packages/synthetic/src/index.ts'),
+      '@tradeclass/iso-characters': resolve(__dirname, '../../packages/iso-characters/src/index.ts'),
+      '@tradeclass/iso-office': resolve(__dirname, '../../packages/iso-office/src/index.ts'),
     },
   },
   server: { port: 5173, open: false },

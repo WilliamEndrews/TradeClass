@@ -8,8 +8,8 @@ services:
     ports:
       - '8787:8787'
     environment:
-      - MICROFIRMA_HOST=0.0.0.0
-      - MICROFIRMA_ONBOARDING_KEY=microfirma-dev-onboarding
+      - TRADECLASS_HOST=0.0.0.0
+      - TRADECLASS_ONBOARDING_KEY=TradeClass-dev-onboarding
 
   demo:
     build:
@@ -21,4 +21,4 @@ services:
       - server
     environment:
       - SERVER_URL=http://server:8787
-      - MICROFIRMA_ONBOARDING_KEY=microfirma-dev-onboarding
+      - TRADECLASS_ONBOARDING_KEY=TradeClass-dev-onboarding

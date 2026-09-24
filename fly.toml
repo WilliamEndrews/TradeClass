@@ -1,4 +1,4 @@
-app = "microfirma"
+app = "TradeClass"
 primary_region = "gru"
 kill_signal = "SIGTERM"
 kill_timeout = "30s"
@@ -7,8 +7,8 @@ kill_timeout = "30s"
   dockerfile = "Dockerfile"
 
 [env]
-  MICROFIRMA_PORT = "8787"
-  MICROFIRMA_HOST = "0.0.0.0"
+  TRADECLASS_PORT = "8787"
+  TRADECLASS_HOST = "0.0.0.0"
 
 [http_service]
   internal_port = 8787

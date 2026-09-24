@@ -11,7 +11,7 @@
  * O Decorador devolve um `Tema`, que `planSpaceProgram` injeta no `SpaceProgram`.
  */
 
-import type { AgentDescriptor } from '@microfirma/contracts';
+import type { AgentDescriptor } from '@tradeclass/contracts';
 import { TEMAS, buscarTema, type Tema } from './themes.js';
 import { createRng } from './prng.js';
 

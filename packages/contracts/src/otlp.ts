@@ -10,7 +10,7 @@
  *
  *   1. `OtlpSpan` - a forma de um span OTLP/JSON como chega pela rede. Nao e
  *      o schema protobuf completo (isso seria 5000 linhas geradas); e a
- *      superficie que importa para a MicroFirma, com os atributos GenAI
+ *      superficie que importa para a TradeClass, com os atributos GenAI
  *      semanticos que os SDKs ja emitem.
  *
  *   2. `traduzirSpan` - funcao pura que recebe um span e devolve zero ou mais

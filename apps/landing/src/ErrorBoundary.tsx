@@ -20,7 +20,7 @@ export default class ErrorBoundary extends Component<
   }
 
   override componentDidCatch(error: unknown, info: React.ErrorInfo) {
-    // eslint-disable-next-line no-console
+     
     console.error('Landing error boundary:', error, info.componentStack);
   }
 

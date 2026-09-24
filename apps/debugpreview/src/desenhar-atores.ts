@@ -2,11 +2,11 @@
  * Camada dinamica: atores + overlay debug sobre o canvas estatico da agencia.
  */
 
-import type { ActorState, Cell } from '@microfirma/contracts';
+import type { ActorState, Cell } from '@tradeclass/contracts';
 import {
   dimensoesPersonagem,
   type PersonagemKit,
-} from '@microfirma/iso-characters';
+} from '@tradeclass/iso-characters';
 import type { CenarioEspacial } from './espaco-agencia';
 import type { OclusaoCorredor, RetanguloTela } from './oclusao-parede';
 import type { DebugSim } from './simulacao-agentes';

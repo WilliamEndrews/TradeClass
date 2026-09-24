@@ -6,7 +6,7 @@
  * simulacao de atores; o painter visual continua lendo o palco do tema.
  */
 
-import type { AgentDescriptor, AgentRole, Cell, OfficeLayout, Prop, Room } from '@microfirma/contracts';
+import type { AgentDescriptor, AgentRole, Cell, OfficeLayout, Prop, Room } from '@tradeclass/contracts';
 import {
   buildNavGrid,
   colarProto,
@@ -18,7 +18,7 @@ import {
   resolverColisaoDoCatalogo,
   resolverPostoAgente,
   type NavGrid,
-} from '@microfirma/world-engine';
+} from '@tradeclass/world-engine';
 import type { AgenciaMontada } from './montar-agencia';
 import { resolverSpecLab } from './proto-blit/catalogo';
 import type { ZonaPedido } from './selecionar-pedido';
@@ -98,10 +98,39 @@ function salaDeSlot(
   };
 }
 
-function agentIdsDoSlot(zonaKind: ZonaPedido, indicePriv: number): string[] {
+function agentIdsDoSlot(zonaKind: string, indicePriv: number): string[] {
   if (zonaKind === 'boss_room') return ['agent-boss'];
-  if (zonaKind === 'private') return [`agent-priv-${indicePriv}`];
+  if (zonaKind === 'private' || zonaKind === 'open') {
+    return [`agent-priv-${indicePriv}`];
+  }
   return [];
+}
+
+/**
+ * Ids dos agentes da sala a partir dos postos do tema (multi-seat).
+ * Slots nomeados (seat-0, macro-0, agent-boss) viram agentId; 'default'
+ * sintetiza agent-boss / agent-priv-N conforme a zona.
+ */
+export function agentIdsDosPostos(
+  tema: { postosTrabalho?: readonly { agentSlot: string }[] },
+  zonaKind: string,
+  indicePrivBase: number,
+): string[] {
+  const postos = tema.postosTrabalho ?? [];
+  if (postos.length === 0) return agentIdsDoSlot(zonaKind, indicePrivBase);
+
+  return postos.map((p, i) => {
+    const slot = p.agentSlot;
+    if (slot !== 'default') return slot;
+    if (zonaKind === 'boss_room') return i === 0 ? 'agent-boss' : `agent-boss-${i}`;
+    return `agent-priv-${indicePrivBase + i}`;
+  });
+}
+
+function quantosAssentosNaSala(tema: { postosTrabalho?: readonly unknown[] }, zonaKind: string): number {
+  if (zonaKind === 'break' || zonaKind === 'landing') return 0;
+  const n = tema.postosTrabalho?.length ?? 0;
+  return Math.max(1, n);
 }
 
 const PAPEIS_BOSS: readonly AgentRole[] = ['orchestrator', 'finance', 'guardian'];
@@ -109,13 +138,13 @@ const PAPEIS_BOSS: readonly AgentRole[] = ['orchestrator', 'finance', 'guardian'
 /**
  * Ordem deterministica do elenco: Boss (orchestrator/finance/guardian, senao
  * o primeiro por agentId) seguido dos demais privativos, tambem por agentId.
- * Agentes internos (`microfirma-*`) nao ocupam sala.
+ * Agentes internos (`TradeClass-*`) nao ocupam sala.
  */
 export function ordenarElencoCliente(
   agentes: readonly AgentDescriptor[],
 ): AgentDescriptor[] {
   const clientes = agentes
-    .filter((a) => !a.agentId.startsWith('microfirma-'))
+    .filter((a) => !a.agentId.startsWith('TradeClass-'))
     .slice()
     .sort((a, b) => a.agentId.localeCompare(b.agentId));
   if (clientes.length === 0) return [];
@@ -143,36 +172,54 @@ export function construirEspacoAgencia(
   const rooms: Room[] = [];
   const props: Prop[] = [];
   const wallMounts: OfficeLayout['wallMounts'] = [];
+  const wallMedia: OfficeLayout['wallMedia'] = [];
   let indicePriv = 0;
   const idsElenco = idsParaSlots(elenco);
+  /** agentIds por zoneId, para o segundo passe (atores) reutilizar a mesma lista. */
+  const agentesPorZona = new Map<string, string[]>();
+
+  // Reserva os primeiros N do elenco para a boss_room (multi-seat inclusive),
+  // independente da ordem dos slots no empacote — privativos comecam depois.
+  const temBoss = agencia.slots.some((s) => s.proto.zonaKind === 'boss_room');
+  const assentosBoss = agencia.slots
+    .filter((s) => s.proto.zonaKind === 'boss_room')
+    .reduce((acc, s) => acc + quantosAssentosNaSala(s.proto.tema, 'boss_room'), 0);
+  const offsetPrivElenco = temBoss ? Math.max(1, assentosBoss) : 0;
+  let cursorPrivElenco = offsetPrivElenco;
 
   for (const slot of agencia.slots) {
     const sala = salaDeSlot(slot, agencia.corredorY);
     rooms.push(sala);
 
+    const zonaKind = slot.proto.zonaKind;
     let agentIds: string[];
-    if (slot.proto.zonaKind === 'break' || slot.proto.zonaKind === 'landing') {
+    if (zonaKind === 'break' || zonaKind === 'landing') {
       agentIds = [];
     } else if (idsElenco.length > 0) {
-      if (slot.proto.zonaKind === 'boss_room') {
-        agentIds = idsElenco[0] ? [idsElenco[0]] : [];
+      const n = quantosAssentosNaSala(slot.proto.tema, zonaKind);
+      if (zonaKind === 'boss_room') {
+        agentIds = idsElenco.slice(0, n);
       } else {
-        const id = idsElenco[1 + indicePriv];
-        indicePriv += 1;
-        agentIds = id ? [id] : [];
+        agentIds = idsElenco.slice(cursorPrivElenco, cursorPrivElenco + n);
+        cursorPrivElenco += n;
+        indicePriv += n;
       }
     } else {
-      agentIds =
-        slot.proto.zonaKind === 'private'
-          ? agentIdsDoSlot('private', indicePriv++)
-          : agentIdsDoSlot(slot.proto.zonaKind, 0);
+      const base = indicePriv;
+      agentIds = agentIdsDosPostos(slot.proto.tema, zonaKind, base);
+      if (zonaKind === 'private' || zonaKind === 'open') {
+        indicePriv += Math.max(1, agentIds.length);
+      }
     }
+
+    agentesPorZona.set(slot.proto.key, agentIds);
 
     // O palco visual e espacial preserva a orientacao autorada no lab.
     // A porta/soleira e orientada separadamente conforme a faixa.
     const resultado = colarProto(sala, slot.proto.tema, agentIds, false, COLAR_OPTS);
     props.push(...resultado.props);
     wallMounts.push(...resultado.mounts);
+    wallMedia.push(...resultado.wallMedia);
   }
 
   const layout: OfficeLayout = {
@@ -186,6 +233,7 @@ export function construirEspacoAgencia(
     theme: { name: 'lab-iso', palette: [], greenery: 0.3 },
     walls: [],
     wallMounts,
+    wallMedia,
     corridorTileSetId: 'Concrete',
   };
 
@@ -198,42 +246,31 @@ export function construirEspacoAgencia(
 
   const agentes: AgenteEspacial[] = [];
   const ocupadas = celulasOcupadasPorProps(props);
-  indicePriv = 0;
   for (const slot of agencia.slots) {
     if (slot.proto.zonaKind === 'break' || slot.proto.zonaKind === 'landing') continue;
 
     const sala = rooms.find((r) => r.zoneId === slot.proto.key);
     if (!sala) continue;
 
-    let agentId: string;
-    if (idsElenco.length > 0) {
-      agentId =
-        slot.proto.zonaKind === 'boss_room'
-          ? (idsElenco[0] ?? 'agent-boss')
-          : (idsElenco[1 + indicePriv++] ?? `agent-priv-${indicePriv - 1}`);
-    } else {
-      agentId =
-        slot.proto.zonaKind === 'boss_room' ? 'agent-boss' : `agent-priv-${indicePriv++}`;
-    }
+    const agentIds = agentesPorZona.get(slot.proto.key) ?? [];
+    agentIds.forEach((agentId, i) => {
+      const desk = props.find((p) => p.kind === 'desk' && p.ownerAgentId === agentId);
+      // Mesmo posto que `colarProto` usou para gravar `desk.seat`.
+      const posto = resolverPostoAgente(slot.proto.tema, agentId, sala, false, i);
+      const seat = desk ? (resolverAssento(nav, desk) ?? undefined) : undefined;
 
-    const desk = props.find((p) => p.kind === 'desk' && p.ownerAgentId === agentId);
-    // Mesmo posto que `colarProto` usou para gravar `desk.seat` (geometria
-    // pura, garantida consistente); aqui so extraimos a posicao continua
-    // para o desenho final do ator.
-    const posto = resolverPostoAgente(slot.proto.tema, agentId, sala);
-    const seat = desk ? (resolverAssento(nav, desk) ?? undefined) : undefined;
-
-    agentes.push({
-      agentId,
-      zonaKind: slot.proto.zonaKind,
-      roomId: sala.roomId,
-      door: { ...sala.door },
-      desk,
-      seat,
-      seatFrac: posto?.render,
-      roomRect: { ...sala.rect },
-      pontosInteresse: pontosDeInteresseNaSala(nav, props, sala.rect, ocupadas),
-      passeio: celulasDePasseio(nav, sala.rect, sala.door, ocupadas),
+      agentes.push({
+        agentId,
+        zonaKind: slot.proto.zonaKind as ZonaPedido,
+        roomId: sala.roomId,
+        door: { ...sala.door },
+        desk,
+        seat,
+        seatFrac: posto?.render,
+        roomRect: { ...sala.rect },
+        pontosInteresse: pontosDeInteresseNaSala(nav, props, sala.rect, ocupadas),
+        passeio: celulasDePasseio(nav, sala.rect, sala.door, ocupadas),
+      });
     });
   }
 

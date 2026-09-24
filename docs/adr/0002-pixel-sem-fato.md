@@ -6,7 +6,7 @@
 
 ## Contexto
 
-A MicroFirma apresenta o escritorio dos agentes como uma planta baixa 2D. O risco e o canvas se tornar um "jogo bonito" decorativo: o usuario olha para pixels sem saber de onde eles vieram. Isso destruiria a promessa de observabilidade.
+A TradeClass apresenta o escritorio dos agentes como uma planta baixa 2D. O risco e o canvas se tornar um "jogo bonito" decorativo: o usuario olha para pixels sem saber de onde eles vieram. Isso destruiria a promessa de observabilidade.
 
 ## Investigacao
 

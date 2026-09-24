@@ -1,4 +1,4 @@
-# MicroFirma - BACKUP DE CONTEXTO
+# TradeClass - BACKUP DE CONTEXTO
 
 > Documento de resgate de contexto. Destinado a qualquer pessoa ou agente que
 > precise retomar o projeto sem relembrar toda a conversa de implementacao.
@@ -6,9 +6,9 @@
 
 ---
 
-## 1. O que e a MicroFirma
+## 1. O que e a TradeClass
 
-**MicroFirma** e um plano de controle espacial para sistemas agenticos.
+**TradeClass** e um plano de controle espacial para sistemas agenticos.
 
 Em vez de dashboards tabulares, o produto projeta o estado de uma frota de
 agentes autonomos como um escritorio isometrico 2.5D vivo. Cada agente e um
@@ -30,7 +30,7 @@ telemetria -> eventos de dominio -> Narrative Scheduler -> World Engine -> rende
 
 - **Concorrentes diretos**: Langfuse, LangSmith, Arize Phoenix, Braintrust,
   AgentOps.
-- **Diferencial da MicroFirma**: bidirecionalidade (observar E agir) dentro de
+- **Diferencial da TradeClass**: bidirecionalidade (observar E agir) dentro de
   uma metfora espacial unica. O HITL (human-in-the-loop) acontece no proprio
   espaco: o agente bate na porta, o humano aprova, o agente volta.
 
@@ -97,13 +97,13 @@ CLIENTE WEB
 
 | Pacote | Responsabilidade | Tech |
 | --- | --- | --- |
-| `@microfirma/contracts` | Tipos, schemas zod, contratos de wire, OTLP | zod, ajv |
-| `@microfirma/world-engine` | NarrativeScheduler, WorldEngine, layout, pathfinding | TS puro |
-| `@microfirma/synthetic` | Gerador sintetico de eventos para testes | TS puro |
-| `@microfirma/server` | HTTP, WebSocket, multi-tenant, auth, alertas | ws, jose, aws-sdk |
-| `@microfirma/demo` | Canvas 2.5D + painel lateral React | Vite, React, Canvas 2D |
-| `@microfirma/debugpreview` | Bancada: biblia do lab -> agencia visual | Vite, React, Canvas 2D |
-| `@microfirma/landing` | Landing page 3D com transicao cinematografica | Vite, React, Three.js |
+| `@tradeclass/contracts` | Tipos, schemas zod, contratos de wire, OTLP | zod, ajv |
+| `@tradeclass/world-engine` | NarrativeScheduler, WorldEngine, layout, pathfinding | TS puro |
+| `@tradeclass/synthetic` | Gerador sintetico de eventos para testes | TS puro |
+| `@tradeclass/server` | HTTP, WebSocket, multi-tenant, auth, alertas | ws, jose, aws-sdk |
+| `@tradeclass/demo` | Canvas 2.5D + painel lateral React | Vite, React, Canvas 2D |
+| `@tradeclass/debugpreview` | Bancada: biblia do lab -> agencia visual | Vite, React, Canvas 2D |
+| `@tradeclass/landing` | Landing page 3D com transicao cinematografica | Vite, React, Three.js |
 
 ## 4. ADRs (Architecture Decision Records)
 
@@ -188,13 +188,13 @@ ainda nao tem arquivos fisicos, so citacoes no codigo.
 
 ### Frente de refinamento visual (agosto/2026)
 
-1. **Migracao para TinyHouse pack** (`assets-source/TinyHouse`): pack 0.17 do
+1. **Migracao para TinyTraderLab pack** (`assets-source/TinyTraderLab`): pack 0.17 do
    Pixel_Salvaje extraido e renomeado (original tinha `@` e parenteses no nome).
    Tornou-se a fonte primaria de assets estruturais e de escritorio. Contem:
    `Office`, `Desks`, `Chairs`, `Computer`, `Floor_Wall_Tiles_128/64/32`,
    `Doors`, `Plants`, `Books`, `Carpets`, `Lamp`, `Sofa`, `Windows`,
    `Bathroom`, `Kitchen`, etc.
-2. **Projecao nativa TinyHouse** (`apps/demo/src/projecao.ts`): `PX_POR_CELULA=128`,
+2. **Projecao nativa TinyTraderLab** (`apps/demo/src/projecao.ts`): `PX_POR_CELULA=128`,
    `LARGURA_TILE=128`, `ALTURA_TILE=64`, `ALTURA_PERSONAGEM=96`. Substituiu a
    projecao anterior de 44x22. Tiles de piso/parede blitados nativamente.
 3. **Tiles de piso e parede pelo atlas**: `Wall_L_128` (oeste), `Wall_R_128`
@@ -204,7 +204,7 @@ ainda nao tem arquivos fisicos, so citacoes no codigo.
 4. **Recorte de parede** (`comRecorte` em `office-renderer-2d.ts`): clip de
    canvas limita a largura das paredes a extensao exata do piso da sala,
    impedindo que a laje de 8px do tile de parede transborde para fora do chao.
-5. **Porta sobreposta como objeto**: a porta do TinyHouse e um retangulo
+5. **Porta sobreposta como objeto**: a porta do TinyTraderLab e um retangulo
    frontal, incompativel com o paralelogramo inclinado de Wall_L/Wall_R. Em vez
    de substituir o tile de parede, a parede e desenhada normalmente e a porta
    e sobreposta como objeto ancorado pelo centro-inferior (`spriteDeAsset` +
@@ -231,7 +231,7 @@ e passou a alimentar o Construtor; o Debugpreview valida o empacote com um
 **painter global** (uma lista de comandos, um canvas) sem desmontar o proto
 do Lab.
 
-1. **Laboratorio TinyHouse persistente** (`pnpm lab:iso`):
+1. **Laboratorio TinyTraderLab persistente** (`pnpm lab:iso`):
    `scripts/iso-validation/lab-server.mjs` serve o pack e expoe
    `POST /api/temas-arquiteto` + `POST /api/combinacoes-laboratorio`.
    Biblia em `packages/world-engine/src/biblia/temas-arquiteto.json`.
@@ -239,7 +239,7 @@ do Lab.
    do catalogo para o palco, hit-test piso vs face L/R, empilhamento de
    piso/parede/decor, **Ctrl+Z/Y**, Delete, diagnostico off por padrao,
    espelhar anexos elegiveis, camadas locais entre vizinhos.
-3. **Calibracao oficial** (`apps/demo/src/calibracao-tinyhouse.json` +
+3. **Calibracao oficial** (`apps/demo/src/calibracao-tinytraderlab.json` +
    `projecao.ts`): ancora de piso (64, 68), pe de parede, folga da porta.
 4. **Construtor da biblia** (`construtor-biblia.ts`): `escolherTema`,
    `gradeDoProto`, `visualDoProto`, `resolverTilesetZona`, `colarProto`.
@@ -274,8 +274,8 @@ do Lab.
 - **Alinhar preview e produto** quando fizer sentido: o Debugpreview
   preserva o proto intacto; o caminho demo/solver ainda espelha faixa norte
   e pode emitir vidro no corredor — evolucao consciente, nao regressao.
-- **Meter** ainda sem PNG de repouso no TinyHouse.
-- **Expandir catalogo TinyHouse** conforme aceite humano.
+- **Meter** ainda sem PNG de repouso no TinyTraderLab.
+- **Expandir catalogo TinyTraderLab** conforme aceite humano.
 
 ### Producao e escala
 
@@ -309,7 +309,7 @@ pnpm install
 pnpm dev:landing       # landing page 3D na porta 5174
 pnpm dev:server        # servidor na porta 8787
 pnpm dev               # demo React no navegador
-pnpm lab:iso           # laboratorio TinyHouse (3333) + persistencia da biblia
+pnpm lab:iso           # laboratorio TinyTraderLab (3333) + persistencia da biblia
 pnpm dev:debugpreview  # bancada de agencia (5175)
 ```
 
@@ -328,12 +328,12 @@ pnpm load-test         # carga HTTP no endpoint SimFirma
 
 ### Variaveis de ambiente uteis
 
-- `MICROFIRMA_JWT_SECRET` — segredo para JWT.
-- `VITE_MICROFIRMA_DEMO_URL` — URL para a demo na landing page.
-- `MICROFIRMA_ONBOARDING_KEY` — chave de onboarding de novos tenants.
-- `MICROFIRMA_OTLP` — ativa receptor OTLP real em vez do gerador sintetico.
-- `MICROFIRMA_WS` — URL do WebSocket no demo (`VITE_MICROFIRMA_WS`).
-- `MICROFIRMA_S3_*` — credenciais para S3 replay.
+- `TRADECLASS_JWT_SECRET` — segredo para JWT.
+- `VITE_TRADECLASS_DEMO_URL` — URL para a demo na landing page.
+- `TRADECLASS_ONBOARDING_KEY` — chave de onboarding de novos tenants.
+- `TRADECLASS_OTLP` — ativa receptor OTLP real em vez do gerador sintetico.
+- `TRADECLASS_WS` — URL do WebSocket no demo (`VITE_TRADECLASS_WS`).
+- `TRADECLASS_S3_*` — credenciais para S3 replay.
 
 ## 8. Arquivos de entrada obrigatorios
 
@@ -350,7 +350,7 @@ Para entender ou retomar o projeto, leia nesta ordem:
 9. `packages/world-engine/src/world-engine.ts`
 10. `packages/world-engine/src/construtor-biblia.ts` — biblia / ProtoComodo.
 11. `packages/world-engine/src/layout-solver.ts`
-12. `scripts/iso-validation/README.md` — laboratorio TinyHouse.
+12. `scripts/iso-validation/README.md` — laboratorio TinyTraderLab.
 13. `apps/debugpreview/src/cena-isometrica.ts` — painter global.
 14. `apps/debugpreview/src/montar-agencia.ts`
 15. `apps/debugpreview/src/espaco-agencia.ts` / `simulacao-agentes.ts`
@@ -365,7 +365,7 @@ Para entender ou retomar o projeto, leia nesta ordem:
 
 - **Nao altere ADRs sem escrever o novo ADR.** As regras de ouro sao
   imutaveis sem registro.
-- **Nunca duplique tipos de `@microfirma/contracts`.** E a fonte unica.
+- **Nunca duplique tipos de `@tradeclass/contracts`.** E a fonte unica.
 - **Nunca chame LLM dentro do loop de tick.** LLM fica nas bordas
   (arquiteto/decorador/relatorios).
 - **Nunca gere coordenadas com LLM.** Use `planSpaceProgram` + solver.
@@ -383,5 +383,5 @@ Para entender ou retomar o projeto, leia nesta ordem:
 
 ---
 
-**Repositorio**: `https://github.com/WilliamEndrews/Microfirma`
+**Repositorio**: `https://github.com/WilliamEndrews/TradeClass`
 **Branch ativa**: `main`

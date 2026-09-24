@@ -8,8 +8,8 @@ import {
   LlmArchitect,
   type AgenteArquiteto,
 } from './agente-arquiteto.js';
-import { SpaceProgram as SpaceProgramSchema } from '@microfirma/contracts';
-import type { AgentDescriptor } from '@microfirma/contracts';
+import { SpaceProgram as SpaceProgramSchema } from '@tradeclass/contracts';
+import type { AgentDescriptor } from '@tradeclass/contracts';
 
 const agentes: AgentDescriptor[] = [
   { agentId: 'a1', displayName: 'Triagem', role: 'researcher', framework: 'langgraph', discoveredVia: 'otel', avatarSeed: 1 },

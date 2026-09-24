@@ -1,7 +1,7 @@
 /**
  * CONTRATO 5 - TENANT, AUTH, AUDITORIA, ALERTAS, APROVACAO
  *
- * Fase 3 - Produto. Estes tipos transformam o MicroFirma de demo tecnica
+ * Fase 3 - Produto. Estes tipos transformam o TradeClass de demo tecnica
  * em SaaS multi-tenant. Todos os tipos aqui sao schemas zod validaveis
  * na borda de rede, como em wire.ts e domain-events.ts.
  *

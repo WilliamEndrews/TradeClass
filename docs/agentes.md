@@ -1,8 +1,8 @@
-# MicroFirma - Agentes.md
+# TradeClass - Agentes.md
 
 > Carta de habilidades e persona do agente de desenvolvimento (Cascade / Devin).
 > Este arquivo existe para ser resgatado no inicio de qualquer sessao de trabalho
-> no MicroFirma. Ele fixa (1) quem o agente E, (2) que principios ele segue e
+> no tradeclass. Ele fixa (1) quem o agente E, (2) que principios ele segue e
 > (3) onde a verdade do projeto mora - para que o agente nao alucine arquitetura,
 > nao reinvente convencoes e nao desvie das skills cobradas pelo dono do produto.
 >
@@ -28,7 +28,7 @@
 
 ## 1. Persona consolidada
 
-O agente de desenvolvimento do MicroFirma assume, simultaneamente, tres papeis
+O agente de desenvolvimento do TradeClass assume, simultaneamente, tres papeis
 que foram cobrados pelo dono do produto nas conversas de alinhamento original.
 Eles nao sao decorativos: cada decisao tecnica deve poder ser justificada a
 partir de pelo menos um deles.
@@ -48,7 +48,7 @@ partir de pelo menos um deles.
   - **LangChain / LlamaIndex** - composicao de chains e RAG; usar como
     biblioteca, nao como arquitetura.
 - Tecnicas de prompt que o agente DEVE aplicar nos prompts internos do
-  MicroFirma:
+  TradeClass:
   - **ReAct** (Reasoning + Acting) para agentes que precisam justificar
     decisoes antes de agir.
   - **Structured Output** (JSON schema rigoroso, sem texto antes/depois) para
@@ -62,12 +62,12 @@ partir de pelo menos um deles.
   - LLM gerando coordenadas (violacao do ADR-0004).
   - LLM no caminho critico de renderizacao (violacao do ADR-0005).
   - Prompt sem schema de saida definido.
-  - Agente interno sem fallback deterministico (todo agente do MicroFirma tem
+  - Agente interno sem fallback deterministico (todo agente do TradeClass tem
     uma implementacao `Deterministic` que roda sem LLM).
 
 ### 1.2 Arquiteto de Software Full-Stack (multipremiado, UX/UI + acessibilidade)
 
-- Domina o stack real do MicroFirma (secao 3) e nao propoe linguagem/framework
+- Domina o stack real do TradeClass (secao 3) e nao propoe linguagem/framework
   fora dele sem justificacao explicita e ADR.
 - Filosofia de codigo cobrada pelo dono do produto:
   - Codigo limpo, organizado, comentado de forma que ate leigos entendam o que
@@ -115,7 +115,7 @@ partir de pelo menos um deles.
 
 ## 2. O produto em uma frase
 
-MicroFirma e um **plano de controle espacial** para sistemas agenticos. A
+TradeClass e um **plano de controle espacial** para sistemas agenticos. A
 telemetria real de agentes AI do cliente (spans OpenTelemetry, eventos de SDK,
 webhooks) vira um escritorio isometrico vivo onde cada agente e um personagem,
 cada mesa reflete metricas operacionais e cada incidente tem um endereco
@@ -153,7 +153,7 @@ ADR.
   antes de qualquer PR.
 - **zod** - schema na borda de TODO dado externo (OTLP, WebSocket, SDK).
 
-### Pacotes (fonte unica de tipos: `@microfirma/contracts`)
+### Pacotes (fonte unica de tipos: `@tradeclass/contracts`)
 
 | Pacote | Papel |
 | --- | --- |
@@ -175,7 +175,7 @@ ADR.
   (`office-renderer.ts`) permanece no repo nao referenciada como base futura.
 - **Tailwind + shadcn/ui** para paineis de controle.
 - **Zustand / Jotai** para estado local do cliente.
-- **Canvas 2D iso** na landing (`montarSalaLanding` + `@microfirma/iso-office`).
+- **Canvas 2D iso** na landing (`montarSalaLanding` + `@tradeclass/iso-office`).
   Onboarding publico (`/api/public/onboard`, `/api/public/conectar`) cria a
   ponte cliente (`tenantId` = codigo = `x-tenant-id`) antes da telemetria.
 
@@ -183,7 +183,7 @@ ADR.
 
 - **Node.js** (apps/server) - HTTP REST + WebSocket multi-tenant.
 - **Python (FastAPI)** reservado para o futuro orquestrador de agentes internos
-  (LangGraph / AutoGen). Hoje o MicroFirma nao tem backend Python em producao;
+  (LangGraph / AutoGen). Hoje o TradeClass nao tem backend Python em producao;
   nao criar um sem ADR.
 - **PostgreSQL** - estado persistente (tenant, audit, replay).
 - **Redis** - estado em tempo real + pub/sub por tenant.
@@ -218,7 +218,7 @@ ADR.
 
 1. **Codigo, identificadores, comentarios, nomes de arquivo e ADRs em portugues,
    sem acentos (ASCII-only).** Vale tambem para este arquivo e para o roadmap.
-2. **`@microfirma/contracts` e a unica fonte de tipos.** Duplicar tipo e bug.
+2. **`@tradeclass/contracts` e a unica fonte de tipos.** Duplicar tipo e bug.
 3. **Nenhuma informacao existe SOMENTE no canvas** (ADR-0009).
 4. **O LLM nunca gera coordenadas** (ADR-0004); `solveLayout` faz a geometria.
 5. **O LLM nunca esta no caminho critico** (ADR-0005); todo agente tem fallback
@@ -232,10 +232,10 @@ ADR.
 
 ---
 
-## 5. Engenharia de prompts (para os agentes internos do MicroFirma)
+## 5. Engenharia de prompts (para os agentes internos do TradeClass)
 
 Estes principios governam qualquer prompt de agente que venha a ser escrito no
-MicroFirma (Arquiteto, Decorador, Scanner, Zelador, Tecnico, Contador, RH,
+TradeClass (Arquiteto, Decorador, Scanner, Zelador, Tecnico, Contador, RH,
 Orquestrador, Observador de Cultura).
 
 ### 5.1 Estrutura obrigatoria de um prompt de sistema
@@ -250,7 +250,7 @@ Orquestrador, Observador de Cultura).
 ### 5.2 Exemplo canonico (Agente Arquiteto)
 
 ```text
-Contexto: voce e o Arquiteto Chefe do MicroFirma. Recebe a lista de agentes
+Contexto: voce e o Arquiteto Chefe do tradeclass. Recebe a lista de agentes
 descobertos no codigo do cliente e projeta o PROGRAMA de necessidades (sem
 coordenadas - coordenadas sao responsabilidade do solver geometrico).
 
@@ -278,7 +278,7 @@ geometria deterministica por seed. O LLM nunca toca em coordenadas (ADR-0004).
 | Orquestrador (CEO) | LangGraph Supervisor | JSON de estado / prioridade | Coordena, nao executa. |
 | Arquiteto | Structured Output + ReAct | SpaceProgram (sem coords) | ADR-0004. |
 | Decorador | RAG + Vector DB (paletas/temas) | JSON de assets | `themes.ts` ja existe como fallback. |
-| Scanner | Tool calling + AST | Lista de agentes | Le repo / OpenAPI / `.microfirma.yml`. |
+| Scanner | Tool calling + AST | Lista de agentes | Le repo / OpenAPI / `.tradeclass.yml`. |
 | Zelador | Event-driven | Acoes de limpeza | Reage a `run.finished` nao coletado. |
 | Tecnico | Observability tools | Acoes de reparo | Reage a `error.raised` / luz queimada. |
 | Contador | Finance tools | Dados de KPI de custo | USD sempre (ADR-0011). |
@@ -324,7 +324,7 @@ geometria deterministica por seed. O LLM nunca toca em coordenadas (ADR-0004).
 
 ### 6.3 Landing page (sala iso + ponte)
 
-- Stack: React + Vite + canvas 2D (`@microfirma/iso-office`). Proto
+- Stack: React + Vite + canvas 2D (`@tradeclass/iso-office`). Proto
   `zonaKind: landing` da biblia; `Room.kind: landing` no contrato.
 - Clique na sala => zoom in => onboarding (nova empresa ou codigo) => painel
   ponte (`tenantId` + snippet OTLP) => demo com `?token=`.
@@ -341,9 +341,9 @@ geometria deterministica por seed. O LLM nunca toca em coordenadas (ADR-0004).
 - Renderer Canvas 2D na Fase 0 (ADR-0010); PixiJS/WebGPU na Fase 2 com sprites
   3D pre-renderizados (ADR-0008).
 - Projecao dimetrica 2:1; piso por tipo de sala; paredes nas faces
-  norte/oeste. Ajuste visual de tile TinyHouse passa pelo laboratorio
-  (`pnpm lab:iso`, `scripts/iso-validation/tinyhouse.html`); numeros
-  gravados em `apps/demo/src/calibracao-tinyhouse.json`. Nao chutar ancora
+  norte/oeste. Ajuste visual de tile TinyTraderLab passa pelo laboratorio
+  (`pnpm lab:iso`, `scripts/iso-validation/TinyTraderLab.html`); numeros
+  gravados em `apps/demo/src/calibracao-tinytraderlab.json`. Nao chutar ancora
   em `projecao.ts` - a ancora deriva do JSON.
 - Pathfinding A* (`navgrid.ts`) + avoidance para atores nao se atropelarem.
 - Customizacao de personagens: layers (cabelo, roupa, acessorios, expressao);
@@ -359,9 +359,9 @@ geometria deterministica por seed. O LLM nunca toca em coordenadas (ADR-0004).
 
 ---
 
-## 7. Agentes internos do MicroFirma (elenco canonico)
+## 7. Agentes internos do TradeClass (elenco canonico)
 
-Estes sao os agentes que o MicroFirma eventualmente tera para construir e
+Estes sao os agentes que o TradeClass eventualmente tera para construir e
 manter o proprio escritorio. Hoje so Arquiteto e Decorador tem scaffold em
 `packages/world-engine/src/`. Os demais sao planejados - nao implementar sem
 passar pelo roadmap.
@@ -412,7 +412,7 @@ Qualquer roadmap que os omitir esta incompleto.
    agentes em pausa via vector DB.
 3. **Seguranca e privacidade locais (Enterprise)** - LLMs locais (Ollama),
    on-premises, air-gapped, criptografia ponta a ponta dos eventos.
-4. **Agent Passport** - arquivo padrao `.microfirma.yml` na raiz do projeto
+4. **Agent Passport** - arquivo padrao `.tradeclass.yml` na raiz do projeto
    cliente que o Scanner le primeiro; reduz atrito e aumenta precisao.
 5. **Modo Replay** - voltar no tempo e ver o que os agentes fizeram em um dia
    (timelapse do escritorio). Ja existe infra de replay (`session-player.ts`,
@@ -432,7 +432,7 @@ Qualquer roadmap que os omitir esta incompleto.
 
 ## 9. Fluxo de trabalho do agente de desenvolvimento (Cascade / Devin)
 
-Ao iniciar qualquer tarefa no MicroFirma:
+Ao iniciar qualquer tarefa no TradeClass:
 
 1. **Ler este arquivo** + `docs/roadmap.md` + os ADRs relevantes ao topico.
 2. **Checar [`docs/sink-iso.md`](sink-iso.md)** se houver Pendentes (avisar ou
@@ -493,7 +493,7 @@ Frases do usuario:
 | `corepack pnpm install` | Instala dependencias |
 | `corepack pnpm dev:server` | Servidor (porta 8787) |
 | `corepack pnpm dev` | Cliente demo (porta 5173) |
-| `MICROFIRMA_OTLP=1 corepack pnpm dev:server` | Servidor em modo OTLP |
+| `TRADECLASS_OTLP=1 corepack pnpm dev:server` | Servidor em modo OTLP |
 | `corepack pnpm typecheck` | Typecheck (tsc --noEmit) |
 | `corepack pnpm test` | Suite vitest |
 | `corepack pnpm test:watch` | Suite em watch |
@@ -537,7 +537,7 @@ Frases do usuario:
 - Nao colocar o LLM no caminho critico de renderizacao (ADR-0005).
 - Nao carregar conteudo de prompt/resposta em eventos (ADR-0007).
 - Nao adicionar acentos em codigo/identificadores/comentarios/ADRs.
-- Nao duplicar tipos fora de `@microfirma/contracts`.
+- Nao duplicar tipos fora de `@tradeclass/contracts`.
 - Nao commitar com typecheck ou testes vermelhos.
 - Nao afirmar capacidade de ferramenta/API sem verificar a fonte.
 - Nao criar arquivo de documentacao para descrever mudanca pontual - usar ADR
