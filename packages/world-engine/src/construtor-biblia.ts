@@ -21,16 +21,35 @@ import type { Rng } from './prng.js';
 import temasJson from './biblia/temas-arquiteto.json';
 import { resolverPostoAgente, resolverPostoParaMesa } from './postos-trabalho.js';
 
+/** Zonas TradeClass + corredor estrutural + landing de marketing. */
 export type ZonaKindTiles =
-  | 'open'
-  | 'private'
-  | 'break'
-  | 'boss_room'
-  | 'meeting'
-  | 'war_room'
-  | 'reception'
+  | 'salao_especialistas'
+  | 'sala_user'
+  | 'macroeconomia'
+  | 'noticias'
   | 'corridor'
   | 'landing';
+
+/** Zonas do escritorio padrao (exclui corridor/landing). */
+export const ZONAS_TRADECLASS = [
+  'salao_especialistas',
+  'sala_user',
+  'macroeconomia',
+  'noticias',
+] as const satisfies readonly ZonaKindTiles[];
+
+export type ZonaTradeClass = (typeof ZONAS_TRADECLASS)[number];
+
+/**
+ * Ate o remapeamento manual na biblia, temas ainda usam ids MicroFirma.
+ * listarProtos cai nestes ids quando a zona TradeClass ainda nao tem proto.
+ */
+const FALLBACK_ZONA_LEGADO: Record<ZonaTradeClass, readonly string[]> = {
+  salao_especialistas: ['boss_room'],
+  sala_user: ['private'],
+  macroeconomia: ['private', 'open', 'meeting'],
+  noticias: ['break', 'open', 'reception'],
+};
 
 export interface SlotPoliticaTiles {
   modo: 'default' | 'unico' | 'opcoes';
@@ -104,6 +123,11 @@ export interface TemaArquiteto {
   parede?: string;
   prioridade: number;
   unicoNaAgencia: boolean;
+  /**
+   * Quando true, este tema e o escolhido para a geracao (Viewtest/Room)
+   * entre as opcoes da mesma zonaKind. No maximo um por zona.
+   */
+  marcadoParaGeracao?: boolean;
   zonaKind: ZonaKindTiles;
   palco: PecaPalco[];
   /** Midias de parede (iframe etc.) autoradas no lab. */
@@ -145,8 +169,20 @@ export function listarProtos(
   zonaKind: ZonaKindTiles,
   temas: readonly TemaArquiteto[] = BIBLIA_TEMAS.temas,
 ): TemaArquiteto[] {
-  return temas
+  const diretos = temas
     .filter((t) => t.zonaKind === zonaKind)
+    .sort((a, b) => b.prioridade - a.prioridade || a.id.localeCompare(b.id));
+  if (diretos.length > 0) return diretos;
+
+  const legado =
+    zonaKind in FALLBACK_ZONA_LEGADO
+      ? FALLBACK_ZONA_LEGADO[zonaKind as ZonaTradeClass]
+      : undefined;
+  if (!legado?.length) return [];
+
+  // Temas ainda com zonaKind MicroFirma — bridge ate remapeamento no Lab.
+  return temas
+    .filter((t) => legado.includes(t.zonaKind as string))
     .sort((a, b) => b.prioridade - a.prioridade || a.id.localeCompare(b.id));
 }
 
@@ -163,21 +199,35 @@ export function calibracaoDoProto(proto?: TemaArquiteto): CalibracaoSala | undef
   return proto.calibracao ?? CALIBRACAO_PADRAO;
 }
 
+/**
+ * Tema marcado para geracao nesta zona. Sem marca, cai no de maior prioridade.
+ * `rng` + `jaUsadosUnicos` mantidos na assinatura por compatibilidade com o solver.
+ */
 export function escolherTema(
   zonaKind: ZonaKindTiles,
-  rng: Rng,
+  _rng: Rng,
   jaUsadosUnicos: Set<string>,
   temas: readonly TemaArquiteto[] = BIBLIA_TEMAS.temas,
+): TemaArquiteto | undefined {
+  const escolhido = temaMarcadoDaZona(zonaKind, temas, jaUsadosUnicos);
+  if (escolhido?.unicoNaAgencia) jaUsadosUnicos.add(escolhido.id);
+  return escolhido;
+}
+
+/**
+ * Opcao marcada da zona; se nenhuma estiver marcada, a de maior prioridade.
+ * Respeita `unicoNaAgencia` ja consumidos na mesma agencia.
+ */
+export function temaMarcadoDaZona(
+  zonaKind: ZonaKindTiles,
+  temas: readonly TemaArquiteto[] = BIBLIA_TEMAS.temas,
+  jaUsadosUnicos: ReadonlySet<string> = new Set(),
 ): TemaArquiteto | undefined {
   const candidatos = listarProtos(zonaKind, temas);
   const livres = candidatos.filter((t) => !t.unicoNaAgencia || !jaUsadosUnicos.has(t.id));
   const lista = livres.length > 0 ? livres : candidatos;
   if (lista.length === 0) return undefined;
-  const maxP = lista[0]!.prioridade;
-  const topo = lista.filter((t) => t.prioridade === maxP);
-  const escolhido = rng.pick(topo);
-  if (escolhido.unicoNaAgencia) jaUsadosUnicos.add(escolhido.id);
-  return escolhido;
+  return lista.find((t) => t.marcadoParaGeracao) ?? lista[0];
 }
 
 function variantesDe(ts: TileSet): { piso: string; parede: string } {

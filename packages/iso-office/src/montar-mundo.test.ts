@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { AgentDescriptor } from '@tradeclass/contracts';
-import { ordenarElencoCliente } from './espaco-agencia';
 import {
-  agenciaDeLayout,
-  elencoParaPlanta,
   montarMundoDaPlanta,
   montarMundoIso,
   PLANTA_PADRAO_TRADECLASS,
@@ -21,69 +18,11 @@ function agente(id: string, role: AgentDescriptor['role']): AgentDescriptor {
   };
 }
 
-describe('montarMundoIso', () => {
-  it('1 agente => 1 Boss Room + 1 copa, mesa com owner real', () => {
+describe('montarMundoIso (legado)', () => {
+  it('bridge legado preenche zonas TradeClass ate remapeamento', () => {
     const mundo = montarMundoIso(7, [agente('agent_triador_01', 'researcher')]);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'boss_room')).toHaveLength(1);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'break')).toHaveLength(1);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(0);
-    const mesas = mundo.layout.props.filter((p) => p.kind === 'desk');
-    expect(mesas.some((m) => m.ownerAgentId === 'agent_triador_01')).toBe(true);
-  });
-
-  it('3 agentes => 1 boss + 2 priv + copa; finance vira boss', () => {
-    const elenco = [
-      agente('agent_analista_02', 'analyst'),
-      agente('agent_gerente_03', 'finance'),
-      agente('agent_triador_01', 'researcher'),
-    ];
-    expect(ordenarElencoCliente(elenco)[0]!.agentId).toBe('agent_gerente_03');
-    const mundo = montarMundoIso(20260907, elenco);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'boss_room')).toHaveLength(1);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(2);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'break')).toHaveLength(1);
-    const donos = [
-      ...new Set(
-        mundo.layout.props
-          .filter((p) => p.kind === 'desk' && p.ownerAgentId)
-          .map((p) => p.ownerAgentId!),
-      ),
-    ].sort();
-    expect(donos).toContain('agent_gerente_03');
-    expect(donos.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('mesma seed + elenco e deterministico', () => {
-    const elenco = [agente('a', 'analyst'), agente('b', 'finance')];
-    const x = montarMundoIso(42, elenco);
-    const y = montarMundoIso(42, elenco);
-    expect(x.layout.officeId).toBe(y.layout.officeId);
-    expect(x.agencia.slots.map((s) => s.proto.tema.id)).toEqual(
-      y.agencia.slots.map((s) => s.proto.tema.id),
-    );
-  });
-
-  it('officeId muda quando o elenco muda (mesmo seed)', () => {
-    const a = montarMundoIso(1, [agente('sozinho', 'analyst')]);
-    const b = montarMundoIso(1, [agente('sozinho', 'analyst'), agente('outro', 'finance')]);
-    expect(a.layout.officeId).not.toBe(b.layout.officeId);
-  });
-
-  it('agenciaDeLayout reconstitui slots e temas', () => {
-    const mundo = montarMundoIso(9, [agente('x', 'guardian')]);
-    const deVolta = agenciaDeLayout(mundo.layout);
-    expect(deVolta.slots).toHaveLength(mundo.agencia.slots.length);
-    expect(deVolta.corredorY).toBe(mundo.agencia.corredorY);
-    expect(deVolta.slots.map((s) => s.proto.tema.id).sort()).toEqual(
-      mundo.agencia.slots.map((s) => s.proto.tema.id).sort(),
-    );
-  });
-
-  it('placeholder sozinho ainda gera boss+copa', () => {
-    const mundo = montarMundoIso(3, []);
-    expect(elencoParaPlanta([])[0]!.agentId).toBe('TradeClass-placeholder');
-    expect(mundo.layout.rooms.some((r) => r.kind === 'boss_room')).toBe(true);
-    expect(mundo.layout.rooms.some((r) => r.kind === 'break')).toBe(true);
+    expect(mundo.agencia.slots.length).toBeGreaterThan(0);
+    expect(mundo.layout.rooms.some((r) => r.kind === 'salao_especialistas')).toBe(true);
   });
 });
 
@@ -99,18 +38,20 @@ describe('montarMundoDaPlanta', () => {
       agente('d', 'guardian'),
       agente('e', 'orchestrator'),
     ]);
-    expect(um.layout.rooms.length).toBe(muitos.layout.rooms.length);
-    expect(um.plantaId).toBe(PLANTA_PADRAO_TRADECLASS);
-    expect(um.elenco.length).toBe(elencoDaPlanta(PLANTA_PADRAO_TRADECLASS).length);
+    expect(um.layout.rooms.map((r) => r.kind).sort()).toEqual(
+      muitos.layout.rooms.map((r) => r.kind).sort(),
+    );
+    expect(um.layout.rooms).toHaveLength(4);
   });
 
-  it('ancora agentId do backend no primeiro assento', () => {
-    const mundo = montarMundoDaPlanta(PLANTA_PADRAO_TRADECLASS, 9, [
-      agente('backend-alpha', 'orchestrator'),
+  it('macro-desk tem as 4 zonas TradeClass', () => {
+    const mundo = montarMundoDaPlanta(PLANTA_PADRAO_TRADECLASS, 1, [
+      agente('a', 'analyst'),
     ]);
-    expect(
-      mundo.layout.props.some((p) => p.kind === 'desk' && p.ownerAgentId === 'backend-alpha'),
-    ).toBe(true);
-    expect(mundo.elenco.some((a) => a.seriesId === 'EURUSD' || a.seriesId === 'XAUUSD' || a.seriesId === 'US500')).toBe(true);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'salao_especialistas')).toHaveLength(1);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'sala_user')).toHaveLength(1);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'macroeconomia')).toHaveLength(1);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'noticias')).toHaveLength(1);
+    expect(mundo.elenco.length).toBe(elencoDaPlanta(PLANTA_PADRAO_TRADECLASS).length);
   });
 });

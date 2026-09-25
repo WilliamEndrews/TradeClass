@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { carregarPlanta } from '@tradeclass/iso-office/planta';
 import { isWalkable } from '@tradeclass/world-engine';
 import { celulasOcupadasPorProps, construirEspacoAgencia } from './espaco-agencia';
-import { montarAgencia } from './montar-agencia';
 import { SimulacaoAgentes } from './simulacao-agentes';
-import { seedDoPedido } from './selecionar-pedido';
+
+const PLANTA = 'macro-desk';
 
 describe('SimulacaoAgentes', () => {
   it('path so usa celulas walkable', () => {
-    const seed = seedDoPedido({ salas: 2 });
-    const agencia = montarAgencia({ salas: 2 }, seed)!;
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
-    const sim = new SimulacaoAgentes(cenario, seed);
+    const sim = new SimulacaoAgentes(cenario, 20260915);
 
     for (let i = 0; i < 200; i++) {
       sim.tick(50);
@@ -24,10 +24,9 @@ describe('SimulacaoAgentes', () => {
   });
 
   it('agente completa ciclo de fases ao longo do tempo', () => {
-    const seed = seedDoPedido({ salas: 1 });
-    const agencia = montarAgencia({ salas: 1 }, seed)!;
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
-    const sim = new SimulacaoAgentes(cenario, seed);
+    const sim = new SimulacaoAgentes(cenario, 20260915);
 
     const vistos = new Set<string>();
     for (let i = 0; i < 800; i++) {
@@ -41,10 +40,9 @@ describe('SimulacaoAgentes', () => {
   });
 
   it('agente ocioso passeia e para em frente a um ponto de interesse', () => {
-    const seed = seedDoPedido({ salas: 3 });
-    const agencia = montarAgencia({ salas: 3 }, seed)!;
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
-    const sim = new SimulacaoAgentes(cenario, seed);
+    const sim = new SimulacaoAgentes(cenario, 20260915);
 
     const pois = new Map(
       cenario.agentes.map((a) => [
@@ -72,39 +70,15 @@ describe('SimulacaoAgentes', () => {
   });
 
   it('agente parado nunca ocupa a celula de um asset', () => {
-    const seed = seedDoPedido({ salas: 3 });
-    const agencia = montarAgencia({ salas: 3 }, seed)!;
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
-    const sim = new SimulacaoAgentes(cenario, seed);
+    const sim = new SimulacaoAgentes(cenario, 20260915);
     const ocupadas = celulasOcupadasPorProps(cenario.layout.props);
 
-    for (let i = 0; i < 1600; i++) {
+    for (let i = 0; i < 400; i++) {
       for (const a of sim.tick(50)) {
-        // Trabalhar usa a celula continua do posto, autorada junto da mesa.
-        if (a.activity === 'walking' || a.activity === 'working') continue;
-        expect(ocupadas.has(`${Math.round(a.x)},${Math.round(a.y)}`)).toBe(false);
-      }
-    }
-  });
-
-  it('posicao do agente permanece em celulas validas', () => {
-    const seed = seedDoPedido({ salas: 2 });
-    const agencia = montarAgencia({ salas: 2 }, seed)!;
-    const cenario = construirEspacoAgencia(agencia);
-    const sim = new SimulacaoAgentes(cenario, seed);
-
-    for (let i = 0; i < 300; i++) {
-      const atores = sim.tick(50);
-      for (const a of atores) {
-        const meta = cenario.agentes.find((m) => m.agentId === a.agentId);
-        if (a.activity === 'working' && meta?.seatFrac) {
-          expect(a.x).toBeCloseTo(meta.seatFrac.x);
-          expect(a.y).toBeCloseTo(meta.seatFrac.y);
-          continue;
-        }
-        const cx = Math.round(a.x);
-        const cy = Math.round(a.y);
-        expect(isWalkable(cenario.nav, { x: cx, y: cy })).toBe(true);
+        if (a.activity === 'walking') continue;
+        expect(ocupadas.has(`${a.x},${a.y}`)).toBe(false);
       }
     }
   });

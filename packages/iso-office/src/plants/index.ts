@@ -3,7 +3,7 @@
  * Substitui o spam RNG de selecionarPedido por escritorios pre-compostos.
  */
 import type { AgentDeskBinding } from '@tradeclass/contracts';
-import { BIBLIA_TEMAS, type TemaArquiteto } from '@tradeclass/world-engine';
+import { BIBLIA_TEMAS, temaMarcadoDaZona, type TemaArquiteto } from '@tradeclass/world-engine';
 import { montarAgenciaDeProtos, type AgenciaMontada } from '../montar-agencia';
 import type { ProtoEscolhido, ZonaPedido } from '../selecionar-pedido';
 import { PLANTA_FX_HUB } from './fx-hub';
@@ -15,17 +15,16 @@ export type { PlantaDesk, PlantaFixa, PlantaSala } from './tipos';
 
 const TEMAS_POR_ID = new Map(BIBLIA_TEMAS.temas.map((t) => [t.id, t]));
 
-/** Primeiro tema da biblia para um zonaKind (fallback estavel). */
-function temaPorZona(zonaKind: ZonaPedido): TemaArquiteto | undefined {
-  return BIBLIA_TEMAS.temas.find((t) => t.zonaKind === zonaKind);
-}
-
+/** Preferencia: tema marcado na zona TradeClass; senao temaId da planta; senao bridge legado. */
 function resolverTemaId(preferido: string, zonaKind: ZonaPedido): TemaArquiteto {
+  const naZona = BIBLIA_TEMAS.temas.filter((t) => t.zonaKind === zonaKind);
+  const marcado = naZona.find((t) => t.marcadoParaGeracao);
+  if (marcado) return marcado;
   const direto = TEMAS_POR_ID.get(preferido);
   if (direto) return direto;
-  const fallback = temaPorZona(zonaKind);
-  if (!fallback) throw new Error(`planta: sem tema para zona ${zonaKind}`);
-  return fallback;
+  const bridge = temaMarcadoDaZona(zonaKind);
+  if (bridge) return bridge;
+  throw new Error(`planta: sem tema para zona ${zonaKind} (id=${preferido})`);
 }
 
 /** Plantas oficiais — ids de tema preferidos; caem no primeiro da zona se ausentes. */

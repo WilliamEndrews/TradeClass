@@ -27,12 +27,11 @@ const CORES = {
   fundo: 0xf2f0ec,
   corredor: 0xe6e2db,
   piso: {
-    open: 0xf7f5f1,
-    private: 0xeceef2,
-    break: 0xf3efe6,
-    meeting: 0xedf1ee,
-    war_room: 0xf6ecec,
-    reception: 0xf1f2f5,
+    salao_especialistas: 0xf7f5f1,
+    sala_user: 0xeceef2,
+    macroeconomia: 0xf6ecec,
+    noticias: 0xedf1ee,
+    landing: 0xf1f2f5,
   } as Record<string, number>,
   parede: 0xcdc7bd,
   rodape: 0xb9b2a7,
@@ -184,7 +183,7 @@ function desenharPiso(g: Graphics, layout: OfficeLayout): void {
   }
 
   for (const sala of layout.rooms) {
-    const cor = CORES.piso[sala.kind] ?? CORES.piso.open!;
+    const cor = CORES.piso[sala.kind] ?? CORES.piso.sala_user!;
     for (let y = sala.rect.y0; y < sala.rect.y1; y++) {
       for (let x = sala.rect.x0; x < sala.rect.x1; x++) {
         poligono(g, losango(x, y));

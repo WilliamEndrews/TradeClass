@@ -109,12 +109,12 @@ export class WorldEngine {
       if (p.kind === 'desk' && p.ownerAgentId) this.mesaPorAgente.set(p.ownerAgentId, p);
     }
 
-    this.salaDescanso = opts.layout.rooms.find((r) => r.kind === 'break');
+    this.salaDescanso = opts.layout.rooms.find((r) => r.kind === 'salao_especialistas');
     this.salaReuniao =
-      opts.layout.rooms.find((r) => r.kind === 'war_room') ??
-      opts.layout.rooms.find((r) => r.kind === 'meeting');
+      opts.layout.rooms.find((r) => r.kind === 'macroeconomia') ??
+      opts.layout.rooms.find((r) => r.kind === 'noticias');
     this.entrada =
-      opts.layout.rooms.find((r) => r.kind === 'reception')?.door ??
+      opts.layout.rooms.find((r) => r.kind === 'sala_user')?.door ??
       opts.layout.corridors[0] ?? { x: 1, y: 1 };
 
     for (const agente of opts.agents) this.registrarAgente(agente);

@@ -11,16 +11,25 @@ export const ALTURA_PAREDE_MAX = 3;
 export const ALTURA_PAREDE_PASSO = 1;
 export const STORAGE_KEY = 'TradeClass-lab-catalogo-v4';
 
+/** Zonas TradeClass + corredor estrutural + landing. MicroFirma removido. */
 export const ZONAS_TILE = [
+  { id: 'salao_especialistas', nome: 'Salao especialistas' },
+  { id: 'sala_user', nome: 'Sala do User' },
+  { id: 'macroeconomia', nome: 'Macroeconomia' },
+  { id: 'noticias', nome: 'Noticias' },
   { id: 'corridor', nome: 'corredor' },
-  { id: 'break', nome: 'copa' },
-  { id: 'private', nome: 'privativo' },
-  { id: 'boss_room', nome: 'Boss Room' },
-  { id: 'open', nome: 'open space' },
-  { id: 'meeting', nome: 'reuniao' },
-  { id: 'reception', nome: 'recepcao' },
-  { id: 'war_room', nome: 'war room' },
   { id: 'landing', nome: 'Landing' },
+];
+
+/** ids MicroFirma preservados no disco ate remapeamento manual. */
+export const ZONAS_LEGACY = [
+  'open',
+  'private',
+  'break',
+  'boss_room',
+  'meeting',
+  'war_room',
+  'reception',
 ];
 
 export function slugTema(nome) {
@@ -87,8 +96,14 @@ export function normalizarPaineis(bruto) {
   return base;
 }
 
+/**
+ * Aceita zonas TradeClass; preserva ids legado ate remapeamento manual no Lab.
+ * Fallback so quando o id e vazio/desconhecido.
+ */
 export function zonaKindOk(id) {
-  return ZONAS_TILE.some((z) => z.id === id) ? id : 'private';
+  if (ZONAS_TILE.some((z) => z.id === id)) return id;
+  if (ZONAS_LEGACY.includes(id)) return id;
+  return 'sala_user';
 }
 
 export function itemEParede(p) {
@@ -123,6 +138,7 @@ export function normalizarTema(t) {
     subdiv: t.subdiv !== false,
     prioridade: clampInt(t.prioridade != null ? t.prioridade : 5, 1, 9),
     unicoNaAgencia: !!t.unicoNaAgencia,
+    marcadoParaGeracao: !!t.marcadoParaGeracao,
     zonaKind: zonaKindOk(t.zonaKind),
     calibracao: t.calibracao && typeof t.calibracao === 'object' ? t.calibracao : null,
     postosTrabalho: normalizarPostosTrabalho(t.postosTrabalho),
@@ -200,21 +216,23 @@ export function normalizarPolitica(bruto, catalogo) {
   const paredesOk = new Set((catalogo && catalogo.paredes) || []);
   const base = politicaPadrao();
   const src = bruto && typeof bruto === 'object' ? bruto : {};
-  for (const z of ZONAS_TILE) {
-    const s = src[z.id] || {};
+  const ids = [...ZONAS_TILE.map((z) => z.id), ...ZONAS_LEGACY];
+  for (const id of ids) {
+    const s = src[id] || {};
+    if (!(id in src) && ZONAS_LEGACY.includes(id)) continue;
     const modo = s.modo === 'unico' || s.modo === 'opcoes' ? s.modo : 'default';
     const pisos = (Array.isArray(s.pisos) ? s.pisos : []).filter((n) => !pisosOk.size || pisosOk.has(n));
     const paredes = (Array.isArray(s.paredes) ? s.paredes : []).filter((n) => !paredesOk.size || paredesOk.has(n));
     if (modo === 'default') {
-      base[z.id] = slotTilesPadrao();
+      base[id] = slotTilesPadrao();
     } else if (modo === 'unico') {
-      base[z.id] = {
+      base[id] = {
         modo: 'unico',
         pisos: pisos.slice(0, 1),
         paredes: paredes.slice(0, 1),
       };
     } else {
-      base[z.id] = { modo: 'opcoes', pisos: pisos, paredes: paredes };
+      base[id] = { modo: 'opcoes', pisos: pisos, paredes: paredes };
     }
   }
   return base;
@@ -349,7 +367,9 @@ export function resolverCores(catalogo, estado) {
 
 export function nomeZonaTile(id) {
   const z = ZONAS_TILE.find((x) => x.id === id);
-  return z ? z.nome : id;
+  if (z) return z.nome;
+  if (ZONAS_LEGACY.includes(id)) return id + ' (legado)';
+  return id;
 }
 
 export function resumoPolitica(politica) {

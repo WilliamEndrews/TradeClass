@@ -37,7 +37,7 @@ export function anexarWallMediaDemo(layout: OfficeLayout): OfficeLayout {
   const midias: WallMedia[] = [];
   const salas = layout.rooms.filter(
     (r) =>
-      r.kind === 'war_room' || r.kind === 'meeting' || r.kind === 'open' || r.kind === 'boss_room',
+      r.kind === 'salao_especialistas' || r.kind === 'macroeconomia' || r.kind === 'noticias',
   );
 
   const series = ['EURUSD', 'XAUUSD', 'BTCUSD', 'USDJPY'];
@@ -57,7 +57,7 @@ export function anexarWallMediaDemo(layout: OfficeLayout): OfficeLayout {
     });
   }
 
-  const recep = layout.rooms.find((r) => r.kind === 'reception');
+  const recep = layout.rooms.find((r) => r.kind === 'sala_user');
   if (recep) {
     midias.push({
       mediaId: `wm-banner-${recep.roomId}`,
@@ -70,7 +70,7 @@ export function anexarWallMediaDemo(layout: OfficeLayout): OfficeLayout {
   }
 
   // Painel iframe (matrix3d via inset legado → cantos).
-  const salaPainel = layout.rooms.find((r) => r.kind === 'meeting' || r.kind === 'war_room');
+  const salaPainel = layout.rooms.find((r) => r.kind === 'macroeconomia' || r.kind === 'noticias');
   if (salaPainel) {
     midias.push({
       mediaId: `wm-iframe-panel-${salaPainel.roomId}`,
@@ -92,7 +92,7 @@ export function anexarWallMediaDemo(layout: OfficeLayout): OfficeLayout {
   }
 
   // TV com imagem nest (modo image + screen blend).
-  const boss = layout.rooms.find((r) => r.kind === 'boss_room');
+  const boss = layout.rooms.find((r) => r.kind === 'salao_especialistas');
   if (boss) {
     midias.push({
       mediaId: `wm-image-tv-${boss.roomId}`,
@@ -115,7 +115,7 @@ export function anexarWallMediaDemo(layout: OfficeLayout): OfficeLayout {
   }
 
   // Big TV hybrid: preview na parede + iframe no painel ao clicar.
-  const war = layout.rooms.find((r) => r.kind === 'war_room');
+  const war = layout.rooms.find((r) => r.kind === 'macroeconomia');
   if (war) {
     midias.push({
       mediaId: `wm-hybrid-bigtv-${war.roomId}`,

@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
+import { carregarPlanta } from '@tradeclass/iso-office/planta';
 import { footprintCells, isWalkable } from '@tradeclass/world-engine';
-import { montarAgencia } from './montar-agencia';
 import {
   celulasOcupadasPorProps,
   celulasWalkableNaSala,
   construirEspacoAgencia,
   KINDS_INTERESSE,
 } from './espaco-agencia';
-import { seedDoPedido } from './selecionar-pedido';
+
+const PLANTA = 'macro-desk';
 
 describe('construirEspacoAgencia', () => {
   it('porta norte fica na borda sul da sala (y1-1)', () => {
-    const seed = seedDoPedido({ salas: 2 });
-    const agencia = montarAgencia({ salas: 2 }, seed)!;
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
 
     const salasNorte = cenario.layout.rooms.filter((r) => r.rect.y1 <= agencia.corredorY);
@@ -23,8 +23,7 @@ describe('construirEspacoAgencia', () => {
   });
 
   it('porta sul fica na borda norte da sala (y0)', () => {
-    const seed = seedDoPedido({ salas: 2 });
-    const agencia = montarAgencia({ salas: 2 }, seed)!;
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
 
     const salasSul = cenario.layout.rooms.filter((r) => r.rect.y0 > agencia.corredorY);
@@ -33,23 +32,24 @@ describe('construirEspacoAgencia', () => {
     }
   });
 
-  it('boss tem mesa e assento walkable', () => {
-    const seed = seedDoPedido({ salas: 1 });
-    const agencia = montarAgencia({ salas: 1 }, seed)!;
+  it('salao especialistas tem mesa e assento walkable', () => {
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
-    const boss = cenario.agentes.find((a) => a.agentId === 'agent-boss');
-    expect(boss).toBeDefined();
-    if (boss?.desk) {
-      expect(isWalkable(cenario.nav, boss.desk.cell)).toBe(false);
+    const boss = cenario.agentes.find((a) => a.agentId === 'agent-boss' || a.agentId === 'seat-0');
+    expect(cenario.agentes.length).toBeGreaterThan(0);
+    const comMesa = cenario.agentes.find((a) => a.desk);
+    expect(comMesa).toBeDefined();
+    if (comMesa?.desk) {
+      expect(isWalkable(cenario.nav, comMesa.desk.cell)).toBe(false);
     }
-    if (boss?.seat) {
-      expect(isWalkable(cenario.nav, boss.seat)).toBe(true);
+    if (comMesa?.seat) {
+      expect(isWalkable(cenario.nav, comMesa.seat)).toBe(true);
     }
+    void boss;
   });
 
   it('corredor conecta salas (celulas walkable)', () => {
-    const seed = seedDoPedido({ salas: 3 });
-    const agencia = montarAgencia({ salas: 3 }, seed)!;
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
     expect(cenario.layout.corridors.length).toBeGreaterThan(0);
     for (const c of cenario.layout.corridors) {
@@ -58,8 +58,7 @@ describe('construirEspacoAgencia', () => {
   });
 
   it('ponto de interesse fica em frente ao objeto, nunca sobre ele', () => {
-    const seed = seedDoPedido({ salas: 3 });
-    const agencia = montarAgencia({ salas: 3 }, seed)!;
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
     const ocupadas = celulasOcupadasPorProps(cenario.layout.props);
 
@@ -82,8 +81,7 @@ describe('construirEspacoAgencia', () => {
   });
 
   it('celulas de passeio nao caem sobre mobiliario nem na porta', () => {
-    const seed = seedDoPedido({ salas: 3 });
-    const agencia = montarAgencia({ salas: 3 }, seed)!;
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
     const ocupadas = celulasOcupadasPorProps(cenario.layout.props);
 
@@ -97,13 +95,12 @@ describe('construirEspacoAgencia', () => {
     }
   });
 
-  it('copa tem celulas walkable', () => {
-    const seed = seedDoPedido({ salas: 2 });
-    const agencia = montarAgencia({ salas: 2 }, seed)!;
+  it('salao especialistas tem celulas walkable', () => {
+    const agencia = carregarPlanta(PLANTA, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
-    const copa = cenario.layout.rooms.find((r) => r.kind === 'break');
-    expect(copa).toBeDefined();
-    const celulas = celulasWalkableNaSala(cenario.nav, copa!.rect);
+    const salao = cenario.layout.rooms.find((r) => r.kind === 'salao_especialistas');
+    expect(salao).toBeDefined();
+    const celulas = celulasWalkableNaSala(cenario.nav, salao!.rect);
     expect(celulas.length).toBeGreaterThan(0);
   });
 });

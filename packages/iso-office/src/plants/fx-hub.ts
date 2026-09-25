@@ -8,12 +8,17 @@ export const PLANTA_FX_HUB: PlantaFixa = {
   salas: [
     {
       temaId: 'boss-room-1',
-      zonaKind: 'boss_room',
+      zonaKind: 'salao_especialistas',
       desks: [{ specialty: 'orchestrator', seatSlot: 'seat-0', displayName: 'FX Lead' }],
     },
     {
+      temaId: 'sala-simples2-new',
+      zonaKind: 'sala_user',
+      desks: [{ specialty: 'usd', seatSlot: 'seat-0', displayName: 'User FX' }],
+    },
+    {
       temaId: 'sala-simples2-piso-azul-new',
-      zonaKind: 'private',
+      zonaKind: 'macroeconomia',
       desks: [
         { specialty: 'usd', seatSlot: 'seat-0', displayName: 'USD Desk' },
         { specialty: 'yen', seatSlot: 'seat-1', displayName: 'Yen Desk' },
@@ -22,8 +27,8 @@ export const PLANTA_FX_HUB: PlantaFixa = {
     },
     {
       temaId: 'copa-simples-new',
-      zonaKind: 'break',
-      desks: [],
+      zonaKind: 'noticias',
+      desks: [{ specialty: 'news', seatSlot: 'seat-0', displayName: 'FX News' }],
     },
   ],
 };

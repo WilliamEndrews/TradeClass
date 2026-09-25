@@ -49,9 +49,15 @@ describe('resolverPaleta', () => {
     expect(paleta.perigo).toBe(0xd94f4f);
   });
 
-  it('piso tem todas as kinds de sala', () => {
+  it('piso tem todas as kinds de sala TradeClass', () => {
     const paleta = resolverPaleta(TEMAS[0]!);
-    for (const kind of ['open', 'private', 'break', 'boss_room', 'meeting', 'war_room', 'reception']) {
+    for (const kind of [
+      'salao_especialistas',
+      'sala_user',
+      'macroeconomia',
+      'noticias',
+      'landing',
+    ]) {
       expect(paleta.piso[kind]).toBeDefined();
     }
   });

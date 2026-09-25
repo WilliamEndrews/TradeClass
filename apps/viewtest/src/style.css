@@ -300,7 +300,8 @@ body {
   touch-action: none;
 }
 
-.stage-canvas-wrap:active {
+.stage-canvas-wrap:active,
+.stage-canvas-wrap.arrastando {
   cursor: grabbing;
 }
 

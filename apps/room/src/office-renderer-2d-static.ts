@@ -79,7 +79,7 @@ export function desenharPiso(
     celulas.push({ x: c.x, y: c.y, corBase: paleta.corredor, tileSetId: idCorredor });
   }
   for (const sala of layout.rooms) {
-    const base = paleta.piso[sala.kind] ?? paleta.piso.open!;
+    const base = paleta.piso[sala.kind] ?? paleta.piso.sala_user!;
     const tileSetId = sala.tileSetId ?? layout.theme.name;
     for (let y = sala.rect.y0; y < sala.rect.y1; y++) {
       for (let x = sala.rect.x0; x < sala.rect.x1; x++) {

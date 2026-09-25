@@ -44,7 +44,7 @@ describe('cena isometrica global', () => {
 
   it.each(['norte', 'sul'] as const)('compila todos os temas na faixa %s', (lado) => {
     for (const tema of BIBLIA_TEMAS.temas.filter((t) =>
-      t.zonaKind === 'private' || t.zonaKind === 'break' || t.zonaKind === 'boss_room',
+      true,
     )) {
       const { w, h } = gradeDoProto(tema);
       const corredorY = lado === 'norte' ? h + 1 : 1;
@@ -59,7 +59,7 @@ describe('cena isometrica global', () => {
           {
             proto: {
               key: `${tema.zonaKind}-${tema.id}`,
-              zonaKind: tema.zonaKind as 'private' | 'break' | 'boss_room',
+              zonaKind: tema.zonaKind as 'sala_user',
               tema,
             },
             rect: { x0: 1, y0, x1: w + 1, y1: y0 + h },
@@ -118,7 +118,7 @@ describe('cena isometrica global', () => {
 
   it('aplica checkpoint dx/dy de peca de piso (e soma nas camadas de combo)', () => {
     const base = BIBLIA_TEMAS.temas.find(
-      (t) => t.zonaKind === 'private' || t.zonaKind === 'break' || t.zonaKind === 'boss_room',
+      (t) => true,
     )!;
     const { w, h } = gradeDoProto(base);
     const propSimples = base.palco.find((p) => {
@@ -153,7 +153,7 @@ describe('cena isometrica global', () => {
         {
           proto: {
             key: `${tema.zonaKind}-${tema.id}`,
-            zonaKind: tema.zonaKind as 'private' | 'break' | 'boss_room',
+            zonaKind: tema.zonaKind as 'sala_user',
             tema,
           },
           rect: { x0: 1, y0: 1, x1: w + 1, y1: 1 + h },
@@ -256,11 +256,11 @@ describe('cena isometrica global', () => {
       })),
       slots: [
         {
-          proto: { key: `break-${temaNorte!.id}`, zonaKind: 'break', tema: temaNorte! },
+          proto: { key: `noticias-${temaNorte!.id}`, zonaKind: 'noticias', tema: temaNorte! },
           rect: { x0: 1, y0: 1, x1: 1 + gn.w, y1: 1 + gn.h },
         },
         {
-          proto: { key: `private-${temaSul!.id}`, zonaKind: 'private', tema: temaSul! },
+          proto: { key: `sala_user-${temaSul!.id}`, zonaKind: 'sala_user', tema: temaSul! },
           rect: { x0: 1, y0: corredorY + 1, x1: 1 + gs.w, y1: corredorY + 1 + gs.h },
         },
       ],

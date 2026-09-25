@@ -99,8 +99,12 @@ function salaDeSlot(
 }
 
 function agentIdsDoSlot(zonaKind: string, indicePriv: number): string[] {
-  if (zonaKind === 'boss_room') return ['agent-boss'];
-  if (zonaKind === 'private' || zonaKind === 'open') {
+  if (zonaKind === 'salao_especialistas') return ['agent-boss'];
+  if (
+    zonaKind === 'sala_user' ||
+    zonaKind === 'macroeconomia' ||
+    zonaKind === 'noticias'
+  ) {
     return [`agent-priv-${indicePriv}`];
   }
   return [];
@@ -122,13 +126,13 @@ export function agentIdsDosPostos(
   return postos.map((p, i) => {
     const slot = p.agentSlot;
     if (slot !== 'default') return slot;
-    if (zonaKind === 'boss_room') return i === 0 ? 'agent-boss' : `agent-boss-${i}`;
+    if (zonaKind === 'salao_especialistas') return i === 0 ? 'agent-boss' : `agent-boss-${i}`;
     return `agent-priv-${indicePrivBase + i}`;
   });
 }
 
 function quantosAssentosNaSala(tema: { postosTrabalho?: readonly unknown[] }, zonaKind: string): number {
-  if (zonaKind === 'break' || zonaKind === 'landing') return 0;
+  if (zonaKind === 'landing' || zonaKind === 'corridor') return 0;
   const n = tema.postosTrabalho?.length ?? 0;
   return Math.max(1, n);
 }
@@ -178,13 +182,13 @@ export function construirEspacoAgencia(
   /** agentIds por zoneId, para o segundo passe (atores) reutilizar a mesma lista. */
   const agentesPorZona = new Map<string, string[]>();
 
-  // Reserva os primeiros N do elenco para a boss_room (multi-seat inclusive),
-  // independente da ordem dos slots no empacote — privativos comecam depois.
-  const temBoss = agencia.slots.some((s) => s.proto.zonaKind === 'boss_room');
-  const assentosBoss = agencia.slots
-    .filter((s) => s.proto.zonaKind === 'boss_room')
-    .reduce((acc, s) => acc + quantosAssentosNaSala(s.proto.tema, 'boss_room'), 0);
-  const offsetPrivElenco = temBoss ? Math.max(1, assentosBoss) : 0;
+  // Reserva os primeiros N do elenco para o salao de especialistas (multi-seat),
+  // independente da ordem dos slots no empacote — demais zonas comecam depois.
+  const temSalao = agencia.slots.some((s) => s.proto.zonaKind === 'salao_especialistas');
+  const assentosSalao = agencia.slots
+    .filter((s) => s.proto.zonaKind === 'salao_especialistas')
+    .reduce((acc, s) => acc + quantosAssentosNaSala(s.proto.tema, 'salao_especialistas'), 0);
+  const offsetPrivElenco = temSalao ? Math.max(1, assentosSalao) : 0;
   let cursorPrivElenco = offsetPrivElenco;
 
   for (const slot of agencia.slots) {
@@ -193,11 +197,11 @@ export function construirEspacoAgencia(
 
     const zonaKind = slot.proto.zonaKind;
     let agentIds: string[];
-    if (zonaKind === 'break' || zonaKind === 'landing') {
+    if (zonaKind === 'landing' || zonaKind === 'corridor') {
       agentIds = [];
     } else if (idsElenco.length > 0) {
       const n = quantosAssentosNaSala(slot.proto.tema, zonaKind);
-      if (zonaKind === 'boss_room') {
+      if (zonaKind === 'salao_especialistas') {
         agentIds = idsElenco.slice(0, n);
       } else {
         agentIds = idsElenco.slice(cursorPrivElenco, cursorPrivElenco + n);
@@ -207,7 +211,11 @@ export function construirEspacoAgencia(
     } else {
       const base = indicePriv;
       agentIds = agentIdsDosPostos(slot.proto.tema, zonaKind, base);
-      if (zonaKind === 'private' || zonaKind === 'open') {
+      if (
+        zonaKind === 'sala_user' ||
+        zonaKind === 'macroeconomia' ||
+        zonaKind === 'noticias'
+      ) {
         indicePriv += Math.max(1, agentIds.length);
       }
     }
@@ -241,13 +249,13 @@ export function construirEspacoAgencia(
   // usou acima para escolher os assetId dos props - decisao de colisao consistente.
   const nav = buildNavGrid(layout, { resolverColisao: resolverColisaoDoCatalogo(COLAR_OPTS) });
 
-  const bossRoom = rooms.find((r) => r.kind === 'boss_room');
-  const entrada = bossRoom?.door ?? agencia.corridors[0] ?? { x: 1, y: 1 };
+  const salao = rooms.find((r) => r.kind === 'salao_especialistas');
+  const entrada = salao?.door ?? rooms.find((r) => r.kind === 'sala_user')?.door ?? agencia.corridors[0] ?? { x: 1, y: 1 };
 
   const agentes: AgenteEspacial[] = [];
   const ocupadas = celulasOcupadasPorProps(props);
   for (const slot of agencia.slots) {
-    if (slot.proto.zonaKind === 'break' || slot.proto.zonaKind === 'landing') continue;
+    if (slot.proto.zonaKind === 'landing' || slot.proto.zonaKind === 'corridor') continue;
 
     const sala = rooms.find((r) => r.zoneId === slot.proto.key);
     if (!sala) continue;

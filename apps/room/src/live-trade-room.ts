@@ -89,8 +89,8 @@ export function anexarLiveTradeRoom(layout: OfficeLayout): OfficeLayout {
   }
 
   const sala =
-    layout.rooms.find((r) => r.kind === 'boss_room') ??
-    layout.rooms.find((r) => r.kind === 'private');
+    layout.rooms.find((r) => r.kind === 'salao_especialistas') ??
+    layout.rooms.find((r) => r.kind === 'sala_user');
   if (!sala) return layout;
 
   const desk =

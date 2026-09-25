@@ -119,9 +119,9 @@ function distribuirEmFaixas(
     pesoAdj.set(`${a.b}|${a.a}`, a.weight);
   }
 
-  const recepcao = zones.filter((z) => z.kind === 'reception');
+  const recepcao = zones.filter((z) => z.kind === 'sala_user');
   const restantes = zones
-    .filter((z) => z.kind !== 'reception')
+    .filter((z) => z.kind !== 'sala_user')
     .sort((a, b) => b.areaWeight - a.areaWeight || a.zoneId.localeCompare(b.zoneId));
 
   const norte: ZoneRequest[] = [...recepcao];

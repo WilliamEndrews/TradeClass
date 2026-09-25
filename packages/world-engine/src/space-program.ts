@@ -19,7 +19,7 @@ import type { AgentDescriptor, SpaceProgram, ZoneRequest } from '@tradeclass/con
 import { ROOM_PREFERENCE } from '@tradeclass/contracts';
 import { createRng, hashString } from './prng.js';
 import { TEMAS } from './themes.js';
-import { gradeDoZona } from './construtor-biblia.js';
+import { gradeDoZona, type ZonaTradeClass } from './construtor-biblia.js';
 
 /** Aresta do grafo de colaboracao real, extraido da telemetria. */
 export interface CollaborationEdge {
@@ -38,112 +38,52 @@ export interface PlanOptions {
   maxAgentsPorAreaAberta?: number;
 }
 
-/** Temas de decoracao disponiveis. Em producao, escolhidos pelo Agente Decorador. */
+const NOMES_ZONA: Record<ZonaTradeClass, string> = {
+  salao_especialistas: 'Salao especialistas',
+  sala_user: 'Sala do User',
+  macroeconomia: 'Macroeconomia',
+  noticias: 'Noticias',
+};
 
 /**
  * Monta o programa de necessidades a partir dos agentes descobertos.
  *
- * Regras de negocio (as mesmas que irao no prompt do Agente Arquiteto):
- *  - todo agente precisa de exatamente uma mesa;
- *  - papeis sensiveis (financeiro, orquestrador, guardiao) preferem sala privada;
- *  - toda planta tem obrigatoriamente 1 sala de descanso e 1 recepcao;
- *  - se houver 4+ agentes, adiciona 1 sala de reuniao;
- *  - se houver 8+ agentes, adiciona 1 war room (para incidentes).
+ * Conjunto padrao TradeClass (sempre as 4 zonas):
+ *  - Salao especialistas
+ *  - Sala do User
+ *  - Macroeconomia
+ *  - Noticias
+ *
+ * Agentes sao alocados via ROOM_PREFERENCE; zonas sem agentes ficam vazias
+ * (mobiliario vem do tema marcado na biblia).
  */
 export function planSpaceProgram(agents: AgentDescriptor[], opts: PlanOptions): SpaceProgram {
   const rng = createRng(opts.seed).fork('space-program');
-  const maxPorArea = opts.maxAgentsPorAreaAberta ?? 2;
 
-  const privados = agents.filter(
-    (a) => ROOM_PREFERENCE[a.role] === 'private',
-  );
-  const gerentes = agents.filter((a) => a.role === 'orchestrator');
-  const abertos = agents.filter(
-    (a) => ROOM_PREFERENCE[a.role] !== 'private' && a.role !== 'orchestrator',
-  );
+  const porZona = new Map<ZonaTradeClass, string[]>([
+    ['salao_especialistas', []],
+    ['sala_user', []],
+    ['macroeconomia', []],
+    ['noticias', []],
+  ]);
 
-  const zones: ZoneRequest[] = [];
-
-  // Boss Room: sempre uma sala; o gerente (orchestrator) e alocado aqui.
-  zones.push({
-    zoneId: 'zone-boss',
-    name: 'Boss Room',
-    kind: 'boss_room',
-    areaWeight: 1.3,
-    agentIds: gerentes.length ? [gerentes[0]!.agentId] : [],
-  });
-
-  // Escritorios privativos: 1 agente por sala para micro-firma real.
-  for (const agente of privados) {
-    zones.push({
-      zoneId: `zone-priv-${agente.agentId}`,
-      name: `Esc ${agente.displayName}`,
-      kind: 'private',
-      areaWeight: 1,
-      agentIds: [agente.agentId],
-    });
+  for (const agente of agents) {
+    const kind = ROOM_PREFERENCE[agente.role] as ZonaTradeClass;
+    const lista = porZona.get(kind) ?? porZona.get('sala_user')!;
+    lista.push(agente.agentId);
   }
 
-  // Areas abertas em pares (micro-estacoes de 2 pessoas).
-  const ordenados = ordenarPorColaboracao(
-    abertos.map((a) => a.agentId),
-    opts.collaboration ?? [],
-  );
-  for (let i = 0; i < ordenados.length; i += maxPorArea) {
-    const bloco = ordenados.slice(i, i + maxPorArea);
-    zones.push({
-      zoneId: `zone-open-${i / maxPorArea + 1}`,
-      name: bloco.length > 1 ? `Sala ${i / maxPorArea + 1}` : 'Escritorio',
-      kind: 'open',
-      areaWeight: 1 + bloco.length * 0.6,
-      agentIds: bloco,
-    });
-  }
-
-  // Salas obrigatorias e condicionais (compactas).
-  // Copa proporcional ao tamanho da firma: 1-2 agentes = copa minima,
-  // 3+ agentes = copa normal.
-  const pesoCopa = agents.length <= 2 ? 0.8 : 1.2;
-  zones.push({
-    zoneId: 'zone-break',
-    name: 'Copa',
-    kind: 'break',
-    areaWeight: pesoCopa,
-    agentIds: [],
-  });
-  // Recepcao so faz sentido com 3+ agentes: uma micro-firma de 2 pessoas
-  // nao tem recepcionista, e a copa ja cumpre o papel de sala comum.
-  if (agents.length >= 3) {
-    zones.push({
-      zoneId: 'zone-reception',
-      name: 'Recepcao',
-      kind: 'reception',
-      areaWeight: 0.9,
-      agentIds: [],
-    });
-  }
-  if (agents.length >= 4) {
-    zones.push({
-      zoneId: 'zone-meeting',
-      name: 'Sala de Reuniao',
-      kind: 'meeting',
-      areaWeight: 1.1,
-      agentIds: [],
-    });
-  }
-  if (agents.length >= 8) {
-    zones.push({
-      zoneId: 'zone-war',
-      name: 'War Room',
-      kind: 'war_room',
-      areaWeight: 1.0,
-      agentIds: [],
-    });
-  }
+  const zones: ZoneRequest[] = (
+    ['salao_especialistas', 'sala_user', 'macroeconomia', 'noticias'] as const
+  ).map((kind) => ({
+    zoneId: `zone-${kind}`,
+    name: NOMES_ZONA[kind],
+    kind,
+    areaWeight: 1 + (porZona.get(kind)?.length ?? 0) * 0.4,
+    agentIds: ordenarPorColaboracao(porZona.get(kind) ?? [], opts.collaboration ?? []),
+  }));
 
   // Grid: cada sala usa a grade do proto da biblia (default 3x3).
-  // Largura = 2 (bordas) + maxPorFaixa * ladoSala. Altura = 2 bordas +
-  // alturaSala + corredor + alturaSala.
   const ladoSala = Math.max(
     3,
     ...zones.map((z) => gradeDoZona(z.kind).w),
@@ -153,7 +93,7 @@ export function planSpaceProgram(agents: AgentDescriptor[], opts: PlanOptions): 
     ...zones.map((z) => gradeDoZona(z.kind).h),
   );
   const maxPorFaixa = Math.max(1, Math.ceil(zones.length / 2));
-  const largura = clamp(maxPorFaixa * ladoSala + 2, 5, 56);
+  const largura = clamp(maxPorFaixa * ladoSala + 2, 10, 56);
   const altura = clamp(2 + alturaSala + 1 + alturaSala, 9, 56);
 
   return {
@@ -227,11 +167,11 @@ function adjacenciaEntreZonas(
     const [a, b] = k.split('\u0000') as [string, string];
     saida.push({ a, b, weight: maximo === 0 ? 0 : v / maximo });
   }
-  // A sala de descanso deve ficar perto de todo mundo: e o Watercooler.
-  const descanso = zones.find((z) => z.kind === 'break');
-  if (descanso) {
-    for (const z of zones.filter((z) => z.kind === 'open')) {
-      saida.push({ a: descanso.zoneId, b: z.zoneId, weight: 0.5 });
+  // Salao especialistas fica perto das demais salas de trabalho.
+  const salao = zones.find((z) => z.kind === 'salao_especialistas');
+  if (salao) {
+    for (const z of zones.filter((z) => z.kind !== 'salao_especialistas' && z.kind !== 'landing')) {
+      saida.push({ a: salao.zoneId, b: z.zoneId, weight: 0.45 });
     }
   }
   return saida.sort((x, y) => y.weight - x.weight || x.a.localeCompare(y.a));

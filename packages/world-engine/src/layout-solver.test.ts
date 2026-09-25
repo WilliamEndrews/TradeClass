@@ -72,7 +72,9 @@ describe('geracao de escritorio - invariantes geometricas', () => {
 describe('footprint multi-celula', () => {
   it('props do palco bloqueiam celulas no navgrid', () => {
     const layout = gerarLayout(999, 1);
-    const propComFootprint = layout.props.find((p) => p.footprint.w >= 1 && p.footprint.h >= 1);
+    const propComFootprint = layout.props.find(
+      (p) => p.kind === 'desk' && p.footprint.w >= 1 && p.footprint.h >= 1,
+    );
     if (!propComFootprint) return;
     const nav = buildNavGrid(layout);
     const celulas = footprintCells(propComFootprint);

@@ -1,13 +1,38 @@
 {
-  "versao": "1.5",
+  "versao": "1.6",
   "data": "2026-09-08",
-  "notas": "Cada zonaKind e um ProtoComodo completo (grade + tileset + palco + calibracao). Persistido automaticamente pelo lab em packages/world-engine/src/biblia/temas-arquiteto.json. zonaKind landing = proto handcrafted para marketing/landing; nao entra no space-program nem na geracao do escritorio da Demo.",
+  "notas": "Cada zonaKind e um ProtoComodo completo (grade + tileset + palco + calibracao). Zonas TradeClass: salao_especialistas, sala_user, macroeconomia, noticias (+ corridor, landing). Temas com zonaKind legado MicroFirma permanecem ate remapeamento manual. marcadoParaGeracao escolhe a opcao da zona para Viewtest/Room.",
   "politicaTiles": {
     "corridor": {
       "modo": "unico",
       "pisos": [
         "Concrete"
       ],
+      "paredes": []
+    },
+    "salao_especialistas": {
+      "modo": "default",
+      "pisos": [],
+      "paredes": []
+    },
+    "sala_user": {
+      "modo": "default",
+      "pisos": [],
+      "paredes": []
+    },
+    "macroeconomia": {
+      "modo": "default",
+      "pisos": [],
+      "paredes": []
+    },
+    "noticias": {
+      "modo": "default",
+      "pisos": [],
+      "paredes": []
+    },
+    "landing": {
+      "modo": "default",
+      "pisos": [],
       "paredes": []
     },
     "break": {
@@ -41,11 +66,6 @@
       "paredes": []
     },
     "war_room": {
-      "modo": "default",
-      "pisos": [],
-      "paredes": []
-    },
-    "landing": {
       "modo": "default",
       "pisos": [],
       "paredes": []

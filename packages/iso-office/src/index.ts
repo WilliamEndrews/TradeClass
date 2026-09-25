@@ -12,7 +12,6 @@ export {
   saltAleatorio,
   escolherTemaPonderado,
   assinaturaTemas,
-  COPAS_OBRIGATORIAS,
   type PedidoGeracao,
   type ZonaPedido,
   type ProtoEscolhido,

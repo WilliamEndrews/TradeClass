@@ -34,7 +34,7 @@ const BIBLIA_PATH = path.join(
 
 /** zonaKind cuja mesa e de UM agente so - onde `postoTrabalho` faz diferenca
  *  hoje (colarProto so grava `Prop.seat` quando a sala e inequivoca). */
-const ZONA_KINDS_RELEVANTES = new Set(['private', 'boss_room', 'open', 'meeting', 'war_room']);
+const ZONA_KINDS_RELEVANTES = new Set(['salao_especialistas', 'sala_user', 'macroeconomia', 'noticias']);
 
 function temMesa(tema) {
   return (tema.palco ?? []).some((peca) => {

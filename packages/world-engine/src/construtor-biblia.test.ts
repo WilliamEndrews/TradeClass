@@ -9,22 +9,26 @@ import {
   listarProtos,
   resolverTilesetZona,
   colarProto,
+  temaMarcadoDaZona,
 } from './construtor-biblia.js';
 
 describe('biblia do Construtor', () => {
   it('carrega temas do laboratorio', () => {
     expect(BIBLIA_TEMAS.temas.length).toBeGreaterThan(0);
-    expect(BIBLIA_TEMAS.politicaTiles.private?.modo).toBe('default');
+    expect(BIBLIA_TEMAS.politicaTiles.sala_user?.modo).toBe('default');
+    expect(BIBLIA_TEMAS.politicaTiles.corridor?.modo).toBe('unico');
   });
 
-  it('escolhe tema por zonaKind e prioridade', () => {
+  it('escolhe tema marcado (ou prioridade) por zonaKind TradeClass', () => {
     const rng = createRng(1);
     const usados = new Set<string>();
-    const tema = escolherTema('private', rng, usados);
-    expect(tema).toBeDefined();
-    expect(tema!.zonaKind).toBe('private');
-    expect(listarProtos('private').map((t) => t.id)).toContain(tema!.id);
-    expect(escolherTema('meeting', rng, usados)).toBeUndefined();
+    // Bridge legado: ate remapeamento, zona TradeClass resolve tema MicroFirma.
+    const salao = escolherTema('salao_especialistas', rng, usados);
+    expect(salao).toBeDefined();
+    expect(listarProtos('salao_especialistas').map((t) => t.id)).toContain(salao!.id);
+    const user = temaMarcadoDaZona('sala_user');
+    expect(user).toBeDefined();
+    expect(escolherTema('landing', rng, new Set())?.zonaKind).toBe('landing');
   });
 
   it('zona landing existe na politica e o proto handcrafted e listavel', () => {
@@ -47,15 +51,12 @@ describe('biblia do Construtor', () => {
 
   it('politica default herda o tileset do tema', () => {
     const rng = createRng(3);
-    const tema = escolherTema('private', rng, new Set());
+    const tema = escolherTema('landing', rng, new Set());
     expect(tema).toBeDefined();
-    const visual = resolverTilesetZona('private', tema, 'midnight-ops', rng);
+    const visual = resolverTilesetZona('landing', tema, 'midnight-ops', rng);
     expect(visual.tileSetId).toBe(tema!.tilesetAtivo);
-    // Corredor e break podem nao ter proto dedicado; se existir, herda tilesetAtivo.
     const corridor = escolherTema('corridor', rng, new Set());
     if (corridor) expect(corridor.tilesetAtivo.length).toBeGreaterThan(0);
-    const brk = escolherTema('break', rng, new Set());
-    expect(brk?.tilesetAtivo).toBeTruthy();
   });
 });
 
@@ -69,7 +70,7 @@ describe('colarProto multi-seat', () => {
       tilesetAtivo: 'nordic-calm',
       prioridade: 5,
       unicoNaAgencia: false,
-      zonaKind: 'private' as const,
+      zonaKind: 'sala_user' as const,
       grade: { w: 4, h: 3 },
       palco: [
         { assetId: deskId!, gx: 0, gy: 1 },
@@ -84,7 +85,7 @@ describe('colarProto multi-seat', () => {
       roomId: 'r1',
       zoneId: 'z1',
       name: 'Sala',
-      kind: 'private' as const,
+      kind: 'sala_user' as const,
       rect: { x0: 1, y0: 1, x1: 5, y1: 4 },
       door: { x: 2, y: 3 },
     };

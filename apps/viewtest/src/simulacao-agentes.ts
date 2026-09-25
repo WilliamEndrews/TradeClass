@@ -80,7 +80,9 @@ export class SimulacaoAgentes {
     this.corredor = cenario.layout.corridors.filter((c) => isWalkable(this.nav, c));
     // Descansar tambem e uma parada: o agente nao pode pousar sobre a maquina
     // de cafe nem sobre o sofa da copa.
-    const salaCopa = cenario.layout.rooms.find((r) => r.kind === 'break');
+    const salaCopa =
+      cenario.layout.rooms.find((r) => r.kind === 'salao_especialistas') ??
+      cenario.layout.rooms.find((r) => r.kind === 'noticias');
     const livresCopa = salaCopa
       ? celulasDePasseio(this.nav, salaCopa.rect, salaCopa.door, cenario.ocupadas)
       : [];

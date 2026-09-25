@@ -17,7 +17,7 @@ function salaDeTeste(overrides: Partial<Room> = {}): Room {
     roomId: 'room-1',
     zoneId: 'zone-1',
     name: 'Sala de teste',
-    kind: 'private',
+    kind: 'sala_user',
     rect: { x0: 1, y0: 1, x1: 4, y1: 4 },
     door: { x: 2, y: 3 },
     ...overrides,
@@ -61,7 +61,7 @@ describe('resolverPostoAgente', () => {
     tilesetAtivo: 'x',
     prioridade: 1,
     unicoNaAgencia: false,
-    zonaKind: 'private',
+    zonaKind: 'sala_user',
     palco: [],
     postosTrabalho: [{ agentSlot: 'default', gx: 1, gy: 1, passo: 1, facing: 2 }],
   } as unknown as TemaArquiteto;
@@ -117,7 +117,7 @@ describe('resolverPostoParaMesa', () => {
       tilesetAtivo: 'x',
       prioridade: 1,
       unicoNaAgencia: false,
-      zonaKind: 'private',
+      zonaKind: 'sala_user',
       palco: [],
       postosTrabalho: [
         { agentSlot: 'seat-0', gx: 0, gy: 0, passo: 1, facing: 2 },

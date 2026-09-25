@@ -174,7 +174,14 @@ export function agenciaDeLayout(layout: OfficeLayout): AgenciaMontada {
   const slots: AgenciaMontada['slots'] = [];
   for (const room of layout.rooms) {
     const zonaKind = room.kind as ZonaPedido;
-    if (zonaKind !== 'private' && zonaKind !== 'break' && zonaKind !== 'boss_room') continue;
+    if (
+      zonaKind !== 'salao_especialistas' &&
+      zonaKind !== 'sala_user' &&
+      zonaKind !== 'macroeconomia' &&
+      zonaKind !== 'noticias'
+    ) {
+      continue;
+    }
     const tema = temaDoZoneId(room.zoneId, zonaKind);
     if (!tema) continue;
     slots.push({
@@ -192,18 +199,18 @@ export function agenciaDeLayout(layout: OfficeLayout): AgenciaMontada {
   };
 }
 
-/** Ids na ordem da planta: boss, depois privativos (para re-colar no renderer). */
+/** Ids na ordem da planta: salao, depois demais salas com mesa. */
 export function elencoIdsDoLayout(layout: OfficeLayout, agencia: AgenciaMontada): string[] {
   const ids: string[] = [];
-  const boss = layout.rooms.find((r) => r.kind === 'boss_room');
-  if (boss) {
+  const salao = layout.rooms.find((r) => r.kind === 'salao_especialistas');
+  if (salao) {
     const mesa = layout.props.find(
-      (p) => p.kind === 'desk' && p.roomId === boss.roomId && p.ownerAgentId,
+      (p) => p.kind === 'desk' && p.roomId === salao.roomId && p.ownerAgentId,
     );
     if (mesa?.ownerAgentId) ids.push(mesa.ownerAgentId);
   }
   for (const slot of agencia.slots) {
-    if (slot.proto.zonaKind !== 'private') continue;
+    if (slot.proto.zonaKind === 'salao_especialistas') continue;
     const sala = layout.rooms.find((r) => r.zoneId === slot.proto.key);
     if (!sala) continue;
     const mesa = layout.props.find(

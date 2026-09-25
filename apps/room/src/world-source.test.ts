@@ -12,10 +12,10 @@ describe('world-source planta fixa Lab', () => {
     const mundo = montarMundoDaPlanta(PLANTA_PADRAO_TRADECLASS, 20260802, stream.agents);
     const seats = elencoDaPlanta(PLANTA_PADRAO_TRADECLASS);
     expect(mundo.plantaId).toBe(PLANTA_PADRAO_TRADECLASS);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'boss_room')).toHaveLength(1);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'break')).toHaveLength(1);
-    // Macro-desk: 1 private (nao escala com N agentes do stream)
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(1);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'salao_especialistas')).toHaveLength(1);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'noticias')).toHaveLength(1);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'sala_user')).toHaveLength(1);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'macroeconomia')).toHaveLength(1);
     const donos = new Set(
       mundo.layout.props
         .filter((p) => p.kind === 'desk' && p.ownerAgentId)
@@ -47,9 +47,9 @@ describe('world-source planta fixa Lab', () => {
       ],
     });
     const mundo = montarMundoDaPlanta(PLANTA_PADRAO_TRADECLASS, 1, stream.agents);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'boss_room')).toHaveLength(1);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(1);
-    expect(mundo.layout.rooms.filter((r) => r.kind === 'break')).toHaveLength(1);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'salao_especialistas')).toHaveLength(1);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'sala_user')).toHaveLength(1);
+    expect(mundo.layout.rooms.filter((r) => r.kind === 'noticias')).toHaveLength(1);
     expect(
       mundo.layout.props.some((p) => p.kind === 'desk' && p.ownerAgentId === 'agent-triagem'),
     ).toBe(true);

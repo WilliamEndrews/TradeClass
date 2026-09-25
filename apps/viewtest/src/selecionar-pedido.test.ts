@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ZONAS_TRADECLASS } from '@tradeclass/world-engine';
 import {
   seedDaGeracao,
   seedDoPedido,
@@ -6,49 +7,26 @@ import {
 } from './selecionar-pedido';
 
 describe('selecionarPedido', () => {
-  it('mesma seed produz a mesma lista', () => {
+  it('mesma chamada produz a mesma lista (temas marcados, sem RNG)', () => {
     const seed = seedDaGeracao({ salas: 2 }, 3, 99);
     const a = selecionarPedido({ salas: 2 }, seed);
     const b = selecionarPedido({ salas: 2 }, seed);
     expect(a.map((p) => p.tema.id)).toEqual(b.map((p) => p.tema.id));
   });
 
-  it('seeds diferentes tendem a divergir no conjunto de temas', () => {
-    const pedido = { salas: 3 };
-    const ids = new Set<string>();
-    for (let g = 1; g <= 24; g++) {
-      const seed = seedDaGeracao(pedido, g, g * 17 + 3);
-      const lista = selecionarPedido(pedido, seed);
-      ids.add(
-        lista
-          .map((p) => p.tema.id)
-          .slice()
-          .sort()
-          .join('|'),
-      );
+  it('pedido.salas nao altera o conjunto (sempre as zonas TradeClass marcadas)', () => {
+    const a = selecionarPedido({ salas: 1 }, seedDoPedido({ salas: 1 }));
+    const b = selecionarPedido({ salas: 9 }, seedDoPedido({ salas: 9 }));
+    expect(a.map((p) => p.zonaKind)).toEqual(b.map((p) => p.zonaKind));
+  });
+
+  it('so inclui zonas TradeClass, no maximo uma por zona', () => {
+    const lista = selecionarPedido({ salas: 4 }, seedDoPedido({ salas: 4 }));
+    for (const p of lista) {
+      expect(ZONAS_TRADECLASS).toContain(p.zonaKind);
     }
-    expect(ids.size).toBeGreaterThan(1);
-  });
-
-  it('1 Boss Room + (N-1) privativos + 1 copa obrigatoria', () => {
-    const seed = seedDoPedido({ salas: 3 });
-    const lista = selecionarPedido({ salas: 3 }, seed);
-    const boss = lista.filter((p) => p.zonaKind === 'boss_room');
-    const priv = lista.filter((p) => p.zonaKind === 'private');
-    const copas = lista.filter((p) => p.zonaKind === 'break');
-    expect(boss).toHaveLength(1);
-    expect(priv).toHaveLength(2);
-    expect(copas).toHaveLength(1);
-    expect(boss.every((p) => p.tema.zonaKind === 'boss_room')).toBe(true);
-    expect(priv.every((p) => p.tema.zonaKind === 'private')).toBe(true);
-    expect(copas.every((p) => p.tema.zonaKind === 'break')).toBe(true);
-  });
-
-  it('com 1 sala so Boss Room + 1 copa', () => {
-    const lista = selecionarPedido({ salas: 1 }, seedDoPedido({ salas: 1 }));
-    expect(lista.filter((p) => p.zonaKind === 'boss_room')).toHaveLength(1);
-    expect(lista.filter((p) => p.zonaKind === 'private')).toHaveLength(0);
-    expect(lista.filter((p) => p.zonaKind === 'break')).toHaveLength(1);
+    const kinds = lista.map((p) => p.zonaKind);
+    expect(new Set(kinds).size).toBe(kinds.length);
   });
 
   it('marca unicoNaAgencia sem repetir enquanto houver alternativa', () => {

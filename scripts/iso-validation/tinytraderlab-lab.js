@@ -2679,7 +2679,7 @@ function fetchJson(url, fallback) {
       opt.textContent = z.nome + ' (' + z.id + ')';
       sel.appendChild(opt);
     }
-    sel.value = 'private';
+    sel.value = 'sala_user';
   }
 
   function montarSelZonas() {
@@ -3087,11 +3087,13 @@ function fetchJson(url, fallback) {
     const nomeEl = document.getElementById('nome-tema');
     const prioEl = document.getElementById('tema-prioridade');
     const unicoEl = document.getElementById('tema-unico');
+    const marcadoEl = document.getElementById('tema-marcado');
     const zonaEl = document.getElementById('tema-zona');
     const subdivEl = document.getElementById('chk-subdiv');
     if (nomeEl) nomeEl.value = t.nome || '';
     if (prioEl) prioEl.value = String(t.prioridade);
     if (unicoEl) unicoEl.checked = !!t.unicoNaAgencia;
+    if (marcadoEl) marcadoEl.checked = !!t.marcadoParaGeracao;
     if (zonaEl) zonaEl.value = zonaKindOk(t.zonaKind);
     if (subdivEl) subdivEl.checked = true;
 
@@ -3118,11 +3120,13 @@ function fetchJson(url, fallback) {
   function lerFormTema() {
     const prioEl = document.getElementById('tema-prioridade');
     const unicoEl = document.getElementById('tema-unico');
+    const marcadoEl = document.getElementById('tema-marcado');
     const zonaEl = document.getElementById('tema-zona');
     return {
       prioridade: clampInt(prioEl ? prioEl.value : 5, 1, 9),
       unicoNaAgencia: !!(unicoEl && unicoEl.checked),
-      zonaKind: zonaKindOk(zonaEl ? zonaEl.value : 'private'),
+      marcadoParaGeracao: !!(marcadoEl && marcadoEl.checked),
+      zonaKind: zonaKindOk(zonaEl ? zonaEl.value : 'sala_user'),
     };
   }
 
@@ -3143,6 +3147,7 @@ function fetchJson(url, fallback) {
       subdiv: estado.subdiv !== false,
       prioridade: form.prioridade,
       unicoNaAgencia: form.unicoNaAgencia,
+      marcadoParaGeracao: form.marcadoParaGeracao,
       zonaKind: form.zonaKind,
       piso: cores.piso,
       parede: cores.parede,
@@ -3165,31 +3170,56 @@ function fetchJson(url, fallback) {
     const porZona = {};
     for (const z of ZONAS_TILE) porZona[z.id] = [];
     for (const tema of estado.temas) {
-      porZona[zonaKindOk(tema.zonaKind)].push(tema);
+      const zk = zonaKindOk(tema.zonaKind);
+      if (!porZona[zk]) porZona[zk] = [];
+      porZona[zk].push(tema);
     }
-    for (const z of ZONAS_TILE) {
-      const grupo = porZona[z.id];
+    const ordemZonas = [
+      ...ZONAS_TILE.map((z) => z.id),
+      ...Object.keys(porZona).filter((id) => !ZONAS_TILE.some((z) => z.id === id)),
+    ];
+    for (const zonaId of ordemZonas) {
+      const grupo = porZona[zonaId] || [];
       if (!grupo.length) continue;
       const cab = document.createElement('div');
       cab.className = 'tema-grupo';
-      cab.textContent = z.nome + ' Â· ' + z.id;
+      cab.textContent = nomeZonaTile(zonaId) + ' · ' + zonaId;
       root.appendChild(cab);
-      grupo.sort((a, b) => (b.prioridade || 0) - (a.prioridade || 0) || a.nome.localeCompare(b.nome));
+      grupo.sort((a, b) =>
+        (b.marcadoParaGeracao ? 1 : 0) - (a.marcadoParaGeracao ? 1 : 0) ||
+        (b.prioridade || 0) - (a.prioridade || 0) ||
+        a.nome.localeCompare(b.nome),
+      );
       for (const tema of grupo) {
         const g = tema.grade || { w: '?', h: '?' };
         const row = document.createElement('div');
-        row.className = 'tema-row';
+        row.className = 'tema-row' + (tema.marcadoParaGeracao ? ' tema-marcado' : '');
         row.setAttribute('role', 'listitem');
         const lab = document.createElement('span');
         lab.textContent =
           tema.nome +
-          ' Â· ' + z.nome +
-          ' Â· ' + g.w + 'x' + g.h +
-          ' Â· P' + (tema.prioridade || 5) +
-          (tema.unicoNaAgencia ? ' Â· unico' : '') +
-          ' Â· ' + (tema.palco || []).length + ' pecas' +
-          ' Â· ' + (tema.piso || tema.tilesetAtivo) +
-          (temasOrigem === 'localStorage' ? ' Â· rascunho local' : '');
+          ' · ' + nomeZonaTile(zonaId) +
+          ' · ' + g.w + 'x' + g.h +
+          ' · P' + (tema.prioridade || 5) +
+          (tema.unicoNaAgencia ? ' · unico' : '') +
+          (tema.marcadoParaGeracao ? ' · MARCADO' : '') +
+          ' · ' + (tema.palco || []).length + ' pecas' +
+          ' · ' + (tema.piso || tema.tilesetAtivo) +
+          (temasOrigem === 'localStorage' ? ' · rascunho local' : '');
+        const marcarBtn = document.createElement('button');
+        marcarBtn.type = 'button';
+        marcarBtn.textContent = tema.marcadoParaGeracao ? 'desmarcar' : 'usar na geracao';
+        marcarBtn.title = 'Marca esta opcao da zona para Viewtest/Room';
+        marcarBtn.addEventListener('click', () => {
+          const ativar = !tema.marcadoParaGeracao;
+          for (const t of estado.temas) {
+            if (t.zonaKind === tema.zonaKind) t.marcadoParaGeracao = false;
+          }
+          tema.marcadoParaGeracao = ativar;
+          atualizarJsonOut();
+          pintarListaTemas();
+          void persistirTemasNoDisco('marcar');
+        });
         const carregarBtn = document.createElement('button');
         carregarBtn.type = 'button';
         carregarBtn.textContent = 'carregar';
@@ -3204,6 +3234,7 @@ function fetchJson(url, fallback) {
           void persistirTemasNoDisco('apagar');
         });
         row.appendChild(lab);
+        row.appendChild(marcarBtn);
         row.appendChild(carregarBtn);
         row.appendChild(apagarBtn);
         root.appendChild(row);
@@ -4253,7 +4284,7 @@ function fetchJson(url, fallback) {
     document.getElementById('sel-piso').value = resolverCores(catalogo, estado).piso;
     document.getElementById('sel-parede').value = resolverCores(catalogo, estado).parede;
     const zonaTema = document.getElementById('tema-zona');
-    if (zonaTema) zonaTema.value = 'private';
+    if (zonaTema) zonaTema.value = 'sala_user';
     setModoPlantar('piso');
     setCombinando(false);
     aplicarPaineis();
@@ -4283,6 +4314,11 @@ function fetchJson(url, fallback) {
       return;
     }
     const novo = snapshotTema(nome);
+    if (novo.marcadoParaGeracao) {
+      for (const t of estado.temas) {
+        if (t.id !== novo.id && t.zonaKind === novo.zonaKind) t.marcadoParaGeracao = false;
+      }
+    }
     const ix = estado.temas.findIndex((t) => t.id === novo.id || t.nome === novo.nome);
     if (ix >= 0) estado.temas[ix] = novo;
     else estado.temas.push(novo);

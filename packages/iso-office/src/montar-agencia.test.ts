@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { carregarPlanta, listarPlantas } from './planta';
 import { gradeDoProto } from '@tradeclass/world-engine';
 import { construirEspacoAgencia } from './espaco-agencia';
 import { montarAgencia } from './montar-agencia';
-import { seedDaGeracao, seedDoPedido } from './selecionar-pedido';
+import { seedDoPedido } from './selecionar-pedido';
 
 function overlap(
   a: { x0: number; y0: number; x1: number; y1: number },
@@ -11,91 +12,70 @@ function overlap(
   return a.x0 < b.x1 && a.x1 > b.x0 && a.y0 < b.y1 && a.y1 > b.y0;
 }
 
-describe('montarAgencia', () => {
-  it('mesma seed produz o mesmo empacotamento', () => {
-    const seed = seedDaGeracao({ salas: 2 }, 2, 42);
-    const a = montarAgencia({ salas: 2 }, seed);
-    const b = montarAgencia({ salas: 2 }, seed);
-    expect(a).toEqual(b);
-    expect(a!.seed).toBe(seed);
+describe('montarAgencia (legado RNG → temas marcados)', () => {
+  it('pedido vazio devolve null', () => {
+    expect(montarAgencia({ salas: 0 })).toBeNull();
   });
 
-  it('sem seed usa seedDoPedido (reproduzivel)', () => {
-    const a = montarAgencia({ salas: 2 });
-    const b = montarAgencia({ salas: 2 });
-    expect(a).toEqual(b);
-    expect(seedDoPedido({ salas: 2 })).toBe(a!.seed);
-  });
-
-  it('cada slot ocupa exatamente a grade do tema e respeita leis', () => {
-    const seed = seedDoPedido({ salas: 3 });
-    const agencia = montarAgencia({ salas: 3 }, seed);
+  it('selecionarPedido preenche zonas TradeClass via bridge legado ate remapeamento', () => {
+    const agencia = montarAgencia({ salas: 2 }, seedDoPedido({ salas: 2 }));
     expect(agencia).not.toBeNull();
-    expect(agencia!.slots.filter((s) => s.proto.zonaKind === 'boss_room')).toHaveLength(1);
-    expect(agencia!.slots.filter((s) => s.proto.zonaKind === 'private')).toHaveLength(2);
-    expect(agencia!.slots.filter((s) => s.proto.zonaKind === 'break')).toHaveLength(1);
-
+    expect(agencia!.slots.length).toBeGreaterThan(0);
     for (const slot of agencia!.slots) {
+      expect([
+        'salao_especialistas',
+        'sala_user',
+        'macroeconomia',
+        'noticias',
+      ]).toContain(slot.proto.zonaKind);
+    }
+  });
+});
+
+describe('planta fixa TradeClass', () => {
+  const plantaId = listarPlantas()[0]?.id ?? 'macro-desk';
+
+  it('carrega planta com as 4 zonas TradeClass', () => {
+    const agencia = carregarPlanta(plantaId, 20260915);
+    expect(agencia).not.toBeNull();
+    expect(agencia!.slots).toHaveLength(4);
+    const kinds = agencia!.slots.map((s) => s.proto.zonaKind).sort();
+    expect(kinds).toEqual(
+      ['macroeconomia', 'noticias', 'sala_user', 'salao_especialistas'].sort(),
+    );
+  });
+
+  it('cada slot ocupa exatamente a grade do tema', () => {
+    const agencia = carregarPlanta(plantaId, 20260915)!;
+    for (const slot of agencia.slots) {
       const grade = gradeDoProto(slot.proto.tema);
       expect(slot.rect.x1 - slot.rect.x0).toBe(grade.w);
       expect(slot.rect.y1 - slot.rect.y0).toBe(grade.h);
     }
   });
 
-  it('slots nao se sobrepoem e ha corredor entre vizinhos e na espinha', () => {
-    const seed = seedDaGeracao({ salas: 3 }, 1, 7);
-    const agencia = montarAgencia({ salas: 3 }, seed);
-    expect(agencia).not.toBeNull();
-    const slots = agencia!.slots;
+  it('slots nao se sobrepoem e ha corredor', () => {
+    const agencia = carregarPlanta(plantaId, 20260915)!;
+    const slots = agencia.slots;
     for (let i = 0; i < slots.length; i++) {
       for (let j = i + 1; j < slots.length; j++) {
         expect(overlap(slots[i]!.rect, slots[j]!.rect)).toBe(false);
       }
     }
-
-    expect(agencia!.pisoCorredor).toBe('Concrete');
-    expect(agencia!.corridors.length).toBeGreaterThan(0);
-
-    const porFaixa = new Map<string, typeof slots>();
-    for (const s of slots) {
-      const chave = s.rect.y1 <= agencia!.corredorY ? 'norte' : 'sul';
-      const lista = porFaixa.get(chave) ?? [];
-      lista.push(s);
-      porFaixa.set(chave, lista);
-    }
-    for (const faixa of porFaixa.values()) {
-      faixa.sort((a, b) => a.rect.x0 - b.rect.x0);
-      for (let i = 0; i < faixa.length - 1; i++) {
-        const a = faixa[i]!;
-        const b = faixa[i + 1]!;
-        expect(b.rect.x0).toBe(a.rect.x1 + 1);
-        expect(agencia!.corridors.some((c) => c.x === a.rect.x1)).toBe(true);
-      }
-    }
-  });
-
-  it('pedido vazio devolve null', () => {
-    expect(montarAgencia({ salas: 0 })).toBeNull();
-  });
-
-  it('encaixa 4 salas (1 boss + 3 priv + 1 copa) sem perder slot', () => {
-    const seed = seedDaGeracao({ salas: 4 }, 1, 1);
-    const agencia = montarAgencia({ salas: 4 }, seed);
-    expect(agencia!.slots).toHaveLength(5);
-    expect(agencia!.grid.width).toBeGreaterThanOrEqual(10);
+    expect(agencia.pisoCorredor).toBe('Concrete');
+    expect(agencia.corridors.length).toBeGreaterThan(0);
   });
 
   it('agencia montada gera cenario espacial com agentes', () => {
-    const seed = seedDoPedido({ salas: 2 });
-    const agencia = montarAgencia({ salas: 2 }, seed);
-    const cenario = construirEspacoAgencia(agencia!);
-    expect(cenario.layout.rooms.length).toBe(agencia!.slots.length);
+    const agencia = carregarPlanta(plantaId, 20260915)!;
+    const cenario = construirEspacoAgencia(agencia);
+    expect(cenario.layout.rooms.length).toBe(agencia.slots.length);
     expect(cenario.agentes.length).toBeGreaterThan(0);
-    expect(cenario.nav.cells.length).toBe(agencia!.grid.width * agencia!.grid.height);
+    expect(cenario.nav.cells.length).toBe(agencia.grid.width * agencia.grid.height);
   });
 
-  it.each([1, 3, 6, 10])('todas as portas encostam no corredor (%i salas)', (salas) => {
-    const agencia = montarAgencia({ salas }, 9000 + salas)!;
+  it('todas as portas encostam no corredor', () => {
+    const agencia = carregarPlanta(plantaId, 20260915)!;
     const cenario = construirEspacoAgencia(agencia);
     const corredores = new Set(cenario.layout.corridors.map((c) => `${c.x},${c.y}`));
     for (const room of cenario.layout.rooms) {

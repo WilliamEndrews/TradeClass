@@ -89,10 +89,32 @@ export function PreviewStage({
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
+      const alvo = ev.target as HTMLElement | null;
+      const tag = alvo?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || alvo?.isContentEditable) {
+        return;
+      }
+
       if (ev.key === 'd' || ev.key === 'D') setDebugOverlay((v) => !v);
       if (ev.key === 'w' || ev.key === 'W') setStripParedeL((v) => !v);
       if (ev.key === 'r' || ev.key === 'R') {
         cameraRef.current = { zoom: CAMERA_ZOOM_INICIAL, panX: 0, panY: 0 };
+      }
+
+      const passo = ev.shiftKey ? 96 : 48;
+      const cam = cameraRef.current;
+      if (ev.key === 'ArrowLeft') {
+        ev.preventDefault();
+        cam.panX += passo;
+      } else if (ev.key === 'ArrowRight') {
+        ev.preventDefault();
+        cam.panX -= passo;
+      } else if (ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        cam.panY += passo;
+      } else if (ev.key === 'ArrowDown') {
+        ev.preventDefault();
+        cam.panY -= passo;
       }
     };
     window.addEventListener('keydown', onKey);
@@ -128,11 +150,13 @@ export function PreviewStage({
     let pan0y = 0;
 
     const onDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
       arrastando = true;
       sx = e.clientX;
       sy = e.clientY;
       pan0x = cam.panX;
       pan0y = cam.panY;
+      wrap.classList.add('arrastando');
       wrap.setPointerCapture(e.pointerId);
     };
     const onMove = (e: PointerEvent) => {
@@ -141,8 +165,14 @@ export function PreviewStage({
       cam.panY = pan0y + (e.clientY - sy);
     };
     const onUp = (e: PointerEvent) => {
+      if (!arrastando) return;
       arrastando = false;
-      wrap.releasePointerCapture(e.pointerId);
+      wrap.classList.remove('arrastando');
+      try {
+        wrap.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ja liberado */
+      }
     };
     const onDbl = () => {
       cam.zoom = CAMERA_ZOOM_INICIAL;
@@ -154,12 +184,17 @@ export function PreviewStage({
     wrap.addEventListener('pointerdown', onDown);
     wrap.addEventListener('pointermove', onMove);
     wrap.addEventListener('pointerup', onUp);
+    wrap.addEventListener('pointercancel', onUp);
+    wrap.addEventListener('lostpointercapture', onUp);
     wrap.addEventListener('dblclick', onDbl);
     return () => {
+      wrap.classList.remove('arrastando');
       wrap.removeEventListener('wheel', onWheel);
       wrap.removeEventListener('pointerdown', onDown);
       wrap.removeEventListener('pointermove', onMove);
       wrap.removeEventListener('pointerup', onUp);
+      wrap.removeEventListener('pointercancel', onUp);
+      wrap.removeEventListener('lostpointercapture', onUp);
       wrap.removeEventListener('dblclick', onDbl);
     };
   }, []);
@@ -273,9 +308,10 @@ export function PreviewStage({
           }
 
           if (agora - ultimoStatus >= 400) {
-            const nBoss = agencia.slots.filter((s) => s.proto.zonaKind === 'boss_room').length;
-            const nPriv = agencia.slots.filter((s) => s.proto.zonaKind === 'private').length;
-            const nCopas = agencia.slots.filter((s) => s.proto.zonaKind === 'break').length;
+            const nSalao = agencia.slots.filter((s) => s.proto.zonaKind === 'salao_especialistas').length;
+            const nUser = agencia.slots.filter((s) => s.proto.zonaKind === 'sala_user').length;
+            const nMacro = agencia.slots.filter((s) => s.proto.zonaKind === 'macroeconomia').length;
+            const nNews = agencia.slots.filter((s) => s.proto.zonaKind === 'noticias').length;
             const geracaoTxt = agencia.geracao != null ? ` · g${agencia.geracao}` : '';
             const seedTxt = ` · seed ${agencia.seed.toString(16).slice(0, 6)}`;
             const zoomTxt = ` · z${cam.zoom.toFixed(1)}`;
@@ -286,7 +322,7 @@ export function PreviewStage({
               ? ` · tarefa especial · ${tarefaEspecial!.id}`
               : '';
             setStatus(
-              `planta ${nBoss} Boss + ${nPriv} priv. + ${nCopas} copa · ${contarAtividades(atores)}${geracaoTxt}${seedTxt}${zoomTxt}${debugTxt}${stripTxt}${tarefaTxt}${warningTxt}`,
+              `planta ${nSalao} salao + ${nUser} user + ${nMacro} macro + ${nNews} news · ${contarAtividades(atores)}${geracaoTxt}${seedTxt}${zoomTxt}${debugTxt}${stripTxt}${tarefaTxt}${warningTxt} · setas/arraste`,
             );
             if (simTarefa) setPainelTarefa(simTarefa.status());
             else setPainelTarefa(null);

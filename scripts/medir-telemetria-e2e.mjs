@@ -136,9 +136,9 @@ function formaPlanta(layout) {
       ok: false,
     };
   }
-  const boss = layout.rooms.filter((r) => r.kind === 'boss_room').length;
-  const priv = layout.rooms.filter((r) => r.kind === 'private').length;
-  const brk = layout.rooms.filter((r) => r.kind === 'break').length;
+  const boss = layout.rooms.filter((r) => r.kind === 'salao_especialistas').length;
+  const priv = layout.rooms.filter((r) => r.kind === 'sala_user').length;
+  const brk = layout.rooms.filter((r) => r.kind === 'noticias').length;
   const desksOwner = (layout.props ?? []).filter(
     (p) => p.kind === 'desk' && AGENT_IDS.includes(p.ownerAgentId),
   ).length;

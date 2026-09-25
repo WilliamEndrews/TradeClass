@@ -13,7 +13,7 @@ const salaNorte: Room = {
   roomId: 'room-n',
   zoneId: 'n',
   name: 'norte',
-  kind: 'open',
+  kind: 'salao_especialistas',
   rect: { x0: 1, y0: 1, x1: 4, y1: corredorY },
   door: { x: 2, y: corredorY - 1 },
 };
@@ -22,7 +22,7 @@ const salaSul: Room = {
   roomId: 'room-s',
   zoneId: 's',
   name: 'sul',
-  kind: 'private',
+  kind: 'sala_user',
   rect: { x0: 1, y0: corredorY + 1, x1: 4, y1: 8 },
   door: { x: 2, y: corredorY + 1 },
 };

@@ -7,7 +7,6 @@ export {
   selecionarPedido,
   seedDoPedido,
   seedDaGeracao,
-  COPAS_OBRIGATORIAS,
   type PedidoGeracao,
   type ZonaPedido,
   type ProtoEscolhido,

@@ -8,22 +8,26 @@ export const PLANTA_METALS_FLOOR: PlantaFixa = {
   salas: [
     {
       temaId: 'boss-room-2',
-      zonaKind: 'boss_room',
+      zonaKind: 'salao_especialistas',
       desks: [{ specialty: 'orchestrator', seatSlot: 'seat-0', displayName: 'Metals Lead' }],
     },
     {
+      temaId: 'sala-simples2-new',
+      zonaKind: 'sala_user',
+      desks: [{ specialty: 'gold', seatSlot: 'seat-0', displayName: 'User Metals' }],
+    },
+    {
       temaId: 'sala-completa-piso-azul-new',
-      zonaKind: 'private',
+      zonaKind: 'macroeconomia',
       desks: [
         { specialty: 'gold', seatSlot: 'seat-0', displayName: 'Gold Specialist' },
         { specialty: 'gold', seatSlot: 'seat-1', displayName: 'Gold Scout' },
-        { specialty: 'news', seatSlot: 'seat-2', displayName: 'Metals News' },
       ],
     },
     {
       temaId: 'copa-simples-new',
-      zonaKind: 'break',
-      desks: [],
+      zonaKind: 'noticias',
+      desks: [{ specialty: 'news', seatSlot: 'seat-0', displayName: 'Metals News' }],
     },
   ],
 };

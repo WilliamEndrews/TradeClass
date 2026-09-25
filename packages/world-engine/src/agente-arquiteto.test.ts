@@ -33,15 +33,22 @@ describe('DeterministicArchitect', () => {
     expect(validacao.success).toBe(true);
   });
 
-  it('agentes sensiveis (finance, guardian) tem sala privada', () => {
+  it('sempre inclui as 4 zonas TradeClass', () => {
     const programa = arq.planejar(agentes, opts);
-    const privados = programa.zones.filter((z) => z.kind === 'private');
-    expect(privados.length).toBe(2); // finance + guardian
+    const kinds = programa.zones.map((z) => z.kind).sort();
+    expect(kinds).toEqual(
+      ['macroeconomia', 'noticias', 'sala_user', 'salao_especialistas'].sort(),
+    );
   });
 
-  it('com 4+ agentes, tem sala de reuniao', () => {
+  it('finance vai para macroeconomia; guardian para sala_user; research/analyst para noticias', () => {
     const programa = arq.planejar(agentes, opts);
-    expect(programa.zones.some((z) => z.kind === 'meeting')).toBe(true);
+    const macro = programa.zones.find((z) => z.kind === 'macroeconomia');
+    const user = programa.zones.find((z) => z.kind === 'sala_user');
+    const news = programa.zones.find((z) => z.kind === 'noticias');
+    expect(macro?.agentIds).toContain('a2');
+    expect(user?.agentIds).toContain('a4');
+    expect(news?.agentIds).toEqual(expect.arrayContaining(['a1', 'a3']));
   });
 
   it('mesma seed = mesmo programa', () => {
@@ -69,12 +76,10 @@ describe('LlmArchitect', () => {
       seed: 42,
       grid: { width: 40, height: 30 },
       zones: [
-        { zoneId: 'z1', name: 'Area', kind: 'open' as const, areaWeight: 1, agentIds: ['a1', 'a3'] },
-        { zoneId: 'z2', name: 'Fin', kind: 'private' as const, areaWeight: 1, agentIds: ['a2'] },
-        { zoneId: 'z3', name: 'Guard', kind: 'private' as const, areaWeight: 1, agentIds: ['a4'] },
-        { zoneId: 'z-break', name: 'Break', kind: 'break' as const, areaWeight: 1, agentIds: [] },
-        { zoneId: 'z-recep', name: 'Recep', kind: 'reception' as const, areaWeight: 1, agentIds: [] },
-        { zoneId: 'z-meet', name: 'Meet', kind: 'meeting' as const, areaWeight: 1, agentIds: [] },
+        { zoneId: 'z-salao', name: 'Salao', kind: 'salao_especialistas' as const, areaWeight: 1, agentIds: ['a1'] },
+        { zoneId: 'z-user', name: 'User', kind: 'sala_user' as const, areaWeight: 1, agentIds: ['a4'] },
+        { zoneId: 'z-macro', name: 'Macro', kind: 'macroeconomia' as const, areaWeight: 1, agentIds: ['a2'] },
+        { zoneId: 'z-news', name: 'News', kind: 'noticias' as const, areaWeight: 1, agentIds: ['a3'] },
       ],
       adjacency: [],
       theme: { name: 'cool-lab', palette: ['#EEF2F6', '#C9D6E3', '#7A93AC', '#2E3B4E'], greenery: 0.25 },
@@ -83,7 +88,7 @@ describe('LlmArchitect', () => {
     const arq = new LlmArchitect({ chamarLlm: async () => JSON.stringify(programaLlm) });
     const resultado = await arq.planejarAsync(agentes, opts);
     expect(resultado.officeId).toBe('office-test');
-    expect(resultado.zones.length).toBe(6);
+    expect(resultado.zones.length).toBe(4);
     expect(resultado.theme.name).toBe('cool-lab');
   });
 
@@ -91,8 +96,7 @@ describe('LlmArchitect', () => {
     const arq = new LlmArchitect({ chamarLlm: async () => 'not json' });
     const resultado = await arq.planejarAsync(agentes, opts);
     expect(resultado.zones.length).toBeGreaterThan(0);
-    // Deve ter zonas privadas (comportamento do deterministico)
-    expect(resultado.zones.some((z) => z.kind === 'private')).toBe(true);
+    expect(resultado.zones.some((z) => z.kind === 'sala_user')).toBe(true);
   });
 
   it('planejarAsync com erro de rede cai para deterministico', async () => {

@@ -157,9 +157,10 @@ describe('OfficeSession', () => {
     };
     const s = new OfficeSession({ seed: 11, fonteEventos: fonte });
     const roomsAntes = s.layout.rooms.length;
-    expect(s.layout.rooms.filter((r) => r.kind === 'boss_room')).toHaveLength(1);
-    expect(s.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(1);
-    expect(s.layout.rooms.filter((r) => r.kind === 'break')).toHaveLength(1);
+    expect(s.layout.rooms.filter((r) => r.kind === 'salao_especialistas')).toHaveLength(1);
+    expect(s.layout.rooms.filter((r) => r.kind === 'sala_user')).toHaveLength(1);
+    expect(s.layout.rooms.filter((r) => r.kind === 'macroeconomia')).toHaveLength(1);
+    expect(s.layout.rooms.filter((r) => r.kind === 'noticias')).toHaveLength(1);
 
     agentes.push(
       {
@@ -191,7 +192,7 @@ describe('OfficeSession', () => {
     expect(quadro!.kind).toBe('snapshot');
     // Geometria da planta nao escala com N agentes.
     expect(s.layout.rooms.length).toBe(roomsAntes);
-    expect(s.layout.rooms.filter((r) => r.kind === 'private')).toHaveLength(1);
+    expect(s.layout.rooms.filter((r) => r.kind === 'sala_user')).toHaveLength(1);
     const donos = s.layout.props
       .filter((p) => p.kind === 'desk' && p.ownerAgentId)
       .map((p) => p.ownerAgentId!);
