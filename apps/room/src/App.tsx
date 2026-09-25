@@ -20,12 +20,16 @@ import {
 } from './world-source';
 import { useI18n } from './use-i18n';
 import { IDIOMAS, ROTULO_IDIOMA, type Idioma } from './i18n';
-import { simular, type SimularResult } from './api';
+import { listarBrokerLinks, salvarBrokerLink, simular, type BrokerLinkDto, type SimularResult } from './api';
+import { aplicarBrokerNasParedes, primeiroLinkAtivo } from './broker-paredes';
 import { ChartPanel } from './chart-panel';
+import { aquecerSerie } from './market-cache';
 import type { AbaPainel, SelecaoAlvo } from './selection';
 import { chaveSelecao } from './selection';
 import { anexarWallMediaDemo } from './wall-media-demo';
+import { anexarLiveTradeRoom, contextoLivePov } from './live-trade-room';
 import { WallMediaOverlay } from './wall-media-overlay';
+import { LivePovModal } from './live-pov-modal';
 
 const TOKEN_QUERY = new URL(window.location.href).searchParams.get('token');
 
@@ -86,8 +90,12 @@ async function montarRenderer(
   canvas: HTMLCanvasElement,
   layout: OfficeLayout,
   mobile: boolean,
+  terminalUrl?: string | null,
 ): Promise<RendererHandle> {
-  const comMidia = anexarWallMediaDemo(layout);
+  const comMidia = aplicarBrokerNasParedes(
+    anexarLiveTradeRoom(anexarWallMediaDemo(layout)),
+    terminalUrl ? { webTerminalUrl: terminalUrl } : null,
+  );
   return mobile
     ? criarRendererTopDown(canvas, comMidia)
     : criarRenderer(canvas, comMidia);
@@ -129,6 +137,14 @@ export default function App() {
   const [simCarregando, setSimCarregando] = useState(false);
   const [simErro, setSimErro] = useState<string | null>(null);
   const [hybridUrl, setHybridUrl] = useState<string | null>(null);
+  const [livePovAberto, setLivePovAberto] = useState(false);
+  const [brokerLinks, setBrokerLinks] = useState<BrokerLinkDto[]>([]);
+  const [contaLabel, setContaLabel] = useState('Mesa principal');
+  const [contaBroker, setContaBroker] = useState('');
+  const [contaUrl, setContaUrl] = useState('');
+  const [contaErro, setContaErro] = useState<string | null>(null);
+  const [contaSalvando, setContaSalvando] = useState(false);
+  const brokerUrlRef = useRef<string | null>(null);
 
   const selecionadoRef = useRef<SelecaoAlvo | null>(null);
   selecionadoRef.current = selecionado;
@@ -170,8 +186,30 @@ export default function App() {
         criada.enviar({ type: 'reseed', seed });
       }
 
+      const tokenApi = TOKEN_QUERY ?? (import.meta.env.VITE_TRADECLASS_TOKEN as string | undefined);
+      if (URL_SERVIDOR && tokenApi) {
+        try {
+          const links = await listarBrokerLinks(URL_SERVIDOR, tokenApi);
+          if (vivo) {
+            setBrokerLinks(links);
+            const ativo = primeiroLinkAtivo(links);
+            brokerUrlRef.current = ativo?.webTerminalUrl ?? null;
+            if (ativo) {
+              setContaLabel(ativo.label);
+              setContaBroker(ativo.brokerName);
+              setContaUrl(ativo.webTerminalUrl);
+            }
+          }
+        } catch {
+          // Room local / token sem rotas broker
+        }
+        for (const wm of criada.layout.wallMedia ?? []) {
+          if (wm.seriesId) void aquecerSerie(wm.seriesId, URL_SERVIDOR, tokenApi, 32);
+        }
+      }
+
       if (!canvasRef.current) return;
-      handle = await montarRenderer(canvasRef.current, criada.layout, vistaMobile);
+      handle = await montarRenderer(canvasRef.current, criada.layout, vistaMobile, brokerUrlRef.current);
       if (!vivo) {
         handle.destroy();
         return;
@@ -179,7 +217,10 @@ export default function App() {
       rendererRef.current = handle;
       handle.onPick((alvo) => {
         setSelecionado(alvo);
-        if (alvo?.kind === 'wallMedia') setAba('grafico');
+        if (alvo?.kind === 'camera') {
+          setLivePovAberto(true);
+          setAba('config');
+        } else if (alvo?.kind === 'wallMedia') setAba('grafico');
         else if (alvo?.kind === 'agent') setAba('agente');
         else if (alvo) setAba('config');
       });
@@ -196,7 +237,12 @@ export default function App() {
           setViolacoes(validarLayout(quadro.layout));
           void (async () => {
             if (!vivo || !canvasRef.current) return;
-            const novo = await montarRenderer(canvasRef.current, quadro.layout, vistaMobile);
+            const novo = await montarRenderer(
+              canvasRef.current,
+              quadro.layout,
+              vistaMobile,
+              brokerUrlRef.current,
+            );
             if (!vivo) {
               novo.destroy();
               return;
@@ -205,7 +251,10 @@ export default function App() {
             rendererRef.current = novo;
             novo.onPick((alvo) => {
               setSelecionado(alvo);
-              if (alvo?.kind === 'wallMedia') setAba('grafico');
+              if (alvo?.kind === 'camera') {
+                setLivePovAberto(true);
+                setAba('config');
+              } else if (alvo?.kind === 'wallMedia') setAba('grafico');
               else if (alvo?.kind === 'agent') setAba('agente');
               else if (alvo) setAba('config');
             });
@@ -228,7 +277,13 @@ export default function App() {
 
         if (++contador % 3 === 0) {
           const layoutAtual =
-            quadro.kind === 'snapshot' ? anexarWallMediaDemo(quadro.layout) : painelLayoutRef.current;
+            quadro.kind === 'snapshot'
+              ? aplicarBrokerNasParedes(
+                  anexarLiveTradeRoom(anexarWallMediaDemo(quadro.layout)),
+                  brokerUrlRef.current
+                ? { webTerminalUrl: brokerUrlRef.current }
+                : null)
+              : painelLayoutRef.current;
           if (quadro.kind === 'snapshot') painelLayoutRef.current = layoutAtual;
           setPainel({
             kpis: quadro.kpis,
@@ -251,7 +306,7 @@ export default function App() {
       rendererRef.current = null;
       fonteRef.current = null;
     };
-  }, [seed, vistaMobile]);
+  }, [seed, vistaMobile, brokerLinks.length]);
 
   useEffect(() => {
     rendererRef.current?.select(selecionado);
@@ -272,10 +327,39 @@ export default function App() {
   const percentualOrcamento = Math.min(100, (custo / orcamento) * 100);
   const layout = painel?.layout ?? fonteRef.current?.layout ?? null;
   const espelho = resolverEspelho(selecionado, layout, painel?.atores ?? [], t);
+  const livePov =
+    selecionado?.kind === 'camera' && layout
+      ? contextoLivePov(layout, selecionado.id)
+      : null;
   const getViewTransform = useCallback(
     () => rendererRef.current?.getViewTransform?.() ?? null,
     [],
   );
+
+  const tokenApi = TOKEN_QUERY ?? (simToken || undefined);
+
+  async function salvarConta() {
+    if (!URL_SERVIDOR || !tokenApi) {
+      setContaErro(t('painel.contas.precisaToken'));
+      return;
+    }
+    setContaSalvando(true);
+    setContaErro(null);
+    try {
+      const salvo = await salvarBrokerLink(URL_SERVIDOR, tokenApi, {
+        linkId: brokerLinks[0]?.linkId,
+        label: contaLabel.trim() || 'Mesa principal',
+        brokerName: contaBroker.trim() || 'Broker',
+        webTerminalUrl: contaUrl.trim(),
+      });
+      setBrokerLinks([salvo, ...brokerLinks.filter((l) => l.linkId !== salvo.linkId)]);
+      brokerUrlRef.current = salvo.webTerminalUrl;
+    } catch (err) {
+      setContaErro(err instanceof Error ? err.message : t('painel.contas.falha'));
+    } finally {
+      setContaSalvando(false);
+    }
+  }
 
   return (
     <div className={`app${vistaMobile ? ' app-mobile' : ''}`}>
@@ -403,6 +487,41 @@ export default function App() {
             {aba === 'contas' && (
               <div>
                 <p className="nota">{t('painel.contas.nota')}</p>
+                {brokerLinks.length > 0 ? (
+                  <ul className="lista-detalhe">
+                    {brokerLinks.map((l) => (
+                      <li key={l.linkId}>
+                        {l.label} · {l.brokerName} · {l.status}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="nota">{t('painel.contas.vazio')}</p>
+                )}
+                <label className="nota" htmlFor="conta-label">{t('painel.contas.nome')}</label>
+                <input id="conta-label" value={contaLabel} onChange={(e) => setContaLabel(e.target.value)} />
+                <label className="nota" htmlFor="conta-broker">{t('painel.contas.broker')}</label>
+                <input id="conta-broker" value={contaBroker} onChange={(e) => setContaBroker(e.target.value)} />
+                <label className="nota" htmlFor="conta-url">{t('painel.contas.url')}</label>
+                <input
+                  id="conta-url"
+                  value={contaUrl}
+                  onChange={(e) => setContaUrl(e.target.value)}
+                  placeholder="https://"
+                />
+                {contaErro && <p className="erro">{contaErro}</p>}
+                <div className="onboard-acoes" style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button type="button" disabled={contaSalvando} onClick={() => void salvarConta()}>
+                    {contaSalvando ? t('painel.contas.salvando') : t('painel.contas.salvar')}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!contaUrl}
+                    onClick={() => setHybridUrl(contaUrl)}
+                  >
+                    {t('painel.contas.abrirPainel')}
+                  </button>
+                </div>
                 <ul className="lista-detalhe">
                   <li>{t('kpi.pnlSessao')}: {formatarPnl(painel?.kpis.pnlSessionUsd ?? 0)}</li>
                   <li>{t('kpi.sinais')}: {painel?.kpis.activeSignals ?? 0}</li>
@@ -449,7 +568,11 @@ export default function App() {
                 ) : espelho.media?.seriesId ? (
                   <>
                     <p className="nota">{t('painel.grafico.serie', { id: espelho.media.seriesId })}</p>
-                    <ChartPanel seriesId={espelho.media.seriesId} />
+                    <ChartPanel
+                      seriesId={espelho.media.seriesId}
+                      urlWs={URL_SERVIDOR}
+                      token={tokenApi}
+                    />
                   </>
                 ) : (
                   <p className="nota">{t('painel.grafico.vazio')}</p>
@@ -642,6 +765,17 @@ export default function App() {
             {vistaMobile ? t('camera.dicaMobile') : t('camera.dica')}
           </span>
         </div>
+        {livePov && (
+          <LivePovModal
+            aberto={livePovAberto}
+            onFechar={() => setLivePovAberto(false)}
+            agentId={livePov.agentId}
+            seriesId={livePov.seriesId}
+            bgUrl={livePov.bgUrl}
+            mode="simulated"
+            t={t}
+          />
+        )}
       </main>
     </div>
   );
@@ -677,6 +811,14 @@ function resolverEspelho(
         id: sel.id,
       }),
       config: t('painel.config.prop', { kind: sel.kind, id: sel.id }),
+      prop,
+    };
+  }
+  if (sel.kind === 'camera') {
+    const prop = layout?.props.find((p) => p.propId === sel.id);
+    return {
+      texto: t('painel.selecao.camera', { id: sel.id }),
+      config: t('painel.config.camera', { id: sel.id }),
       prop,
     };
   }

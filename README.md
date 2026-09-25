@@ -21,6 +21,10 @@ corepack pnpm dev:viewtest  # Viewtest (painter / planta fixa) -> :5175
 
 **Pipeline:** TinyTraderLab (palco/temas/postos) → Viewtest (calibra) → Room (zoom-in, agentes ancorados por `agentId`). Layout nao escala por N salas nem `nClientes`. Zoom base ~1.8 (min ~1.1).
 
+**MT5 foundation:** web terminal do broker nos iframes (`BrokerLink.webTerminalUrl`) + feed OHLCV em `GET /api/market/series/:id` (mock agora; `MARKET_DATA_URL` para HTTP). Landing: passo “vincular terminal” apos a ponte. MetaAPI / login remoto e o proximo ciclo (`provider: metaapi_future`, ADR-0013). Sem ordens reais.
+
+**Live trade POV:** clique na camera Create (`created-cinema-camera-pro`) no Room abre modal ~70% com Klimmos Sit + chrome LIVE (simulado). Lab: Alt+clique / `interativo.acao: live_pov`. WebRTC = slot futuro (ADR-0014).
+
 Qualidade: `pnpm lint` | `pnpm typecheck` | `pnpm test` | `pnpm test:viewtest` | `pnpm test:room` | `pnpm build` (teto 350 linhas em warn ate burndown).
 
 ---

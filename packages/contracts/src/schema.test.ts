@@ -73,6 +73,19 @@ describe('Schema cross-linguagem - domain-event', () => {
     expect(validar(evento)).toBe(false);
   });
 
+  it('valida broker.linked', () => {
+    const evento = {
+      eventId: 'evt-brk',
+      tenantId: 'demo',
+      tsReal: 1700000000000,
+      type: 'broker.linked',
+      linkId: 'lnk-1',
+      brokerName: 'BrokerX',
+      provider: 'web_terminal',
+    };
+    expect(validar(evento)).toBe(true);
+  });
+
   it('rejeita tipo desconhecido', () => {
     const evento = {
       eventId: 'evt-3',

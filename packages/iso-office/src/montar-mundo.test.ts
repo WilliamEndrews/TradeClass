@@ -111,5 +111,6 @@ describe('montarMundoDaPlanta', () => {
     expect(
       mundo.layout.props.some((p) => p.kind === 'desk' && p.ownerAgentId === 'backend-alpha'),
     ).toBe(true);
+    expect(mundo.elenco.some((a) => a.seriesId === 'EURUSD' || a.seriesId === 'XAUUSD' || a.seriesId === 'US500')).toBe(true);
   });
 });

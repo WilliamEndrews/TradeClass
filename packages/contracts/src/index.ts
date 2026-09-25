@@ -15,3 +15,4 @@ export * from './otlp.js';
 export * from './replay.js';
 export * from './tenant.js';
 export * from './agent-desk.js';
+export * from './broker.js';

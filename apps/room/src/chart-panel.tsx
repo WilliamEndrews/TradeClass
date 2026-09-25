@@ -1,23 +1,26 @@
 /**
  * Painel HTML do grafico (lightweight-charts) — overlay ao clicar WallMedia.
- * O preview na parede continua sendo blit offscreen (ohlcv-mock.blitCandles).
+ * Prefere feed REST; cai no mock se offline.
  */
 import { useEffect, useRef } from 'react';
 import { createChart, CandlestickSeries, type IChartApi } from 'lightweight-charts';
-import { gerarSerieOHLCV } from './ohlcv-mock';
+import { aquecerSerie } from './market-cache';
 
 interface Props {
   seriesId: string;
   altura?: number;
+  urlWs?: string;
+  token?: string;
 }
 
-export function ChartPanel({ seriesId, altura = 220 }: Props) {
+export function ChartPanel({ seriesId, altura = 220, urlWs, token }: Props) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
+    let vivo = true;
 
     const chart = createChart(host, {
       width: host.clientWidth || 280,
@@ -40,16 +43,19 @@ export function ChartPanel({ seriesId, altura = 220 }: Props) {
       wickUpColor: '#7dba7a',
       wickDownColor: '#d47868',
     });
-    const dados = gerarSerieOHLCV(seriesId, 80);
-    series.setData(dados.map((c) => ({
-      time: c.time as `${number}-${number}-${number}`,
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-    })));
-    chart.timeScale().fitContent();
     chartRef.current = chart;
+
+    void aquecerSerie(seriesId, urlWs, token, 80).then((dados) => {
+      if (!vivo) return;
+      series.setData(dados.map((c) => ({
+        time: c.time as `${number}-${number}-${number}`,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      })));
+      chart.timeScale().fitContent();
+    });
 
     const ro = new ResizeObserver(() => {
       if (!hostRef.current) return;
@@ -58,11 +64,12 @@ export function ChartPanel({ seriesId, altura = 220 }: Props) {
     ro.observe(host);
 
     return () => {
+      vivo = false;
       ro.disconnect();
       chart.remove();
       chartRef.current = null;
     };
-  }, [seriesId, altura]);
+  }, [seriesId, altura, urlWs, token]);
 
   return <div ref={hostRef} className="chart-panel" style={{ width: '100%', height: altura }} />;
 }

@@ -67,6 +67,12 @@ export {
 } from './montar-sala-landing';
 
 export {
+  seriesIdDaEspecialidade,
+  bindingDaEspecialidade,
+  SPECIALTY_SYMBOLS,
+} from '@tradeclass/contracts';
+
+export {
   montarMundoIso,
   montarMundoDaPlanta,
   ancorarElencoNaPlanta,

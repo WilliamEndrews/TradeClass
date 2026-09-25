@@ -6,10 +6,11 @@ import {
   snippetEventos,
   snippetOtlp,
   urlDemoComToken,
+  vincularTerminal,
   type RespostaPonte,
 } from './api';
 
-export type FaseOnboarding = 'escolher' | 'nova' | 'codigo' | 'ponte';
+export type FaseOnboarding = 'escolher' | 'nova' | 'codigo' | 'ponte' | 'terminal';
 
 type Props = {
   fase: FaseOnboarding;
@@ -21,6 +22,11 @@ type Props = {
 export default function Onboarding({ fase, sessao, onFase, onSessao }: Props) {
   const [nome, setNome] = useState('');
   const [codigo, setCodigo] = useState('');
+  const [contaLabel, setContaLabel] = useState('Mesa principal');
+  const [brokerNome, setBrokerNome] = useState('');
+  const [contaLogin, setContaLogin] = useState('');
+  const [contaServer, setContaServer] = useState('');
+  const [terminalUrl, setTerminalUrl] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [simulando, setSimulando] = useState(false);
@@ -62,6 +68,27 @@ export default function Onboarding({ fase, sessao, onFase, onSessao }: Props) {
       onFase('ponte');
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'codigo nao encontrado');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function vincular(e: FormEvent) {
+    e.preventDefault();
+    if (!sessao) return;
+    setErro(null);
+    setEnviando(true);
+    try {
+      await vincularTerminal(sessao.token, {
+        label: contaLabel.trim() || 'Mesa principal',
+        brokerName: brokerNome.trim() || 'Broker',
+        accountLogin: contaLogin.trim() || undefined,
+        serverName: contaServer.trim() || undefined,
+        webTerminalUrl: terminalUrl.trim(),
+      });
+      window.location.assign(urlDemoComToken(sessao.token));
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : 'falha ao vincular terminal');
     } finally {
       setEnviando(false);
     }
@@ -221,11 +248,89 @@ export default function Onboarding({ fase, sessao, onFase, onSessao }: Props) {
             >
               {simulando ? 'simulando…' : 'Simular agencia'}
             </button>
+            <button type="button" className="onboard-btn" onClick={() => onFase('terminal')}>
+              vincular terminal
+            </button>
             <a className="onboard-btn onboard-btn--link" href={urlDemoComToken(sessao.token)}>
-              entrar no escritorio
+              pular e entrar
             </a>
           </div>
         </>
+      )}
+
+      {fase === 'terminal' && sessao && (
+        <form onSubmit={(e) => void vincular(e)}>
+          <h2 id="onboard-titulo">Vincular terminal</h2>
+          <p className="onboard-lead">
+            Cole a URL https do web terminal do broker. Os iframes do Room
+            passam a mostrar essa tela. Feed de velas vem da API (mock agora).
+          </p>
+          <label className="onboard-label" htmlFor="conta-label">
+            Nome da conta
+          </label>
+          <input
+            id="conta-label"
+            className="onboard-input"
+            value={contaLabel}
+            onChange={(e) => setContaLabel(e.target.value)}
+            required
+          />
+          <label className="onboard-label" htmlFor="broker-nome">
+            Broker
+          </label>
+          <input
+            id="broker-nome"
+            className="onboard-input"
+            value={brokerNome}
+            onChange={(e) => setBrokerNome(e.target.value)}
+            required
+            placeholder="Exness, XM, ..."
+          />
+          <label className="onboard-label" htmlFor="conta-login">
+            Login (rotulo)
+          </label>
+          <input
+            id="conta-login"
+            className="onboard-input"
+            value={contaLogin}
+            onChange={(e) => setContaLogin(e.target.value)}
+            placeholder="12345678"
+          />
+          <label className="onboard-label" htmlFor="conta-server">
+            Servidor
+          </label>
+          <input
+            id="conta-server"
+            className="onboard-input"
+            value={contaServer}
+            onChange={(e) => setContaServer(e.target.value)}
+            placeholder="Broker-Live"
+          />
+          <label className="onboard-label" htmlFor="terminal-url">
+            URL do web terminal
+          </label>
+          <input
+            id="terminal-url"
+            className="onboard-input"
+            type="url"
+            value={terminalUrl}
+            onChange={(e) => setTerminalUrl(e.target.value)}
+            required
+            placeholder="https://…"
+          />
+          {erro && <p className="onboard-erro">{erro}</p>}
+          <div className="onboard-acoes">
+            <button type="button" className="onboard-btn onboard-btn--ghost" onClick={() => onFase('ponte')}>
+              voltar
+            </button>
+            <a className="onboard-btn onboard-btn--link" href={urlDemoComToken(sessao.token)}>
+              pular
+            </a>
+            <button className="onboard-btn" type="submit" disabled={enviando}>
+              {enviando ? 'salvando…' : 'salvar e entrar'}
+            </button>
+          </div>
+        </form>
       )}
     </div>
   );

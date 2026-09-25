@@ -7,6 +7,7 @@
  */
 
 import type { AgentDescriptor, OfficeLayout } from '@tradeclass/contracts';
+import { seriesIdDaEspecialidade } from '@tradeclass/contracts';
 import { BIBLIA_TEMAS } from '@tradeclass/world-engine';
 import { resolverSpecLab } from './proto-blit/catalogo';
 import {
@@ -80,16 +81,25 @@ export function ancorarElencoNaPlanta(
   const out: AgentDescriptor[] = [];
 
   for (const seatId of seats) {
+    const binding = bindings.find((b) => b.agentId === seatId);
+    const serie = binding ? seriesIdDaEspecialidade(binding.specialty) : undefined;
     const direto = byId.get(seatId);
     if (direto) {
-      out.push(direto);
+      out.push({
+        ...direto,
+        specialty: direto.specialty ?? binding?.specialty,
+        seriesId: direto.seriesId ?? serie,
+      });
       usados.add(direto.agentId);
       continue;
     }
-    const binding = bindings.find((b) => b.agentId === seatId);
     const livre = clientes.find((a) => !usados.has(a.agentId));
     if (livre) {
-      out.push(livre);
+      out.push({
+        ...livre,
+        specialty: livre.specialty ?? binding?.specialty,
+        seriesId: livre.seriesId ?? serie,
+      });
       usados.add(livre.agentId);
     } else if (binding) {
       out.push({
@@ -99,6 +109,8 @@ export function ancorarElencoNaPlanta(
         framework: 'unknown',
         discoveredVia: 'manual',
         avatarSeed: hashCurto(binding.agentId),
+        specialty: binding.specialty,
+        seriesId: serie,
       });
     } else {
       out.push({

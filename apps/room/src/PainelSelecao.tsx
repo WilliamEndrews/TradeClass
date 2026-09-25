@@ -3,6 +3,8 @@
  * Equivalente textual obrigatorio (ADR-0009).
  */
 import { useEffect, useRef, useState } from 'react';
+import type { BrokerLinkDto } from './api';
+import { ChartPanel } from './chart-panel';
 import { desenharCandlesOffscreen } from './mock-charts';
 
 export type AbaSelecao = 'config' | 'contas' | 'agente' | 'grafico';
@@ -18,9 +20,20 @@ export type SelecaoCanvas = {
 type Props = {
   selecao: SelecaoCanvas;
   t: (chave: string, vars?: Record<string, string | number>) => string;
+  links?: BrokerLinkDto[];
+  urlWs?: string;
+  token?: string;
+  onAbrirTerminal?: (url: string) => void;
 };
 
-export function PainelSelecao({ selecao, t }: Props) {
+export function PainelSelecao({
+  selecao,
+  t,
+  links = [],
+  urlWs,
+  token,
+  onAbrirTerminal,
+}: Props) {
   const [aba, setAba] = useState<AbaSelecao>('agente');
   const chartRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -32,8 +45,8 @@ export function PainelSelecao({ selecao, t }: Props) {
   }, [selecao]);
 
   useEffect(() => {
-    if (aba !== 'grafico' || !chartRef.current) return;
-    const seriesId = selecao?.seriesId ?? selecao?.id ?? 'XAUUSD';
+    if (aba !== 'grafico' || !chartRef.current || selecao?.seriesId) return;
+    const seriesId = selecao?.id ?? 'XAUUSD';
     const off = desenharCandlesOffscreen(280, 120, seriesId);
     const ctx = chartRef.current.getContext('2d');
     if (!ctx) return;
@@ -81,7 +94,25 @@ export function PainelSelecao({ selecao, t }: Props) {
       </div>
       <div className="tab-painel" role="tabpanel">
         {aba === 'config' && <p className="nota">Preferencias do desk (mock).</p>}
-        {aba === 'contas' && <p className="nota">Contas / brokers vinculados (mock).</p>}
+        {aba === 'contas' && (
+          links.length === 0 ? (
+            <p className="nota">{t('painel.contas.vazio')}</p>
+          ) : (
+            <ul className="kpi-lista">
+              {links.map((l) => (
+                <li key={l.linkId}>
+                  <span>{l.label}</span>
+                  <strong>{l.brokerName}</strong>
+                  {l.webTerminalUrl && onAbrirTerminal && (
+                    <button type="button" onClick={() => onAbrirTerminal(l.webTerminalUrl)}>
+                      {t('painel.contas.abrirPainel')}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )
+        )}
         {aba === 'agente' && (
           <ul className="kpi-lista">
             <li>
@@ -98,7 +129,13 @@ export function PainelSelecao({ selecao, t }: Props) {
             </li>
           </ul>
         )}
-        {aba === 'grafico' && <canvas ref={chartRef} className="chart-preview" aria-label={t('tabs.grafico')} />}
+        {aba === 'grafico' && (
+          selecao.seriesId ? (
+            <ChartPanel seriesId={selecao.seriesId} urlWs={urlWs} token={token} />
+          ) : (
+            <canvas ref={chartRef} className="chart-preview" aria-label={t('tabs.grafico')} />
+          )
+        )}
       </div>
     </section>
   );

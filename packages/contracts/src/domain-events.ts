@@ -49,6 +49,10 @@ export const AgentDescriptor = z.object({
   /** Origem da descoberta - importante para auditoria (ADR-0003). */
   discoveredVia: z.enum(['otel', 'sdk', 'a2a-card', 'mcp', 'manual', 'synthetic']),
   avatarSeed: z.number().int().nonnegative(),
+  /** Especialidade de trading (mesa Lab), quando conhecida. */
+  specialty: z.string().optional(),
+  /** Serie de mercado ancorada no assento (XAUUSD, EURUSD…). */
+  seriesId: z.string().optional(),
 });
 export type AgentDescriptor = z.infer<typeof AgentDescriptor>;
 
@@ -139,6 +143,22 @@ export const QueueObserved = EventBase.extend({
   depth: z.number().int().nonnegative(),
 });
 
+/** Conta / web terminal vinculado ao tenant (stub ate feed live). */
+export const BrokerLinked = EventBase.extend({
+  type: z.literal('broker.linked'),
+  linkId: z.string().min(1),
+  brokerName: z.string().min(1),
+  provider: z.enum(['web_terminal', 'metaapi_future']),
+});
+
+/** Barra de mercado ingerida (stub; renderer ainda consome REST). */
+export const MarketBar = EventBase.extend({
+  type: z.literal('market.bar'),
+  seriesId: z.string().min(1),
+  timeframe: z.string().min(1),
+  close: z.number(),
+});
+
 export const DomainEvent = z.discriminatedUnion('type', [
   AgentDiscovered,
   RunStarted,
@@ -148,6 +168,8 @@ export const DomainEvent = z.discriminatedUnion('type', [
   ErrorRaised,
   ApprovalRequested,
   QueueObserved,
+  BrokerLinked,
+  MarketBar,
 ]);
 export type DomainEvent = z.infer<typeof DomainEvent>;
 export type DomainEventType = DomainEvent['type'];

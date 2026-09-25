@@ -224,7 +224,7 @@ export const WallMedia = z.object({
   cell: Cell,
   /** Tamanho em tiles (w x h) para pick / span ao longo da face. */
   size: Footprint.default({ w: 2, h: 1 }),
-  /** Serie OHLCV mock / futura feed MT5. */
+  /** Serie OHLCV (feed REST / mock; MetaAPI no proximo ciclo). */
   seriesId: z.string().optional(),
   /** URL para iframe/banner/projection. */
   url: z.string().optional(),

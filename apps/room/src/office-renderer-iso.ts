@@ -33,9 +33,27 @@ import {
   CAMERA_ZOOM_MAX,
   CAMERA_ZOOM_MIN,
 } from './camera-zoom';
-import { blitCandles, gerarSerieOHLCV } from './ohlcv-mock';
+import { ehCameraCinema } from './camera-cinema';
+import { blitCandles } from './ohlcv-mock';
+import { candlesDaSerie } from './market-cache';
 import type { SelecaoAlvo } from './selection';
 import type { ViewTransform } from './wall-media-overlay';
+
+const CAMERA_PNG: Record<string, string> = {
+  'created-cinema-camera': '/tradeclass-created/Cinema_Camera.png',
+  'created-cinema-camera-pro': '/tradeclass-created/Cinema_Camera_Pro.png',
+  'created-camera-stand': '/tradeclass-created/Camera_Stand.png',
+};
+
+async function carregarImg(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
 
 export interface RendererHandle {
   push(frame: WorldSnapshot | WorldDelta): void;
@@ -129,7 +147,7 @@ export async function criarRenderer(
       off.height = th;
       const octx = off.getContext('2d');
       if (octx) {
-        blitCandles(octx, gerarSerieOHLCV(wm.seriesId, 32), tw, th);
+        blitCandles(octx, candlesDaSerie(wm.seriesId, 32), tw, th);
         ectx.drawImage(off, cx - tw / 2, cy - th);
       }
     } else {
@@ -138,6 +156,26 @@ export async function criarRenderer(
       ectx.strokeStyle = '#c4a35a';
       ectx.strokeRect(cx - tw / 2, cy - th, tw, th);
     }
+  }
+
+  // Overlay das cameras Create (planta ainda blita projector; pick usa assetId).
+  for (const prop of layout.props) {
+    const src = prop.assetId ? CAMERA_PNG[prop.assetId] : undefined;
+    if (!src) continue;
+    const img = await carregarImg(src);
+    if (!img) continue;
+    const p = iso(prop.cell.x + 0.5, prop.cell.y + 0.5);
+    const escala = 0.55;
+    const dw = img.naturalWidth * escala;
+    const dh = img.naturalHeight * escala;
+    ectx.imageSmoothingEnabled = false;
+    ectx.drawImage(
+      img,
+      cena.origem.x + p.x - dw / 2,
+      cena.origem.y + p.y - dh * 0.85,
+      dw,
+      dh,
+    );
   }
 
   const oclusao = await OclusaoCorredor.preparar(cena, layout.corridors);
@@ -237,13 +275,18 @@ export async function criarRenderer(
     }
 
     for (const prop of layout.props) {
-      if (prop.kind !== 'desk' && prop.kind !== 'board') continue;
+      if (prop.kind !== 'desk' && prop.kind !== 'board' && !ehCameraCinema(prop.assetId)) {
+        continue;
+      }
       const fw = prop.footprint?.w ?? 1;
       const fh = prop.footprint?.h ?? 1;
       if (
         grade.gx >= prop.cell.x && grade.gx < prop.cell.x + fw
         && grade.gy >= prop.cell.y && grade.gy < prop.cell.y + fh
       ) {
+        if (ehCameraCinema(prop.assetId)) {
+          return { kind: 'camera', id: prop.propId };
+        }
         return prop.kind === 'desk'
           ? { kind: 'desk', id: prop.propId }
           : { kind: 'board', id: prop.propId };

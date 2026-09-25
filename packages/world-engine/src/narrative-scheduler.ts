@@ -133,6 +133,9 @@ export class NarrativeScheduler {
       this.track(evento.agent.agentId);
       return;
     }
+    if (evento.type === 'broker.linked' || evento.type === 'market.bar') {
+      return;
+    }
 
     const t = this.track(evento.agentId);
     t.ultimaAtividadeMs = this.agoraMs;
@@ -294,7 +297,7 @@ export class NarrativeScheduler {
 
     const tokensMin = this.tokensRecentes.reduce((s, x) => s + x.tokens, 0);
     const erros = this.errosRecentes.length;
-    // KPIs de trade: mock deterministico ate o feed MT5 entrar.
+    // KPIs de trade: mock ate equity real (proximo ciclo / MetaAPI).
     const pnlSessionUsd = Math.round((activeRuns * 12.5 - erros * 8.3 + tokensMin * 0.002) * 100) / 100;
     const activeSignals = Math.max(0, activeRuns + pendingApprovals);
     const riskScore = Math.min(100, Math.round(erros * 12 + pendingApprovals * 8 + (this.custoUsdHoje / Math.max(1, this.cfg.budgetUsdToday)) * 40));

@@ -581,3 +581,98 @@ h2 {
     order: 1;
   }
 }
+
+/* Live POV modal (~70% viewport) */
+.live-pov-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(4, 8, 6, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4vh 4vw;
+}
+
+.live-pov-modal {
+  width: min(70vw, 960px);
+  height: min(70vh, 640px);
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, #0e1614 0%, #0a100e 100%);
+  border: 1px solid var(--borda);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.live-pov-chrome {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--borda);
+  font-size: 13px;
+}
+
+.live-pov-badge {
+  background: #c23b2e;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+
+.live-pov-ticker {
+  color: var(--teal);
+  font-family: ui-monospace, monospace;
+}
+
+.live-pov-viewers {
+  color: var(--texto-fraco);
+  margin-left: auto;
+}
+
+.live-pov-fechar {
+  background: transparent;
+  border: none;
+  color: var(--texto);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.live-pov-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #04080c;
+}
+
+.live-pov-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.live-pov-soon {
+  color: var(--texto-fraco);
+  padding: 24px;
+}
+
+.live-pov-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--borda);
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+.live-pov-mode {
+  color: var(--acento);
+}

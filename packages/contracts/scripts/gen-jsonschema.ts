@@ -15,6 +15,7 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
 import { DomainEvent, AgentDescriptor } from '../src/domain-events.js';
 import { SpaceProgram, OfficeLayout } from '../src/layout.js';
 import { ClientCommand } from '../src/wire.js';
+import { BrokerLinkSchema, MarketSeriesSnapshotSchema } from '../src/broker.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, '../schema');
@@ -25,6 +26,8 @@ const artefatos = {
   'space-program.schema.json': zodToJsonSchema(SpaceProgram, 'SpaceProgram'),
   'office-layout.schema.json': zodToJsonSchema(OfficeLayout, 'OfficeLayout'),
   'client-command.schema.json': zodToJsonSchema(ClientCommand, 'ClientCommand'),
+  'broker-link.schema.json': zodToJsonSchema(BrokerLinkSchema, 'BrokerLink'),
+  'market-series.schema.json': zodToJsonSchema(MarketSeriesSnapshotSchema, 'MarketSeriesSnapshot'),
 };
 
 mkdirSync(outDir, { recursive: true });

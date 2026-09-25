@@ -64,6 +64,53 @@ export function snippetOtlp(tenantId: string): string {
 }
 
 /** Exemplo minimo de POST /api/events (sem OTLP). */
+export type BrokerLinkDto = {
+  linkId: string;
+  tenantId: string;
+  label: string;
+  brokerName: string;
+  accountLogin?: string;
+  serverName?: string;
+  webTerminalUrl: string;
+  status: 'pending' | 'linked' | 'error';
+  provider: 'web_terminal' | 'metaapi_future';
+};
+
+export async function vincularTerminal(
+  token: string,
+  body: {
+    label: string;
+    brokerName: string;
+    accountLogin?: string;
+    serverName?: string;
+    webTerminalUrl: string;
+  },
+): Promise<BrokerLinkDto> {
+  const res = await fetch(`${API_BASE}/api/broker/links`, {
+    method: 'PUT',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ ...body, provider: 'web_terminal' }),
+  });
+  const raw = await res.text();
+  let parsed: unknown = null;
+  try {
+    parsed = raw ? JSON.parse(raw) : null;
+  } catch {
+    parsed = null;
+  }
+  if (!res.ok) {
+    const erro =
+      parsed && typeof parsed === 'object' && 'error' in parsed
+        ? String((parsed as { error: unknown }).error)
+        : `HTTP ${res.status}`;
+    throw new Error(erro);
+  }
+  return parsed as BrokerLinkDto;
+}
+
 export function snippetEventos(tenantId: string): string {
   return [
     `POST ${API_BASE}/api/events`,

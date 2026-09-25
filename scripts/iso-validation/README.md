@@ -102,8 +102,9 @@ UI atual do laboratorio (2026-09):
    Segure **Shift** ao soltar/arrastar para snap nos quartis (legado).
    Clique no chao vazio **nao** captura grade — so pecas sao selecionaveis.
 4. **Canvas vivo (MVP):** pecas Create com `interativo.acao === "popup"`
-   abrem overlay grande (`#interact-drawer`). Hoje: **Alt+clique** na
-   **Mesa centro metal** → “Teste de design”. Esc / X / backdrop fecham.
+   ou `"live_pov"` abrem overlay (`#interact-drawer`). Hoje: **Alt+clique**
+   na **Mesa centro metal** → “Teste de design”; nas **cameras de cinema**
+   → “Live trade” (POV completo no Room). Esc / X / backdrop fecham.
    Clique simples continua so editando (selecao/arraste).
 5. **Piso, parede e decor empilham** no mesmo slot (um asset novo nao
    substitui o anterior). Arraste a peca selecionada para reposicionar.

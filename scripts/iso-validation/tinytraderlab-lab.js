@@ -199,9 +199,21 @@ function fetchJson(url, fallback) {
     const titulo = document.getElementById('interact-title');
     const corpo = document.getElementById('interact-corpo');
     if (titulo) titulo.textContent = interativo?.titulo || 'Teste de design';
-    if (corpo) corpo.textContent = interativo?.corpo || 'Teste de design';
+    if (corpo) {
+      if (interativo?.acao === 'live_pov') {
+        corpo.textContent =
+          (interativo?.corpo || 'POV da camera de cinema') +
+          ' Abra o Room e clique na camera para o modal de live.';
+      } else {
+        corpo.textContent = interativo?.corpo || 'Teste de design';
+      }
+    }
     drawer.classList.add('open');
     drawer.setAttribute('aria-hidden', 'false');
+  }
+
+  function acaoInterativaAbreOverlay(acao) {
+    return acao === 'popup' || acao === 'live_pov';
   }
 
   function fecharPopupInterativo() {
@@ -3790,7 +3802,7 @@ function fetchJson(url, fallback) {
     // Alt+clique em peca interativa: nao inicia arraste (popup no click).
     if (ev.altKey) {
       const specHit = specPorId(estado.palco[ix].assetId);
-      if (specHit?.interativo?.acao === 'popup') {
+      if (acaoInterativaAbreOverlay(specHit?.interativo?.acao)) {
         paredePecaIx = ix;
         pulouClickPalco = false;
         pintarListaParede();
@@ -3850,7 +3862,7 @@ function fetchJson(url, fallback) {
     } else if (ev.altKey) {
       const ix = pecaPalcoSobPonto(pt.x, pt.y);
       const spec = ix >= 0 ? specPorId(estado.palco[ix].assetId) : null;
-      canvas.style.cursor = spec?.interativo?.acao === 'popup' ? 'pointer' : '';
+      canvas.style.cursor = acaoInterativaAbreOverlay(spec?.interativo?.acao) ? 'pointer' : '';
     } else {
       canvas.style.cursor = '';
     }
@@ -4117,10 +4129,10 @@ function fetchJson(url, fallback) {
     }
     const pt = pontoDoCanvas(canvas, ev);
     const ix = pecaPalcoSobPonto(pt.x, pt.y);
-    // Alt+clique: abre popup em pecas com interativo.acao === 'popup'.
+    // Alt+clique: abre overlay em pecas interativas (popup / live_pov).
     if (ev.altKey && ix >= 0) {
       const spec = specPorId(estado.palco[ix].assetId);
-      if (spec?.interativo?.acao === 'popup') {
+      if (acaoInterativaAbreOverlay(spec?.interativo?.acao)) {
         abrirPopupInterativo(spec.interativo);
         ev.preventDefault();
         return;

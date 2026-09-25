@@ -89,7 +89,12 @@
       "papel": "prop",
       "uso": "aleatorio",
       "origem": "create",
-      "baseAssetId": "office-projector"
+      "baseAssetId": "office-projector",
+      "interativo": {
+        "acao": "live_pov",
+        "titulo": "Live trade",
+        "corpo": "POV da camera de cinema — no Room, o clique abre o modal de live."
+      }
     },
     {
       "assetId": "created-cinema-camera-pro",
@@ -99,7 +104,12 @@
       "papel": "prop",
       "uso": "aleatorio",
       "origem": "create",
-      "baseAssetId": "office-projector"
+      "baseAssetId": "office-projector",
+      "interativo": {
+        "acao": "live_pov",
+        "titulo": "Live trade",
+        "corpo": "POV da camera de cinema — no Room, o clique abre o modal de live."
+      }
     },
     {
       "assetId": "created-camera-stand",

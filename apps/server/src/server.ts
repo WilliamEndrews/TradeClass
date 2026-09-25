@@ -18,6 +18,9 @@
  *   POST /api/public/onboard       - landing: cria tenant (sem x-api-key)
  *   POST /api/public/conectar      - landing: reconecta por tenantId
  *   POST /api/public/simular       - landing: injeta fixture de 3 agentes
+ *   GET  /api/market/series/:id    - OHLCV (mock ou MARKET_DATA_URL)
+ *   GET  /api/broker/links         - contas / web terminal do tenant
+ *   PUT  /api/broker/links         - upsert de BrokerLink
  *   POST /api/events               - ingestao nativa (JSON compacto, sem OTLP)
  *   GET  /health                   - saude do servidor
  *   POST /v1/traces                - receptor OTLP (roteado por tenant)
@@ -54,6 +57,9 @@ import {
 } from './auth.js';
 import { conectarPublico, criarOnboardPublico } from './public-onboard.js';
 import { ingerirEventosPublicos, simularAgenciaPublica } from './eventos-nativos.js';
+import { BrokerStore } from './broker-store.js';
+import { tratarBrokerMarket } from './broker-routes.js';
+import { criarMarketProvider } from './market/index.js';
 
 const PORTA = Number(process.env.TRADECLASS_PORT ?? 8787);
 const HOST = process.env.TRADECLASS_HOST ?? '127.0.0.1';
@@ -66,6 +72,8 @@ const replayStorage = criarReplayStorage();
 const audit = new AuditTrail();
 const alertEngine = new AlertEngine(audit);
 const registry = new TenantRegistry(audit, alertEngine);
+const brokerStore = new BrokerStore();
+const marketProvider = criarMarketProvider();
 
 // --- Tenant demo default (para compatibilidade com a demo existente) ---
 const tenantDemoId = gerarId();
@@ -104,7 +112,7 @@ function broadcastTenant(tenantId: string, mensagem: ServerMessage): void {
 const http = createServer(async (req, res) => {
   res.setHeader('access-control-allow-origin', '*');
   res.setHeader('access-control-allow-headers', 'content-type, authorization, x-api-key, x-tenant-id');
-  res.setHeader('access-control-allow-methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('access-control-allow-methods', 'GET, POST, PUT, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') {
     res.writeHead(204).end();
     return;
@@ -484,6 +492,25 @@ const http = createServer(async (req, res) => {
       }));
       return;
     }
+  }
+
+  const brokerRes = await tratarBrokerMarket({
+    method: req.method ?? 'GET',
+    segments,
+    search: url.searchParams,
+    payload,
+    body: req.method === 'PUT' || req.method === 'POST' ? await lerBody(req) : undefined,
+    store: brokerStore,
+    market: marketProvider,
+  });
+  if (brokerRes) {
+    if (brokerRes.status === 204) {
+      res.writeHead(204).end();
+      return;
+    }
+    res.writeHead(brokerRes.status, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(brokerRes.body));
+    return;
   }
 
   res.writeHead(404, { 'content-type': 'application/json' });

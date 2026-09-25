@@ -1234,6 +1234,11 @@ function main() {
       uso: 'aleatorio',
       origem: 'create',
       baseAssetId: 'office-projector',
+      interativo: {
+        acao: 'live_pov',
+        titulo: 'Live trade',
+        corpo: 'POV da camera de cinema — no Room, o clique abre o modal de live.',
+      },
     });
   }
   if (fs.existsSync(path.join(OUT_DIR, cameraProFile))) {
@@ -1246,6 +1251,11 @@ function main() {
       uso: 'aleatorio',
       origem: 'create',
       baseAssetId: 'office-projector',
+      interativo: {
+        acao: 'live_pov',
+        titulo: 'Live trade',
+        corpo: 'POV da camera de cinema — no Room, o clique abre o modal de live.',
+      },
     });
   }
   assets.push({

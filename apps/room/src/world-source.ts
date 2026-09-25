@@ -39,6 +39,7 @@ import {
   resolverColisaoLab,
 } from '@tradeclass/iso-office';
 import { anexarWallMediaDemo } from './wall-media-demo';
+import { anexarLiveTradeRoom } from './live-trade-room';
 
 /** Passo de simulacao: 10 Hz. Mesmo valor no navegador e no servidor. */
 export const PASSO_MS = 100;
@@ -143,7 +144,7 @@ export function criarFonteLocal(
   const stream = new SyntheticStream(opts);
   // Layout fixo do Lab: N agentes so preenche assentos, nao remonta a grade.
   const mundo = montarMundoDaPlanta(plantaId, seed, stream.agents);
-  const layout = anexarWallMediaDemo(mundo.layout);
+  const layout = anexarLiveTradeRoom(anexarWallMediaDemo(mundo.layout));
   const violacoes = validarLayout(layout);
   const engine = new WorldEngine({
     layout,
@@ -323,7 +324,7 @@ export async function criarFonteRemota(url: string, timeoutMs = 5000): Promise<W
 
   const handshake = await conectar();
 
-  const layout = anexarWallMediaDemo(handshake.snapshot.layout);
+  const layout = anexarLiveTradeRoom(anexarWallMediaDemo(handshake.snapshot.layout));
   // O servidor ja valida o layout antes de servir (e se recusa a subir com um
   // invalido). Revalidar aqui e barato e protege contra versao divergente.
   const violacoes = validarLayout(layout);

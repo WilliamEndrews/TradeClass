@@ -40,7 +40,7 @@ export function anexarWallMediaDemo(layout: OfficeLayout): OfficeLayout {
       r.kind === 'war_room' || r.kind === 'meeting' || r.kind === 'open' || r.kind === 'boss_room',
   );
 
-  const series = ['EURUSD', 'XAUUSD', 'BTC-USD', 'USDJPY'];
+  const series = ['EURUSD', 'XAUUSD', 'BTCUSD', 'USDJPY'];
   for (let i = 0; i < salas.length; i++) {
     const sala = salas[i]!;
     const w = Math.max(1, sala.rect.x1 - sala.rect.x0);

@@ -4,7 +4,9 @@
  */
 
 import type { OfficeLayout, WorldDelta, WorldSnapshot } from '@tradeclass/contracts';
-import { blitCandles, gerarSerieOHLCV } from './ohlcv-mock';
+import { ehCameraCinema } from './camera-cinema';
+import { blitCandles } from './ohlcv-mock';
+import { candlesDaSerie } from './market-cache';
 import type { SelecaoAlvo } from './selection';
 
 export interface RendererHandle {
@@ -73,7 +75,7 @@ export async function criarRendererTopDown(
     off.height = 32;
     const octx = off.getContext('2d');
     if (octx) {
-      blitCandles(octx, gerarSerieOHLCV(wm.seriesId, 24), 64, 32);
+      blitCandles(octx, candlesDaSerie(wm.seriesId, 24), 64, 32);
       previewCache.set(wm.mediaId, off);
     }
   }
@@ -121,10 +123,18 @@ export async function criarRendererTopDown(
     }
 
     for (const p of layout.props) {
-      if (p.kind !== 'desk' && p.kind !== 'board' && p.kind !== 'chair') continue;
+      if (
+        p.kind !== 'desk' &&
+        p.kind !== 'board' &&
+        p.kind !== 'chair' &&
+        !ehCameraCinema(p.assetId)
+      ) {
+        continue;
+      }
       const fw = p.footprint?.w ?? 1;
       const fh = p.footprint?.h ?? 1;
       if (gx >= p.cell.x && gx < p.cell.x + fw && gy >= p.cell.y && gy < p.cell.y + fh) {
+        if (ehCameraCinema(p.assetId)) return { kind: 'camera', id: p.propId };
         if (p.kind === 'desk') return { kind: 'desk', id: p.propId };
         if (p.kind === 'board') return { kind: 'board', id: p.propId };
       }
@@ -215,17 +225,24 @@ export async function criarRendererTopDown(
 
     // Props
     for (const prop of layout.props) {
-      if (prop.kind !== 'desk' && prop.kind !== 'board' && prop.kind !== 'chair') continue;
+      const isCam = ehCameraCinema(prop.assetId);
+      if (prop.kind !== 'desk' && prop.kind !== 'board' && prop.kind !== 'chair' && !isCam) {
+        continue;
+      }
       const fw = (prop.footprint?.w ?? 1) * CELL * zoom;
       const fh = (prop.footprint?.h ?? 1) * CELL * zoom;
       const p = mundoParaTela(prop.cell.x, prop.cell.y);
-      ctx.fillStyle =
-        prop.kind === 'desk' ? CORES.desk
+      ctx.fillStyle = isCam
+        ? '#d47868'
+        : prop.kind === 'desk' ? CORES.desk
         : prop.kind === 'board' ? CORES.board
         : CORES.chair;
       ctx.fillRect(p.x + 2, p.y + 2, fw - 4, fh - 4);
-      const selKind = prop.kind === 'desk' ? 'desk' : prop.kind === 'board' ? 'board' : null;
-      if (selKind && selecionado?.kind === selKind && selecionado.id === prop.propId) {
+      const sel =
+        (isCam && selecionado?.kind === 'camera' && selecionado.id === prop.propId) ||
+        (prop.kind === 'desk' && selecionado?.kind === 'desk' && selecionado.id === prop.propId) ||
+        (prop.kind === 'board' && selecionado?.kind === 'board' && selecionado.id === prop.propId);
+      if (sel) {
         ctx.strokeStyle = CORES.sel;
         ctx.lineWidth = 2;
         ctx.strokeRect(p.x + 1, p.y + 1, fw - 2, fh - 2);
